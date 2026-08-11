@@ -16,9 +16,16 @@ app.post("/api/stripe/webhook",express.raw({type:"application/json"}),stripeWebh
 const port=process.env.PORT || 5000
 app.use(express.json())
 app.use(cookieParser())
-app.use(cors({
+/*app.use(cors({
     origin:"https://websitebuilder-1-4evc.onrender.com",
     credentials:true
+}))*/
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "https://websitebuilder-1-4evc.onrender.com"
+    ],
+    credentials: true
 }))
 app.use("/api/auth",authRouter)
 app.use("/api/user",userRouter)
