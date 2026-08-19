@@ -9,8 +9,14 @@ import { setUserData } from '../redux/userSlice'
 function LoginModal({ open, onClose }) {
 const dispatch=useDispatch()
     const handleGoogleAuth=async ()=>{
-        try {
-            const result=await signInWithPopup(auth,provider)
+        
+            try {
+    provider.setCustomParameters({
+        prompt: "select_account"
+    })
+
+            const result = await signInWithPopup(auth, provider)
+            
             const {data}=await axios.post(`${serverUrl}/api/auth/google`,{
                 name:result.user.displayName,
                 email:result.user.email,
@@ -111,4 +117,4 @@ const dispatch=useDispatch()
     )
 }
 
-export default LoginModal
+export default LoginModal 

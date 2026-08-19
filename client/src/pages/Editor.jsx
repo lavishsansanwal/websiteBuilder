@@ -30,22 +30,71 @@ function WebsiteEditor() {
         "Finalizing update…",
     ]
     const handleUpdate = async () => {
-        if (!prompt) return
-        setUpdateLoading(true)
-        const text = prompt
-        setPrompt("")
-        setMessages((m) => [...m, { role: "user", content: prompt }])
-        try {
-            const result = await axios.post(`${serverUrl}/api/website/update/${id}`, { prompt: text }, { withCredentials: true })
-            console.log(result)
-            setUpdateLoading(false)
-            setMessages((m) => [...m, { role: "ai", content: result.data.message }])
-            setCode(result.data.code)
-        } catch (error) {
-            setUpdateLoading(false)
-            console.log(error)
+    if (!prompt.trim()) return;
+
+    setUpdateLoading(true);
+
+    const text = prompt;
+    setPrompt("");
+
+    setMessages((m) => [
+        ...m,
+        {
+            role: "user",
+            content: text
         }
+    ]);
+
+    try {
+        const result = await axios.post(
+            `${serverUrl}/api/website/update/${id}`,
+            {
+                prompt: text
+            },
+            {
+                withCredentials: true
+            }
+        );
+
+        console.log("UPDATE SUCCESS:", result.data);
+
+        setMessages((m) => [
+            ...m,
+            {
+                role: "ai",
+                content: result.data.message
+            }
+        ]);
+
+        setCode(result.data.code);
+
+    } catch (error) {
+        console.error("UPDATE ERROR:", error);
+
+        console.error(
+            "STATUS:",
+            error.response?.status
+        );
+
+        console.error(
+            "BACKEND RESPONSE:",
+            error.response?.data
+        );
+
+        setMessages((m) => [
+            ...m,
+            {
+                role: "ai",
+                content:
+                    error.response?.data?.message ||
+                    "Something went wrong while updating the website."
+            }
+        ]);
+
+    } finally {
+        setUpdateLoading(false);
     }
+}
 
     const handleDeploy = async () => {
             try {
