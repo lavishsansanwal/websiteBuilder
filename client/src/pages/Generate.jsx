@@ -1,1233 +1,463 @@
 import React, { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
     ArrowLeft,
-    ChevronDown,
-    Upload,
-    FileJson,
     Sun,
     Moon,
-    X
+    Sparkles,
+    Globe,
+    LayoutDashboard,
+    Rocket,
+    Wand2,
+    CheckCircle2,
+    Zap,
+    Layers
 } from "lucide-react";
 import axios from "axios";
-import {
-    useNavigate,
-    useSearchParams
-} from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { serverUrl } from "../App";
 
-
 const PHASES = [
-    "Analyzing your idea…",
-    "Designing layout & structure…",
-    "Writing HTML & CSS…",
-    "Adding animations & interactions…",
-    "Final quality checks…"
+    "Analyzing your vision & business model…",
+    "Selecting layout, typography & design system…",
+    "Writing responsive HTML5 & modern CSS…",
+    "Implementing Chart.js, cart & interactive JavaScript…",
+    "Curating high-resolution Unsplash imagery…",
+    "Final quality & responsive polish…",
 ];
 
+const TYPE_OPTIONS = [
+    {
+        id: "auto",
+        label: "Auto Detect",
+        icon: Wand2,
+        desc: "AI selects optimal layout from your prompt",
+        color: "from-amber-500/20 to-orange-500/20",
+        border: "border-amber-500/30",
+        activeText: "text-amber-400"
+    },
+    {
+        id: "website",
+        label: "Full Website",
+        icon: Globe,
+        desc: "Multi-section site with store/services & navigation",
+        color: "from-indigo-500/20 to-purple-500/20",
+        border: "border-indigo-500/30",
+        activeText: "text-indigo-400"
+    },
+    {
+        id: "dashboard",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        desc: "Analytics, KPI cards, Chart.js graphs & data tables",
+        color: "from-cyan-500/20 to-blue-500/20",
+        border: "border-cyan-500/30",
+        activeText: "text-cyan-400"
+    },
+    {
+        id: "landing",
+        label: "Landing Page",
+        icon: Rocket,
+        desc: "High-converting SaaS/product page with pricing & FAQ",
+        color: "from-emerald-500/20 to-teal-500/20",
+        border: "border-emerald-500/30",
+        activeText: "text-emerald-400"
+    },
+];
+
+const INSPIRATION_PROMPTS = {
+    website: [
+        "Create a modern premium E-Commerce store for high-end audio gadgets (Headphones, Smartwatches, Speakers) with category filter tabs, high-res images, star ratings, and a working shopping cart drawer with checkout modal.",
+        "Create a luxury boutique coffee roastery and bakery website with an artisan menu, story section, customer reviews, online ordering cart, and contact booking modal.",
+        "Create an elite modern digital design and engineering agency portfolio with interactive project showcases, pricing packages, team bios, and consultation form.",
+        "Create a high-end wellness resort and spa website with room booking, treatment packages, customer testimonials, and interactive photo gallery."
+    ],
+    dashboard: [
+        "Create a SaaS revenue and customer subscription analytics dashboard with monthly revenue line chart, customer acquisition doughnut chart, 4 KPI metric cards, and a searchable transactions data table with status badges.",
+        "Create an e-commerce store admin dashboard with daily sales trends, top performing products table, stock inventory status, recent orders list, and sidebar navigation.",
+        "Create a crypto and fintech investment portfolio tracker dashboard with real-time asset allocation pie chart, market trends graph, and recent buy/sell transaction history.",
+        "Create a customer support helpdesk dashboard with ticket volume bar charts, agent performance metrics, resolution time counters, and priority queue data table."
+    ],
+    landing: [
+        "Create a high-converting AI Copilot productivity SaaS landing page with glowing gradient hero, interactive product mockup, 3-step demo, monthly/yearly pricing switcher (20% off), interactive FAQ accordion, and email trial capture.",
+        "Create a next-generation mobile banking & fintech app landing page with interactive feature bento grid, security compliance badges, customer reviews slider, and app store download CTAs.",
+        "Create a modern developer platform & cloud infrastructure landing page with interactive code preview, latency comparison chart, enterprise pricing tiers, and developer documentation CTA.",
+        "Create an eco-friendly smart home energy management landing page with energy savings calculator, hardware showcase, customer testimonials, and pre-order waitlist."
+    ],
+    auto: [
+        "Create an e-commerce website for modern streetwear and sneakers with working cart and search filter.",
+        "Build a SaaS executive metrics and analytics dashboard with interactive charts and KPI cards.",
+        "Create a high-converting landing page for an AI video generation tool with pricing and interactive FAQ.",
+        "Build a restaurant website for an Italian bistro with food menu, customer reviews, and reservation modal."
+    ]
+};
 
 function Generate() {
-
     const navigate = useNavigate();
-
     const [searchParams] = useSearchParams();
-
-    const pageType =
-        searchParams.get("type") || "website";
-
 
     // ==========================================
     // STATES
     // ==========================================
+    const [selectedType, setSelectedType] = useState(() => {
+        const urlType = searchParams.get("type")?.toLowerCase();
+        if (["website", "dashboard", "landing", "auto"].includes(urlType)) {
+            return urlType;
+        }
+        return "auto";
+    });
 
-    const [prompt, setPrompt] = useState("");
+    const [prompt, setPrompt] = useState(() => {
+        return searchParams.get("prompt") || "";
+    });
 
     const [loading, setLoading] = useState(false);
-
     const [progress, setProgress] = useState(0);
-
     const [phaseIndex, setPhaseIndex] = useState(0);
-
     const [error, setError] = useState("");
-
-    const [showDashboardMenu, setShowDashboardMenu] =
-        useState(false);
-
-    const [showPasteJson, setShowPasteJson] =
-        useState(false);
-
-    const [jsonData, setJsonData] = useState("");
-
     const [darkMode, setDarkMode] = useState(true);
 
-
     // ==========================================
-    // LOAD SAVED THEME
+    // LOAD & APPLY THEME
     // ==========================================
-
     useEffect(() => {
-
-        const savedTheme =
-            localStorage.getItem("theme");
-
-        if (savedTheme === "light") {
-            setDarkMode(false);
-        } else {
-            setDarkMode(true);
-        }
-
+        const savedTheme = localStorage.getItem("theme");
+        setDarkMode(savedTheme !== "light");
     }, []);
 
-
-    // ==========================================
-    // APPLY THEME
-    // ==========================================
-
     useEffect(() => {
-
-        localStorage.setItem(
-            "theme",
-            darkMode ? "dark" : "light"
-        );
-
-        document.documentElement.style.setProperty(
-            "--bg-color",
-            darkMode
-                ? "#040404"
-                : "#f8fafc"
-        );
-
-        document.documentElement.style.setProperty(
-            "--text-color",
-            darkMode
-                ? "#ffffff"
-                : "#111827"
-        );
-
-        document.documentElement.style.setProperty(
-            "--nav-bg",
-            darkMode
-                ? "rgba(0,0,0,0.55)"
-                : "rgba(255,255,255,0.80)"
-        );
-
-        document.documentElement.style.setProperty(
-            "--border-color",
-            darkMode
-                ? "rgba(255,255,255,0.10)"
-                : "rgba(0,0,0,0.10)"
-        );
-
-        document.documentElement.style.setProperty(
-            "--card-bg",
-            darkMode
-                ? "rgba(255,255,255,0.05)"
-                : "rgba(255,255,255,0.90)"
-        );
-
-        document.documentElement.style.setProperty(
-            "--muted-color",
-            darkMode
-                ? "#a1a1aa"
-                : "#6b7280"
-        );
-
+        localStorage.setItem("theme", darkMode ? "dark" : "light");
     }, [darkMode]);
 
+    // Update state if URL search parameters change
+    useEffect(() => {
+        const urlType = searchParams.get("type")?.toLowerCase();
+        if (urlType && ["website", "dashboard", "landing", "auto"].includes(urlType)) {
+            setSelectedType(urlType);
+        }
+        const urlPrompt = searchParams.get("prompt");
+        if (urlPrompt) {
+            setPrompt(urlPrompt);
+        }
+    }, [searchParams]);
 
     // ==========================================
-    // GENERATE WEBSITE
+    // PROGRESS BAR SIMULATION
     // ==========================================
+    useEffect(() => {
+        if (!loading) return;
 
+        let value = 0;
+        const interval = setInterval(() => {
+            const increment = value < 30 ? Math.random() * 2.5 + 1.5 : value < 75 ? Math.random() * 1.5 + 0.8 : Math.random() * 0.4 + 0.1;
+            value += increment;
+            if (value >= 94) value = 94;
+
+            const phase = Math.min(Math.floor((value / 100) * PHASES.length), PHASES.length - 1);
+            setProgress(Math.floor(value));
+            setPhaseIndex(phase);
+        }, 800);
+
+        return () => clearInterval(interval);
+    }, [loading]);
+
+    // ==========================================
+    // GENERATE HANDLER
+    // ==========================================
     const handleGenerateWebsite = async () => {
-
         if (!prompt.trim()) {
-            setError(
-                pageType === "landing"
-                    ? "Please describe your landing page."
-                    : pageType === "dashboard"
-                        ? "Please describe your dashboard."
-                        : "Please describe your website."
-            );
-
+            setError("Please describe what you want to build.");
             return;
         }
 
-
         setLoading(true);
-
-        setProgress(0);
-
+        setProgress(5);
         setPhaseIndex(0);
-
         setError("");
 
-
         try {
-
-            const finalPrompt =
-                jsonData.trim()
-                    ? `${prompt}
-
-USER PROVIDED JSON DATA:
-
-${jsonData}
-
-IMPORTANT:
-Use the provided JSON data as the actual source of truth.
-Do not invent replacement records.
-Display all provided records appropriately.`
-                    : prompt;
-
-
             const result = await axios.post(
                 `${serverUrl}/api/website/generate`,
                 {
-                    prompt: finalPrompt,
-                    pageType
+                    prompt: prompt.trim(),
+                    pageType: selectedType,
                 },
                 {
                     withCredentials: true,
-                    timeout: 600000
+                    timeout: 600000,
                 }
             );
 
-
-            console.log(
-                "Website generated:",
-                result.data
-            );
-
-
+            console.log("Generation Success:", result.data);
             setProgress(100);
-
-            setPhaseIndex(
-                PHASES.length - 1
-            );
-
+            setPhaseIndex(PHASES.length - 1);
 
             setTimeout(() => {
-
                 setLoading(false);
-
-                navigate(
-                    `/editor/${result.data.website._id}`
-                );
-
-            }, 500);
-
-
-        } catch (error) {
-
-            console.log(
-                "Generate website error:",
-                error
-            );
-
+                if (result.data?.website?._id) {
+                    navigate(`/editor/${result.data.website._id}`);
+                } else {
+                    setError("Generation completed, but website ID was not received.");
+                }
+            }, 600);
+        } catch (err) {
+            console.error("Generate error:", err);
             setLoading(false);
-
             setProgress(0);
-
             setError(
-                error.response?.data?.message ||
-                "Something went wrong while generating the website."
+                err.response?.data?.message ||
+                err.message ||
+                "Something went wrong while generating. Please try again."
             );
-
         }
-
     };
 
-
-    // ==========================================
-    // PROGRESS BAR
-    // ==========================================
-
-    useEffect(() => {
-
-        if (!loading) {
-
-            setPhaseIndex(0);
-
-            setProgress(0);
-
-            return;
-
-        }
-
-
-        let value = 0;
-
-
-        const interval = setInterval(() => {
-
-            const increment =
-                value < 20
-                    ? Math.random() * 1.5
-                    : value < 60
-                        ? Math.random() * 1.2
-                        : Math.random() * 0.6;
-
-
-            value += increment;
-
-
-            // Never go above 93%
-            // until backend actually finishes
-
-            if (value >= 93) {
-                value = 93;
-            }
-
-
-            const phase = Math.min(
-                Math.floor(
-                    (value / 100) *
-                    PHASES.length
-                ),
-                PHASES.length - 1
-            );
-
-
-            setProgress(
-                Math.floor(value)
-            );
-
-            setPhaseIndex(
-                phase
-            );
-
-
-        }, 1200);
-
-
-        return () =>
-            clearInterval(interval);
-
-
-    }, [loading]);
-
-
-    // ==========================================
-    // PAGE TITLE
-    // ==========================================
-
-    const getPageTitle = () => {
-
-        if (pageType === "landing") {
-            return "Landing Pages";
-        }
-
-        if (pageType === "dashboard") {
-            return "Dashboards";
-        }
-
-        return "Websites";
-    };
-
-
-    // ==========================================
-    // DESCRIPTION TITLE
-    // ==========================================
-
-    const getDescriptionTitle = () => {
-
-        if (pageType === "landing") {
-            return "Describe your landing page";
-        }
-
-        if (pageType === "dashboard") {
-            return "Describe your dashboard";
-        }
-
-        return "Describe your website";
-    };
-
-
-    // ==========================================
-    // PLACEHOLDER
-    // ==========================================
-
-    const getPlaceholder = () => {
-
-        if (pageType === "landing") {
-
-            return "Describe your landing page in detail...";
-
-        }
-
-        if (pageType === "dashboard") {
-
-            return "Describe your dashboard, metrics, charts, users, statistics, tables, etc...";
-
-        }
-
-        return "Describe your website in detail...";
-
-    };
-
-
-    // ==========================================
-    // PASTE JSON
-    // ==========================================
-
-    const handlePasteJson = () => {
-
-        setShowPasteJson(true);
-
-        setShowDashboardMenu(false);
-
-    };
-
-
-    // ==========================================
-    // USE JSON DATA
-    // ==========================================
-
-    const handleUseJson = () => {
-
-        if (!jsonData.trim()) {
-            return;
-        }
-
-
-        try {
-
-            JSON.parse(jsonData);
-
-            setShowPasteJson(false);
-
-            setError("");
-
-        } catch (error) {
-
-            setError(
-                "Invalid JSON. Please check your JSON format."
-            );
-
-        }
-
-    };
-
-
-    // ==========================================
-    // UPLOAD FILE
-    // ==========================================
-
-    const handleUploadClick = () => {
-
-        setShowDashboardMenu(false);
-
-        navigate("/upload");
-
-    };
-
+    const currentInspirations = INSPIRATION_PROMPTS[selectedType] || INSPIRATION_PROMPTS.auto;
 
     return (
-
         <div
             className={`min-h-screen transition-colors duration-300 ${
-                darkMode
-                    ? "bg-[#040404] text-white"
-                    : "bg-slate-50 text-slate-900"
+                darkMode ? "bg-[#05070d] text-white" : "bg-slate-50 text-slate-900"
             }`}
         >
-
-
-            {/* ==========================================
-                NAVBAR
-            ========================================== */}
-
-            <div
+            {/* NAVBAR */}
+            <header
                 className={`sticky top-0 z-40 backdrop-blur-xl border-b transition-colors duration-300 ${
-                    darkMode
-                        ? "bg-black/50 border-white/10"
-                        : "bg-white/80 border-slate-200"
+                    darkMode ? "bg-[#05070d]/80 border-white/10" : "bg-white/80 border-slate-200"
                 }`}
             >
-
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-
-
-                    {/* LEFT */}
-
                     <div className="flex items-center gap-4">
-
                         <button
-                            className={`p-2 rounded-lg transition ${
-                                darkMode
-                                    ? "hover:bg-white/10"
-                                    : "hover:bg-black/5"
+                            className={`p-2 rounded-xl transition ${
+                                darkMode ? "hover:bg-white/10 text-zinc-300" : "hover:bg-slate-200 text-slate-700"
                             }`}
-                            onClick={() =>
-                                navigate("/")
-                            }
+                            onClick={() => navigate("/dashboard")}
+                            title="Back to Dashboard"
                         >
-
-                            <ArrowLeft size={17} />
-
+                            <ArrowLeft size={18} />
                         </button>
-
-
-                        <h1 className="text-lg font-semibold">
-
-                            GenWeb
-                            <span
-                                className={
-                                    darkMode
-                                        ? "text-zinc-400"
-                                        : "text-slate-500"
-                                }
-                            >
-                                .ai
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                                <Sparkles size={16} className="text-white" />
+                            </div>
+                            <span className="font-bold text-lg tracking-tight">
+                                GenWeb<span className="text-indigo-400">.ai</span>
                             </span>
-
-                        </h1>
-
+                        </div>
                     </div>
 
-
-                    {/* RIGHT */}
-
-                    <button
-                        onClick={() =>
-                            setDarkMode(
-                                !darkMode
-                            )
-                        }
-                        className={`p-2.5 rounded-xl border transition ${
-                            darkMode
-                                ? "border-white/10 bg-white/5 hover:bg-white/10"
-                                : "border-slate-200 bg-white hover:bg-slate-100"
-                        }`}
-                        title={
-                            darkMode
-                                ? "Switch to light mode"
-                                : "Switch to dark mode"
-                        }
-                    >
-
-                        {darkMode ? (
-                            <Sun
-                                size={18}
-                                className="text-yellow-400"
-                            />
-                        ) : (
-                            <Moon
-                                size={18}
-                                className="text-slate-700"
-                            />
-                        )}
-
-                    </button>
-
-                </div>
-
-            </div>
-
-
-            {/* ==========================================
-                MAIN
-            ========================================== */}
-
-            <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">
-
-
-                {/* ==========================================
-                    NAVIGATION BUTTONS
-                ========================================== */}
-
-                <div className="flex flex-wrap justify-center gap-3 mb-12">
-
-
-                    {/* LANDING PAGE */}
-
-                    <button
-                        onClick={() =>
-                            navigate(
-                                "/generate?type=landing"
-                            )
-                        }
-                        className={`px-5 py-3 rounded-xl font-semibold text-sm border transition ${
-                            pageType === "landing"
-                                ? darkMode
-                                    ? "bg-white text-black border-white"
-                                    : "bg-slate-900 text-white border-slate-900"
-                                : darkMode
-                                    ? "bg-white/10 text-white border-white/10 hover:bg-white/20"
-                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
-                    >
-
-                        Landing Page
-
-                    </button>
-
-
-                    {/* DASHBOARD */}
-
-                    <div className="relative">
-
+                    <div className="flex items-center gap-3">
                         <button
-                            onClick={() =>
-                                setShowDashboardMenu(
-                                    !showDashboardMenu
-                                )
-                            }
-                            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm border transition ${
-                                pageType === "dashboard"
-                                    ? darkMode
-                                        ? "bg-white text-black border-white"
-                                        : "bg-slate-900 text-white border-slate-900"
-                                    : darkMode
-                                        ? "bg-white/10 text-white border-white/10 hover:bg-white/20"
-                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            onClick={() => setDarkMode(!darkMode)}
+                            className={`p-2.5 rounded-xl border transition ${
+                                darkMode
+                                    ? "border-white/10 bg-white/5 hover:bg-white/10 text-yellow-400"
+                                    : "border-slate-200 bg-white hover:bg-slate-100 text-slate-700 shadow-sm"
                             }`}
+                            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
                         >
-
-                            Dashboard
-
-                            <ChevronDown
-                                size={16}
-                            />
-
+                            {darkMode ? <Sun size={17} /> : <Moon size={17} />}
                         </button>
-
-
-                        {/* DASHBOARD MENU */}
-
-                        {showDashboardMenu && (
-
-                            <motion.div
-                                initial={{
-                                    opacity: 0,
-                                    y: -5,
-                                    scale: 0.98
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                    y: 0,
-                                    scale: 1
-                                }}
-                                className={`absolute top-full left-0 mt-2 w-64 rounded-2xl border shadow-2xl overflow-hidden z-50 ${
-                                    darkMode
-                                        ? "bg-[#111111] border-white/10"
-                                        : "bg-white border-slate-200"
-                                }`}
-                            >
-
-
-                                {/* DESCRIBE DASHBOARD */}
-
-                                <button
-                                    onClick={() => {
-
-                                        setShowDashboardMenu(
-                                            false
-                                        );
-
-                                        navigate(
-                                            "/generate?type=dashboard"
-                                        );
-
-                                    }}
-                                    className={`w-full text-left px-5 py-4 text-sm transition ${
-                                        darkMode
-                                            ? "text-white hover:bg-white/10"
-                                            : "text-slate-800 hover:bg-slate-100"
-                                    }`}
-                                >
-
-                                    <div className="font-semibold">
-                                        Describe Dashboard
-                                    </div>
-
-                                    <div
-                                        className={`text-xs mt-1 ${
-                                            darkMode
-                                                ? "text-zinc-500"
-                                                : "text-slate-500"
-                                        }`}
-                                    >
-                                        Generate an AI dashboard
-                                    </div>
-
-                                </button>
-
-
-                                {/* UPLOAD */}
-
-                                <button
-                                    onClick={
-                                        handleUploadClick
-                                    }
-                                    className={`w-full text-left px-5 py-4 text-sm border-t transition ${
-                                        darkMode
-                                            ? "text-white border-white/10 hover:bg-white/10"
-                                            : "text-slate-800 border-slate-100 hover:bg-slate-100"
-                                    }`}
-                                >
-
-                                    <div className="flex items-center gap-3">
-
-                                        <Upload
-                                            size={17}
-                                        />
-
-                                        <div>
-
-                                            <div className="font-semibold">
-                                                Upload Data / Files
-                                            </div>
-
-                                            <div
-                                                className={`text-xs mt-1 ${
-                                                    darkMode
-                                                        ? "text-zinc-500"
-                                                        : "text-slate-500"
-                                                }`}
-                                            >
-                                                CSV, JSON and data files
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-                                </button>
-
-
-                                {/* PASTE JSON */}
-
-                                <button
-                                    onClick={
-                                        handlePasteJson
-                                    }
-                                    className={`w-full text-left px-5 py-4 text-sm border-t transition ${
-                                        darkMode
-                                            ? "text-white border-white/10 hover:bg-white/10"
-                                            : "text-slate-800 border-slate-100 hover:bg-slate-100"
-                                    }`}
-                                >
-
-                                    <div className="flex items-center gap-3">
-
-                                        <FileJson
-                                            size={17}
-                                        />
-
-                                        <div>
-
-                                            <div className="font-semibold">
-                                                Paste JSON Data
-                                            </div>
-
-                                            <div
-                                                className={`text-xs mt-1 ${
-                                                    darkMode
-                                                        ? "text-zinc-500"
-                                                        : "text-slate-500"
-                                                }`}
-                                            >
-                                                Add JSON directly
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-                                </button>
-
-                            </motion.div>
-
-                        )}
-
                     </div>
+                </div>
+            </header>
 
-
-                    {/* WEBSITE */}
-
-                    <button
-                        onClick={() =>
-                            navigate(
-                                "/generate?type=website"
-                            )
-                        }
-                        className={`px-5 py-3 rounded-xl font-semibold text-sm border transition ${
-                            pageType === "website"
-                                ? darkMode
-                                    ? "bg-white text-black border-white"
-                                    : "bg-slate-900 text-white border-slate-900"
-                                : darkMode
-                                    ? "bg-white/10 text-white border-white/10 hover:bg-white/20"
-                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                        }`}
+            {/* MAIN CONTENT */}
+            <main className="max-w-5xl mx-auto px-6 py-10 md:py-14">
+                {/* HEADER TITLE */}
+                <div className="text-center mb-10">
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-4"
                     >
+                        <Zap size={13} />
+                        <span>Next-Gen AI Website & App Engine</span>
+                    </motion.div>
 
-                        Website
-
-                    </button>
-
+                    <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
+                        What would you like to build?
+                    </h1>
+                    <p className={`max-w-2xl mx-auto text-sm md:text-base ${darkMode ? "text-zinc-400" : "text-slate-600"}`}>
+                        Describe your concept in natural language. Our AI will architect a responsive, feature-rich website, dashboard, or landing page with real images and interactive functionality.
+                    </p>
                 </div>
 
-
-                {/* ==========================================
-                    HERO
-                ========================================== */}
-
-                <motion.div
-                    initial={{
-                        opacity: 0,
-                        y: 30
-                    }}
-                    animate={{
-                        opacity: 1,
-                        y: 0
-                    }}
-                    className="text-center mb-14"
-                >
-
-                    <h1 className="text-4xl md:text-5xl font-bold mb-5 leading-tight">
-
-                        Build{" "}
-
-                        {getPageTitle()}
-
-                        <span
-                            className={`block bg-clip-text text-transparent ${
-                                darkMode
-                                    ? "bg-gradient-to-r from-white to-zinc-400"
-                                    : "bg-gradient-to-r from-slate-900 to-slate-500"
-                            }`}
-                        >
-
-                            with Real AI Power
-
+                {/* TYPE SELECTOR TABS */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className={`text-xs font-semibold uppercase tracking-wider ${darkMode ? "text-zinc-400" : "text-slate-500"}`}>
+                            1. Select Layout Type
                         </span>
+                    </div>
 
-                    </h1>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {TYPE_OPTIONS.map((item) => {
+                            const Icon = item.icon;
+                            const isSelected = selectedType === item.id;
+                            return (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => setSelectedType(item.id)}
+                                    className={`relative p-4 rounded-2xl border text-left transition-all duration-200 ${
+                                        isSelected
+                                            ? `${item.border} ${darkMode ? "bg-white/[0.08]" : "bg-indigo-50/70"} shadow-md scale-[1.02]`
+                                            : `${darkMode ? "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]" : "border-slate-200 bg-white hover:bg-slate-50"}`
+                                    }`}
+                                >
+                                    {isSelected && (
+                                        <div className="absolute top-3 right-3 text-indigo-400">
+                                            <CheckCircle2 size={16} />
+                                        </div>
+                                    )}
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br ${item.color}`}>
+                                        <Icon size={18} className={isSelected ? item.activeText : "text-zinc-300"} />
+                                    </div>
+                                    <h3 className="font-semibold text-sm mb-1">{item.label}</h3>
+                                    <p className={`text-xs leading-relaxed ${darkMode ? "text-zinc-400" : "text-slate-500"}`}>
+                                        {item.desc}
+                                    </p>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
 
-
-                    <p
-                        className={`max-w-2xl mx-auto ${
-                            darkMode
-                                ? "text-zinc-400"
-                                : "text-slate-500"
-                        }`}
-                    >
-
-                        Describe what you want to build and
-                        let GenWeb.ai create a modern,
-                        responsive website for you.
-
-                    </p>
-
-                </motion.div>
-
-
-                {/* ==========================================
-                    PROMPT AREA
-                ========================================== */}
-
-                <div className="mb-10">
-
-
-                    <h2 className="text-xl font-semibold mb-3">
-
-                        {getDescriptionTitle()}
-
-                    </h2>
-
+                {/* PROMPT TEXTAREA */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className={`text-xs font-semibold uppercase tracking-wider ${darkMode ? "text-zinc-400" : "text-slate-500"}`}>
+                            2. Describe your requirements
+                        </span>
+                        <span className={`text-xs ${darkMode ? "text-zinc-500" : "text-slate-400"}`}>
+                            Include theme, features, pages & target audience
+                        </span>
+                    </div>
 
                     <div className="relative">
-
-
                         <textarea
                             value={prompt}
-                            onChange={(e) =>
-                                setPrompt(
-                                    e.target.value
-                                )
-                            }
+                            onChange={(e) => {
+                                setPrompt(e.target.value);
+                                setError("");
+                            }}
                             placeholder={
-                                getPlaceholder()
+                                selectedType === "dashboard"
+                                    ? "e.g. Create an executive SaaS analytics dashboard with revenue charts, customer KPI cards, transactions table with search filter, and dark glass theme..."
+                                    : selectedType === "landing"
+                                    ? "e.g. Create a high-converting landing page for an AI productivity tool with interactive demo, monthly/yearly pricing toggle, customer testimonials, and FAQ..."
+                                    : "e.g. Create a modern e-commerce website for luxury headphones and smartwatches with category filter, add-to-cart drawer, checkout modal, and contact form..."
                             }
                             disabled={loading}
-                            className={`w-full h-56 p-6 rounded-3xl border outline-none resize-none text-sm leading-relaxed transition ${
+                            rows={6}
+                            className={`w-full p-5 rounded-2xl border outline-none text-sm md:text-base leading-relaxed transition-all resize-none ${
                                 darkMode
-                                    ? "bg-black/60 border-white/10 text-white placeholder:text-zinc-600 focus:ring-2 focus:ring-white/20"
-                                    : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-300"
+                                    ? "bg-white/[0.04] border-white/10 text-white placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10"
+                                    : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 shadow-sm"
                             }`}
                         />
-
-
-                        {/* JSON INDICATOR */}
-
-                        {jsonData && (
-
-                            <div className={`absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs ${
-                                darkMode
-                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                    : "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                            }`}>
-
-                                <FileJson
-                                    size={14}
-                                />
-
-                                JSON data attached
-
-                                <button
-                                    onClick={() =>
-                                        setJsonData("")
-                                    }
-                                    className="hover:opacity-70"
-                                >
-
-                                    <X
-                                        size={13}
-                                    />
-
-                                </button>
-
-                            </div>
-
-                        )}
-
                     </div>
 
-
-                    {/* ERROR */}
-
                     {error && (
-
-                        <p className="mt-4 text-sm text-red-400">
+                        <div className="mt-3 p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm">
                             {error}
-                        </p>
-
+                        </div>
                     )}
-
                 </div>
 
+                {/* INSPIRATION PROMPTS */}
+                <div className="mb-10">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Sparkles size={14} className="text-indigo-400" />
+                        <span className={`text-xs font-semibold uppercase tracking-wider ${darkMode ? "text-zinc-400" : "text-slate-500"}`}>
+                            Example Prompts (Click to Use)
+                        </span>
+                    </div>
 
-                {/* ==========================================
-                    GENERATE BUTTON
-                ========================================== */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        {currentInspirations.map((sample, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                    setPrompt(sample);
+                                    setError("");
+                                }}
+                                className={`text-left p-3 rounded-xl border text-xs leading-relaxed transition ${
+                                    darkMode
+                                        ? "border-white/5 bg-white/[0.02] hover:bg-white/[0.06] text-zinc-300 hover:text-white hover:border-white/20"
+                                        : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300 shadow-sm"
+                                }`}
+                            >
+                                <span className="text-indigo-400 font-semibold mr-1.5">✦</span>
+                                {sample}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-                <div className="flex justify-center">
-
+                {/* GENERATE BUTTON */}
+                <div className="flex flex-col items-center">
                     <motion.button
-                        whileHover={
-                            !loading
-                                ? {
-                                    scale: 1.05
-                                }
-                                : {}
-                        }
-                        whileTap={
-                            !loading
-                                ? {
-                                    scale: 0.96
-                                }
-                                : {}
-                        }
-                        onClick={
-                            handleGenerateWebsite
-                        }
-                        disabled={
-                            !prompt.trim() ||
-                            loading
-                        }
-                        className={`px-12 md:px-14 py-4 rounded-2xl font-semibold text-lg transition ${
-                            prompt.trim() &&
-                            !loading
-                                ? darkMode
-                                    ? "bg-white text-black hover:bg-zinc-200"
-                                    : "bg-slate-900 text-white hover:bg-slate-800"
+                        whileHover={!loading ? { scale: 1.02 } : {}}
+                        whileTap={!loading ? { scale: 0.98 } : {}}
+                        onClick={handleGenerateWebsite}
+                        disabled={!prompt.trim() || loading}
+                        className={`w-full md:w-auto min-w-[280px] px-8 py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition shadow-xl ${
+                            prompt.trim() && !loading
+                                ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white shadow-indigo-500/25 cursor-pointer"
                                 : darkMode
-                                    ? "bg-white/20 text-zinc-500 cursor-not-allowed"
-                                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                ? "bg-white/10 text-zinc-500 cursor-not-allowed border border-white/5"
+                                : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         }`}
                     >
-
-                        {loading
-                            ? "Generating..."
-                            : pageType === "landing"
-                                ? "Generate Landing Page"
-                                : pageType === "dashboard"
-                                    ? "Generate Dashboard"
-                                    : "Generate Website"}
-
+                        <Sparkles size={18} />
+                        {loading ? "Architecting your website…" : "Generate with AI (50 Credits)"}
                     </motion.button>
-
                 </div>
 
-
-                {/* ==========================================
-                    PROGRESS BAR
-                ========================================== */}
-
-                {loading && (
-
-                    <motion.div
-                        initial={{
-                            opacity: 0
-                        }}
-                        animate={{
-                            opacity: 1
-                        }}
-                        className="max-w-xl mx-auto mt-12"
-                    >
-
-
-                        <div className="flex justify-between mb-2 text-xs">
-
-                            <span
-                                className={
-                                    darkMode
-                                        ? "text-zinc-400"
-                                        : "text-slate-500"
-                                }
-                            >
-
-                                {PHASES[phaseIndex]}
-
-                            </span>
-
-                            <span
-                                className={
-                                    darkMode
-                                        ? "text-zinc-400"
-                                        : "text-slate-500"
-                                }
-                            >
-
-                                {progress}%
-
-                            </span>
-
-                        </div>
-
-
-                        <div
-                            className={`h-2 w-full rounded-full overflow-hidden ${
-                                darkMode
-                                    ? "bg-white/10"
-                                    : "bg-slate-200"
+                {/* PROGRESS MODAL / OVERLAY */}
+                <AnimatePresence>
+                    {loading && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className={`mt-10 p-6 rounded-3xl border ${
+                                darkMode ? "bg-white/[0.04] border-white/10" : "bg-white border-slate-200 shadow-xl"
                             }`}
                         >
-
-                            <motion.div
-                                className={
-                                    darkMode
-                                        ? "h-full bg-gradient-to-r from-white to-zinc-300"
-                                        : "h-full bg-gradient-to-r from-slate-700 to-slate-400"
-                                }
-                                animate={{
-                                    width: `${progress}%`
-                                }}
-                                transition={{
-                                    ease: "easeOut",
-                                    duration: 0.8
-                                }}
-                            />
-
-                        </div>
-
-
-                        <div
-                            className={`text-center text-xs mt-4 ${
-                                darkMode
-                                    ? "text-zinc-400"
-                                    : "text-slate-500"
-                            }`}
-                        >
-
-                            Estimated time remaining:{" "}
-
-                            <span
-                                className={
-                                    darkMode
-                                        ? "text-white font-medium"
-                                        : "text-slate-900 font-medium"
-                                }
-                            >
-
-                                ~8–12 minutes
-
-                            </span>
-
-                        </div>
-
-                    </motion.div>
-
-                )}
-
-            </div>
-
-
-            {/* ==========================================
-                PASTE JSON MODAL
-            ========================================== */}
-
-            {showPasteJson && (
-
-                <div className="fixed inset-0 z-[100] flex items-center justify-center px-5 bg-black/60 backdrop-blur-sm">
-
-
-                    <motion.div
-                        initial={{
-                            opacity: 0,
-                            scale: 0.95,
-                            y: 20
-                        }}
-                        animate={{
-                            opacity: 1,
-                            scale: 1,
-                            y: 0
-                        }}
-                        className={`w-full max-w-2xl rounded-3xl border shadow-2xl p-6 ${
-                            darkMode
-                                ? "bg-[#111111] border-white/10"
-                                : "bg-white border-slate-200"
-                        }`}
-                    >
-
-
-                        <div className="flex items-center justify-between mb-5">
-
-                            <div>
-
-                                <div className="flex items-center gap-2">
-
-                                    <FileJson
-                                        size={20}
-                                        className="text-indigo-400"
-                                    />
-
-                                    <h2 className="text-xl font-semibold">
-
-                                        Paste JSON Data
-
-                                    </h2>
-
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                                    <span className="font-semibold text-sm">
+                                        {PHASES[phaseIndex]}
+                                    </span>
                                 </div>
-
-                                <p
-                                    className={`text-sm mt-1 ${
-                                        darkMode
-                                            ? "text-zinc-500"
-                                            : "text-slate-500"
-                                    }`}
-                                >
-
-                                    Add your JSON data to use it
-                                    while generating the website.
-
-                                </p>
-
+                                <span className="text-sm font-bold text-indigo-400">
+                                    {progress}%
+                                </span>
                             </div>
 
+                            <div className={`h-2.5 w-full rounded-full overflow-hidden ${darkMode ? "bg-white/10" : "bg-slate-200"}`}>
+                                <motion.div
+                                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full"
+                                    animate={{ width: `${progress}%` }}
+                                    transition={{ ease: "easeOut", duration: 0.6 }}
+                                />
+                            </div>
 
-                            <button
-                                onClick={() =>
-                                    setShowPasteJson(
-                                        false
-                                    )
-                                }
-                                className={`p-2 rounded-lg ${
-                                    darkMode
-                                        ? "hover:bg-white/10"
-                                        : "hover:bg-slate-100"
-                                }`}
-                            >
-
-                                <X size={18} />
-
-                            </button>
-
-                        </div>
-
-
-                        <textarea
-                            value={jsonData}
-                            onChange={(e) =>
-                                setJsonData(
-                                    e.target.value
-                                )
-                            }
-                            placeholder={`[
-  {
-    "name": "Product One",
-    "price": 99,
-    "category": "Technology"
-  },
-  {
-    "name": "Product Two",
-    "price": 149,
-    "category": "Technology"
-  }
-]`}
-                            className={`w-full h-72 p-5 rounded-2xl border outline-none resize-none font-mono text-sm ${
-                                darkMode
-                                    ? "bg-black/50 border-white/10 text-white placeholder:text-zinc-700"
-                                    : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400"
-                            }`}
-                        />
-
-
-                        <div className="flex justify-end gap-3 mt-5">
-
-                            <button
-                                onClick={() =>
-                                    setShowPasteJson(
-                                        false
-                                    )
-                                }
-                                className={`px-5 py-2.5 rounded-xl text-sm font-medium ${
-                                    darkMode
-                                        ? "bg-white/10 hover:bg-white/20"
-                                        : "bg-slate-100 hover:bg-slate-200"
-                                }`}
-                            >
-
-                                Cancel
-
-                            </button>
-
-
-                            <button
-                                onClick={
-                                    handleUseJson
-                                }
-                                disabled={
-                                    !jsonData.trim()
-                                }
-                                className={`px-5 py-2.5 rounded-xl text-sm font-semibold ${
-                                    jsonData.trim()
-                                        ? darkMode
-                                            ? "bg-white text-black"
-                                            : "bg-slate-900 text-white"
-                                        : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                                }`}
-                            >
-
-                                Use JSON Data
-
-                            </button>
-
-                        </div>
-
-                    </motion.div>
-
-                </div>
-
-            )}
-
+                            <p className={`text-xs text-center mt-4 ${darkMode ? "text-zinc-500" : "text-slate-400"}`}>
+                                Synthesizing layout, CSS styling, high-res Unsplash imagery, and interactive scripts. Please keep this tab open.
+                            </p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </main>
         </div>
-
     );
-
 }
-
 
 export default Generate;

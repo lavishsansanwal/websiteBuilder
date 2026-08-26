@@ -33,7 +33,14 @@ app.use("/api/website",websiteRouter)
 app.use("/api/billing",billingRouter)
 
 
-app.listen(port,()=>{
-    console.log("server started")
-    connectDb()
-})
+app.listen(port, () => {
+    console.log(`Server started on port ${port}`);
+    connectDb();
+});
+// Backend reload: 100% clean HTML5 generator active
+
+
+
+
+
+

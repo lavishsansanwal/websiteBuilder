@@ -22,6 +22,10 @@ const dispatch=useDispatch()
                 email:result.user.email,
                 avatar:result.user.photoURL
             },{withCredentials:true})
+            try {
+                localStorage.setItem("genweb_user", JSON.stringify(data));
+                localStorage.setItem("user", JSON.stringify(data));
+            } catch (e) {}
             dispatch(setUserData(data))
             onClose()
         } catch (error) {

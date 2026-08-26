@@ -1,93 +1,123 @@
-import React from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
-import Home from './pages/Home'
-import useGetCurrentUser from './hooks/useGetCurrentUser'
-import { useSelector } from 'react-redux'
-import Dashboard from './pages/Dashboard'
-import Generate from './pages/Generate'
-import WebsiteEditor from './pages/Editor'
-import LiveSite from './pages/LiveSite'
-import Pricing from './pages/Pricing'
-import Workbench from './pages/Workbench'
-import Upload from "./pages/Upload"
+import React from "react";
+import {
+    BrowserRouter,
+    Navigate,
+    Route,
+    Routes
+} from "react-router-dom";
 
-export const serverUrl = "http://localhost:8000"
+import Home from "./pages/Home";
+import useGetCurrentUser from "./hooks/useGetCurrentUser";
+import { useSelector } from "react-redux";
+
+import Dashboard from "./pages/Dashboard";
+import Generate from "./pages/Generate";
+import WebsiteEditor from "./pages/Editor";
+import LiveSite from "./pages/LiveSite";
+import Pricing from "./pages/Pricing";
+import Workbench from "./pages/Workbench";
+import Upload from "./pages/Upload";
+
+export const serverUrl = "http://localhost:8000";
 
 function App() {
-    useGetCurrentUser()
+    useGetCurrentUser();
 
-    const { userData } = useSelector(state => state.user)
+    const { userData } = useSelector(
+        (state) => state.user
+    );
 
     return (
         <BrowserRouter>
             <Routes>
 
-                {/* Home */}
+                {/* HOME */}
                 <Route
-                    path='/'
+                    path="/"
                     element={<Home />}
                 />
 
-                {/* Login */}
-                {
-                    userData &&
-                    <Route
-                        path='/login'
-                        element={<Navigate to="/dashboard" />}
-                    />
-                }
-
-                {/* Dashboard */}
+                {/* LOGIN REDIRECT */}
                 <Route
-                    path='/dashboard'
-                    element={userData ? <Dashboard /> : <Home />}
+                    path="/login"
+                    element={
+                        userData
+                            ? <Navigate to="/dashboard" replace />
+                            : <Home />
+                    }
                 />
 
-                {/* AI Website Generation */}
+                {/* DASHBOARD */}
                 <Route
-                    path='/generate'
-                    element={userData ? <Generate /> : <Home />}
+                    path="/dashboard"
+                    element={
+                        userData
+                            ? <Dashboard />
+                            : <Home />
+                    }
                 />
 
-                {/* CSV / JSON Upload */}
+                {/* GENERATE WEBSITE */}
                 <Route
-                    path='/upload'
-                    element={userData ? <Upload /> : <Home />}
+                    path="/generate"
+                    element={
+                        userData
+                            ? <Generate />
+                            : <Home />
+                    }
                 />
 
-                {/* Website Editor */}
+                {/* UPLOAD CSV / JSON */}
                 <Route
-                    path='/editor/:id'
-                    element={userData ? <WebsiteEditor /> : <Home />}
+                    path="/upload"
+                    element={
+                        userData
+                            ? <Upload />
+                            : <Home />
+                    }
                 />
 
-                {/* Workbench */}
+                {/* WEBSITE EDITOR */}
                 <Route
-                    path='/workbench'
-                    element={userData ? <Workbench /> : <Home />}
+                    path="/editor/:id"
+                    element={
+                        userData
+                            ? <WebsiteEditor />
+                            : <Home />
+                    }
                 />
 
-                {/* Live Website */}
+                {/* WORKBENCH */}
                 <Route
-                    path='/site/:id'
+                    path="/workbench"
+                    element={
+                        userData
+                            ? <Workbench />
+                            : <Home />
+                    }
+                />
+
+                {/* LIVE WEBSITE */}
+                <Route
+                    path="/site/:id"
                     element={<LiveSite />}
                 />
 
-                {/* Pricing */}
+                {/* PRICING */}
                 <Route
-                    path='/pricing'
+                    path="/pricing"
                     element={<Pricing />}
                 />
 
-                {/* Invalid URL */}
+                {/* INVALID ROUTES */}
                 <Route
-                    path='*'
-                    element={<Navigate to="/" />}
+                    path="*"
+                    element={<Navigate to="/" replace />}
                 />
 
             </Routes>
         </BrowserRouter>
-    )
+    );
 }
 
-export default App
+export default App;

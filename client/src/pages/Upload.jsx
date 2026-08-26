@@ -14,6 +14,7 @@ function Upload() {
 
     const [uploadedFile, setUploadedFile] = useState(null);
     const [prompt, setPrompt] = useState("");
+    const [pageType, setPageType] = useState("dashboard");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -80,135 +81,78 @@ function Upload() {
     // ==========================================
 
     const readFile = (file) => {
-
         return new Promise((resolve, reject) => {
-
             const reader = new FileReader();
 
             reader.onload = (event) => {
-
                 try {
-
                     const text = event.target.result;
 
-
-                    // ==================================
                     // JSON FILE
-                    // ==================================
-
-                    if (
-                        file.name
-                            .toLowerCase()
-                            .endsWith(".json")
-                    ) {
-
-                        const jsonData =
-                            JSON.parse(text);
-
+                    if (file.name.toLowerCase().endsWith(".json")) {
+                        const jsonData = JSON.parse(text);
                         resolve(jsonData);
-
-                    }
-
-
-                    // ==================================
+                    } 
                     // CSV FILE
-                    // ==================================
-
                     else {
-
-                        const lines =
-                            text
-                                .trim()
-                                .split(/\r?\n/);
-
+                        const lines = text
+                            .trim()
+                            .split(/\r?\n/)
+                            .filter(l => l.trim().length > 0);
 
                         if (lines.length < 2) {
-
-                            reject(
-                                new Error(
-                                    "CSV file does not contain enough data."
-                                )
-                            );
-
+                            reject(new Error("CSV file does not contain enough data."));
                             return;
                         }
 
+                        // Robust CSV line parser handling quotes
+                        const parseCSVLine = (line) => {
+                            const result = [];
+                            let cur = '';
+                            let inQuotes = false;
+                            for (let i = 0; i < line.length; i++) {
+                                const char = line[i];
+                                if (char === '"' || char === "'") {
+                                    inQuotes = !inQuotes;
+                                } else if (char === ',' && !inQuotes) {
+                                    result.push(cur.trim().replace(/^["']|["']$/g, '').trim());
+                                    cur = '';
+                                } else {
+                                    cur += char;
+                                }
+                            }
+                            result.push(cur.trim().replace(/^["']|["']$/g, '').trim());
+                            return result;
+                        };
 
                         // First row = headers
-                        const headers =
-                            lines[0]
-                                .split(",")
-                                .map(
-                                    header =>
-                                        header.trim()
-                                );
-
+                        const headers = parseCSVLine(lines[0]);
 
                         // Remaining rows = data
-                        const rows =
-                            lines
-                                .slice(1)
-                                .map(line => {
-
-                                    const values =
-                                        line
-                                            .split(",")
-                                            .map(
-                                                value =>
-                                                    value.trim()
-                                            );
-
-
-                                    const row = {};
-
-
-                                    headers.forEach(
-                                        (
-                                            header,
-                                            index
-                                        ) => {
-
-                                            row[header] =
-                                                values[index] ||
-                                                "";
-
-                                        }
-                                    );
-
-
-                                    return row;
-
-                                });
-
+                        const rows = lines.slice(1).map(line => {
+                            const values = parseCSVLine(line);
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                if (header) {
+                                    row[header] = values[index] !== undefined ? values[index] : "";
+                                }
+                            });
+                            return row;
+                        });
 
                         resolve(rows);
-
                     }
-
                 } catch (error) {
-
                     reject(error);
-
                 }
-
             };
-
 
             reader.onerror = () => {
-
-                reject(
-                    new Error(
-                        "Unable to read the file."
-                    )
-                );
-
+                reject(new Error("Unable to read the file."));
             };
 
-
             reader.readAsText(file);
-
         });
-
     };
 
 
@@ -300,31 +244,19 @@ function Upload() {
 
             const result =
                 await axios.post(
-
                     `${serverUrl}/api/website/generate`,
-
                     {
-
                         prompt:
-                            "Create a modern website using the uploaded data.",
-
-                        pageType:
-                            "website",
-
+                            prompt.trim() || `Create a professional ${pageType} with the uploaded data.`,
+                        pageType: pageType,
                         uploadedData
-
                     },
-
                     {
-
                         withCredentials:
                             true,
-
                         timeout:
                             600000
-
                     }
-
                 );
 
 
@@ -526,12 +458,11 @@ function Upload() {
                     </h1>
 
 
-                    <p className="text-zinc-400 mb-10">
-
+                    <p className="text-zinc-400 mb-6">
                         Upload a CSV or JSON file or paste
-                        JSON data to generate a website with AI.
-
+                        JSON data to generate a custom digital experience with AI.
                     </p>
+
 
 
                     {/* ==================================
@@ -716,11 +647,10 @@ Example:
 
                                 disabled={loading}
 
-                                className={`mt-8 px-10 py-4 rounded-xl font-semibold text-lg transition ${
-                                    loading
+                                className={`mt-8 px-10 py-4 rounded-xl font-semibold text-lg transition ${loading
                                         ? "bg-white/20 text-zinc-400 cursor-not-allowed"
                                         : "bg-white text-black hover:scale-105"
-                                }`}
+                                    }`}
 
                             >
 

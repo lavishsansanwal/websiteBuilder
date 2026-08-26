@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ÉLAN — Modern Luxury Fashion</title>
+
+    <style>
+        :root {
+            --primary: #111111;
+            --accent: #b08d57;
+            --background: #f7f5f1;
+            --surface: #ffffff;
+            --text-primary: #111111;
+            --text-secondary: #666666;
+            --border: #e5e2dc;
+            --success: #2f7d4b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button {
+            font: inherit;
+            cursor: pointer;
+        }
+
+        /* NAVBAR */
+
+        .navbar {
+            height: 78px;
+            padding: 0 6%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(247, 245, 241, 0.95);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+            transition: 0.25s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            position: relative;
+            font-size: 1rem;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -10px;
+            right: -12px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            font-size: 0.7rem;
+            display: grid;
+            place-items: center;
+        }
+
+        .menu-btn {
+            display: none;
+            border: none;
+            background: transparent;
+            font-size: 1.4rem;
+        }
+
+        /* HERO */
+
+        .hero {
+            min-height: 680px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            padding: 70px 6%;
+            gap: 60px;
+        }
+
+        .hero-content span {
+            color: var(--accent);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+        }
+
+        .hero-content h1 {
+            font-size: clamp(3.5rem, 7vw, 7rem);
+            line-height: 0.95;
+            margin: 22px 0;
+            letter-spacing: -3px;
+        }
+
+        .hero-content p {
+            max-width: 540px;
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            margin-bottom: 35px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: 1px solid var(--primary);
+            padding: 15px 27px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.25s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            background: #333;
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .hero-visual {
+            min-height: 560px;
+            overflow: hidden;
+            position: relative;
+            background:
+                linear-gradient(
+                    rgba(0, 0, 0, 0.05),
+                    rgba(0, 0, 0, 0.15)
+                ),
+                url("https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80")
+                center/cover;
+        }
+
+        .hero-label {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            background: rgba(255,255,255,0.92);
+            padding: 15px 20px;
+            max-width: 230px;
+        }
+
+        .hero-label strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .hero-label p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* TRUST */
+
+        .trust {
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 25px 6%;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* SECTION */
+
+        section {
+            padding: 100px 6%;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 30px;
+            margin-bottom: 45px;
+        }
+
+        .eyebrow {
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2rem, 4vw, 4rem);
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .section-header p {
+            max-width: 430px;
+            color: var(--text-secondary);
+        }
+
+        /* COLLECTIONS */
+
+        .collections {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .collection-card {
+            min-height: 430px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: end;
+            padding: 30px;
+            color: white;
+            background-size: cover;
+            background-position: center;
+            transition: transform 0.3s;
+        }
+
+        .collection-card:hover {
+            transform: translateY(-6px);
+        }
+
+        .collection-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                transparent,
+                rgba(0,0,0,0.75)
+            );
+        }
+
+        .collection-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .collection-content h3 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .collection-1 {
+            background-image:
+                url("https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80");
+        }
+
+        .collection-2 {
+            background-image:
+                url("https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80");
+        }
+
+        .collection-3 {
+            background-image:
+                url("https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=900&q=80");
+        }
+
+        /* PRODUCTS */
+
+        .product-toolbar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            padding: 10px 18px;
+            transition: 0.2s;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 22px;
+        }
+
+        .product-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            transition: 0.25s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.08);
+        }
+
+        .product-image {
+            aspect-ratio: 3 / 4;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .product-tag {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: white;
+            color: var(--primary);
+            padding: 6px 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .product-info {
+            padding: 20px;
+        }
+
+        .product-category {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .product-info h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .product-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .price {
+            font-weight: 700;
+        }
+
+        .add-cart {
+            border: none;
+            background: var(--primary);
+            color: white;
+            padding: 9px 13px;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+
+        .add-cart:hover {
+            background: var(--accent);
+        }
+
+        /* STORY */
+
+        .story {
+            background: var(--primary);
+            color: white;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 70px;
+            align-items: center;
+        }
+
+        .story-image {
+            min-height: 500px;
+            background:
+                url("https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=80")
+                center/cover;
+        }
+
+        .story-content .eyebrow {
+            color: var(--accent);
+        }
+
+        .story-content h2 {
+            font-size: clamp(2.5rem, 5vw, 5rem);
+            line-height: 1;
+            margin-bottom: 25px;
+        }
+
+        .story-content p {
+            color: #bcbcbc;
+            max-width: 500px;
+            margin-bottom: 28px;
+        }
+
+        .story-content .btn-outline {
+            color: white;
+            border-color: #555;
+        }
+
+        .story-content .btn-outline:hover {
+            background: white;
+            color: black;
+        }
+
+        /* NEWSLETTER */
+
+        .newsletter {
+            text-align: center;
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .newsletter h2 {
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+        }
+
+        .newsletter p {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .newsletter-form {
+            display: flex;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .newsletter-form input {
+            flex: 1;
+            padding: 16px;
+            border: 1px solid var(--border);
+            background: white;
+            outline: none;
+        }
+
+        .newsletter-form button {
+            padding: 16px 25px;
+            border: 1px solid var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        /* FOOTER */
+
+        footer {
+            background: var(--primary);
+            color: white;
+            padding: 70px 6% 30px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr repeat(3, 1fr);
+            gap: 50px;
+            margin-bottom: 60px;
+        }
+
+        .footer-brand p {
+            color: #aaa;
+            max-width: 300px;
+            margin-top: 18px;
+        }
+
+        .footer-column h4 {
+            margin-bottom: 18px;
+        }
+
+        .footer-column a {
+            display: block;
+            color: #aaa;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 900px) {
+            .hero,
+            .story {
+                grid-template-columns: 1fr;
+            }
+
+            .collections {
+                grid-template-columns: 1fr;
+            }
+
+            .products {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 78px;
+                left: 0;
+                width: 100%;
+                background: var(--background);
+                flex-direction: column;
+                padding: 25px 6%;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .menu-btn {
+                display: block;
+            }
+
+            .hero {
+                padding-top: 50px;
+            }
+
+            .hero-visual {
+                min-height: 420px;
+            }
+
+            .products {
+                grid-template-columns: 1fr;
+            }
+
+            .section-header {
+                display: block;
+            }
+
+            .section-header p {
+                margin-top: 20px;
+            }
+
+            .newsletter-form {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="navbar">
+        <a href="#home" class="logo">ÉLAN</a>
+
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#collections">Collections</a></li>
+            <li><a href="#shop">Shop</a></li>
+            <li><a href="#story">Our Story</a></li>
+            <li><a href="#newsletter">Journal</a></li>
+        </ul>
+
+        <div class="nav-actions">
+            <button class="icon-btn" aria-label="Search">⌕</button>
+
+            <button class="icon-btn" aria-label="Shopping cart">
+                Bag
+                <span class="cart-count" id="cartCount">0</span>
+            </button>
+
+            <button
+                class="menu-btn"
+                id="menuBtn"
+                aria-label="Open menu"
+            >
+                ☰
+            </button>
+        </div>
+    </header>
+
+    <main>
+
+        <section class="hero" id="home">
+            <div class="hero-content">
+                <span>THE NEW COLLECTION — 2026</span>
+
+                <h1>Dress the way you want to be remembered.</h1>
+
+                <p>
+                    Modern essentials, elevated tailoring and timeless
+                    silhouettes designed for a wardrobe that moves with you.
+                </p>
+
+                <div class="hero-buttons">
+                    <a href="#shop" class="btn btn-primary">
+                        Shop New Arrivals
+                    </a>
+
+                    <a href="#collections" class="btn btn-outline">
+                        Explore Collections
+                    </a>
+                </div>
+            </div>
+
+            <div class="hero-visual">
+                <div class="hero-label">
+                    <strong>Autumn / Winter 2026</strong>
+                    <p>Defined by contrast, crafted for longevity.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="trust">
+            <span>FREE SHIPPING ON ORDERS OVER $150</span>
+            <span>COMPLIMENTARY RETURNS WITHIN 30 DAYS</span>
+            <span>DESIGNED FOR A LASTING WARDROBE</span>
+        </div>
+
+        <section id="collections">
+            <div class="section-header">
+                <div>
+                    <div class="eyebrow">Curated for you</div>
+                    <h2>Explore the collection.</h2>
+                </div>
+
+                <p>
+                    A refined selection of modern silhouettes, designed to
+                    move effortlessly between everyday life and extraordinary
+                    moments.
+                </p>
+            </div>
+
+            <div class="collections">
+                <a href="#shop" class="collection-card collection-1">
+                    <div class="collection-content">
+                        <h3>Women</h3>
+                        <p>Modern essentials with timeless character.</p>
+                    </div>
+                </a>
+
+                <a href="#shop" class="collection-card collection-2">
+                    <div class="collection-content">
+                        <h3>New Season</h3>
+                        <p>Discover the latest arrivals.</p>
+                    </div>
+                </a>
+
+                <a href="#shop" class="collection-card collection-3">
+                    <div class="collection-content">
+                        <h3>Men</h3>
+                        <p>Refined tailoring for everyday confidence.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section id="shop">
+            <div class="section-header">
+                <div>
+                    <div class="eyebrow">Selected pieces</div>
+                    <h2>New arrivals.</h2>
+                </div>
+
+                <p>
+                    Thoughtfully selected pieces for a refined, modern
+                    wardrobe.
+                </p>
+            </div>
+
+            <div class="product-toolbar">
+                <button class="filter-btn active" data-filter="all">
+                    All
+                </button>
+
+                <button class="filter-btn" data-filter="women">
+                    Women
+                </button>
+
+                <button class="filter-btn" data-filter="men">
+                    Men
+                </button>
+
+                <button class="filter-btn" data-filter="accessories">
+                    Accessories
+                </button>
+            </div>
+
+            <div class="products">
+
+                <article class="product-card" data-category="women">
+                    <div
+                        class="product-image"
+                        style="background-image:url('https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=80')"
+                    >
+                        <span class="product-tag">NEW</span>
+                    </div>
+
+                    <div class="product-info">
+                        <div class="product-category">Women</div>
+                        <h3>Structured Wool Coat</h3>
+
+                        <div class="product-bottom">
+                            <span class="price">$420</span>
+
+                            <button
+                                class="add-cart"
+                                data-product="Structured Wool Coat"
+                            >
+                                Add to Bag
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="product-card" data-category="women">
+                    <div
+                        class="product-image"
+                        style="background-image:url('https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=800&q=80')"
+                    ></div>
+
+                    <div class="product-info">
+                        <div class="product-category">Women</div>
+                        <h3>Silk Evening Dress</h3>
+
+                        <div class="product-bottom">
+                            <span class="price">$340</span>
+
+                            <button
+                                class="add-cart"
+                                data-product="Silk Evening Dress"
+                            >
+                                Add to Bag
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="product-card" data-category="men">
+                    <div
+                        class="product-image"
+                        style="background-image:url('https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80')"
+                    >
+                        <span class="product-tag">BESTSELLER</span>
+                    </div>
+
+                    <div class="product-info">
+                        <div class="product-category">Men</div>
+                        <h3>Modern Tailored Blazer</h3>
+
+                        <div class="product-bottom">
+                            <span class="price">$390</span>
+
+                            <button
+                                class="add-cart"
+                                data-product="Modern Tailored Blazer"
+                            >
+                                Add to Bag
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="product-card" data-category="accessories">
+                    <div
+                        class="product-image"
+                        style="background-image:url('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80')"
+                    ></div>
+
+                    <div class="product-info">
+                        <div class="product-category">Accessories</div>
+                        <h3>Italian Leather Bag</h3>
+
+                        <div class="product-bottom">
+                            <span class="price">$280</span>
+
+                            <button
+                                class="add-cart"
+                                data-product="Italian Leather Bag"
+                            >
+                                Add to Bag
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+        <section class="story" id="story">
+            <div class="story-image"></div>
+
+            <div class="story-content">
+                <div class="eyebrow">The ÉLAN philosophy</div>
+
+                <h2>Designed to outlive the season.</h2>
+
+                <p>
+                    We believe exceptional design does not need to shout.
+                    Every ÉLAN piece is created with a focus on proportion,
+                    material and longevity.
+                </p>
+
+                <p>
+                    A quieter approach to fashion — designed for the people
+                    who define their own style.
+                </p>
+
+                <a href="#newsletter" class="btn btn-outline">
+                    Discover Our Story
+                </a>
+            </div>
+        </section>
+
+        <section id="newsletter">
+            <div class="newsletter">
+                <div class="eyebrow">Stay inspired</div>
+
+                <h2>The ÉLAN journal.</h2>
+
+                <p>
+                    New collections, design stories and early access to
+                    limited releases — delivered occasionally.
+                </p>
+
+                <form class="newsletter-form" id="newsletterForm">
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Your email address"
+                        required
+                    >
+
+                    <button type="submit">
+                        Subscribe
+                    </button>
+                </form>
+
+                <p
+                    id="newsletterMessage"
+                    style="margin-top:15px"
+                ></p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="footer-grid">
+
+            <div class="footer-brand">
+                <div class="logo">ÉLAN</div>
+
+                <p>
+                    Modern luxury designed for everyday expression.
+                </p>
+            </div>
+
+            <div class="footer-column">
+                <h4>Shop</h4>
+
+                <a href="#shop">New Arrivals</a>
+                <a href="#shop">Women</a>
+                <a href="#shop">Men</a>
+                <a href="#shop">Accessories</a>
+            </div>
+
+            <div class="footer-column">
+                <h4>About</h4>
+
+                <a href="#story">Our Story</a>
+                <a href="#collections">Collections</a>
+                <a href="#newsletter">Journal</a>
+            </div>
+
+            <div class="footer-column">
+                <h4>Customer Care</h4>
+
+                <a href="#newsletter">Contact</a>
+                <a href="#newsletter">Shipping</a>
+                <a href="#newsletter">Returns</a>
+            </div>
+
+        </div>
+
+        <div class="footer-bottom">
+            <span>
+                © <span id="year"></span> ÉLAN. All rights reserved.
+            </span>
+
+            <span>
+                Privacy · Terms
+            </span>
+        </div>
+    </footer>
+
+    <script>
+        const menuBtn =
+            document.getElementById("menuBtn");
+
+        const navLinks =
+            document.getElementById("navLinks");
+
+        menuBtn.addEventListener("click", () => {
+            navLinks.classList.toggle("active");
+        });
+
+
+        document
+            .querySelectorAll(".nav-links a")
+            .forEach(link => {
+
+                link.addEventListener("click", () => {
+                    navLinks.classList.remove("active");
+                });
+
+            });
+
+
+        const filterButtons =
+            document.querySelectorAll(".filter-btn");
+
+        const products =
+            document.querySelectorAll(".product-card");
+
+        filterButtons.forEach(button => {
+
+            button.addEventListener("click", () => {
+
+                filterButtons.forEach(btn =>
+                    btn.classList.remove("active")
+                );
+
+                button.classList.add("active");
+
+                const filter =
+                    button.dataset.filter;
+
+                products.forEach(product => {
+
+                    const category =
+                        product.dataset.category;
+
+                    product.style.display =
+                        filter === "all" ||
+                        category === filter
+                            ? "block"
+                            : "none";
+
+                });
+
+            });
+
+        });
+
+
+        let cartCount = 0;
+
+        const cartCountElement =
+            document.getElementById("cartCount");
+
+        document
+            .querySelectorAll(".add-cart")
+            .forEach(button => {
+
+                button.addEventListener("click", () => {
+
+                    cartCount++;
+
+                    cartCountElement.textContent =
+                        cartCount;
+
+                    const originalText =
+                        button.textContent;
+
+                    button.textContent = "Added ✓";
+
+                    setTimeout(() => {
+                        button.textContent =
+                            originalText;
+                    }, 1200);
+
+                });
+
+            });
+
+
+        const newsletterForm =
+            document.getElementById("newsletterForm");
+
+        const newsletterMessage =
+            document.getElementById(
+                "newsletterMessage"
+            );
+
+        newsletterForm.addEventListener(
+            "submit",
+            event => {
+
+                event.preventDefault();
+
+                newsletterMessage.textContent =
+                    "Thank you for subscribing to ÉLAN.";
+
+                newsletterForm.reset();
+
+            }
+        );
+
+
+        document.getElementById("year").textContent =
+            new Date().getFullYear();
+    </script>
+
+</body>
+</html>

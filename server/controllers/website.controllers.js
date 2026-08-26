@@ -1,1662 +1,443 @@
 import { generateResponse } from "../config/openRouter.js";
-import { generateHuggingFaceResponse } from "../config/huggingFace.js";
-import { generateGeminiResponse } from "../config/gemini.js";
-import { generateCerebrasResponse } from "../config/cerebras.js";
-import { generateOllamaResponse } from "../config/ollama.js";
+import { injectRealImages } from "../utils/injectImages.js";
 
 import User from "../models/user.model.js";
 import Website from "../models/website.model.js";
+
 import extractJson from "../utils/extractJson.js";
+import { prepareUploadedDataSummary } from "../utils/summarizeData.js";
+import { normalizeHtml } from "../utils/normalizeHtml.js";
 
+import landingPrompt from "../prompts/landingPrompt.js";
+import dashboardPrompt from "../prompts/dashBoardPrompt.js";
+import websitePrompt from "../prompts/websiteprompt.js";
+import reactDashboardPrompt from "../prompts/reactDashboardPrompt.js";
+import reactWebsitePrompt from "../prompts/reactWebsitePrompt.js";
+function normalizeGeneratedCode(code) {
+    if (typeof code !== "string") return "";
 
-
+    return code.trim();
+}
 /*
 ==================================================
-MASTER PROMPT
+HELPER: SMART PAGE TYPE DETECTION
 ==================================================
 */
-
-const masterPrompt = `
-You are a Principal Frontend Architect and Senior UI/UX Engineer.
-
-Generate a complete, production-quality, modern and visually attractive website based on the user's request.
-
-==================================================
-1. CORE REQUIREMENTS
-==================================================
-
-- Use ONLY HTML, CSS and vanilla JavaScript.
-- Return one complete standalone HTML document.
-- CSS must be inside <style>.
-- JavaScript must be inside <script>.
-- No React, Vue, Angular, Tailwind, Bootstrap or other frameworks.
-- Make the UI modern, premium, professional and visually consistent.
-- Use appropriate typography, spacing, cards, buttons, shadows, gradients and subtle animations.
-- Choose a suitable light/dark theme unless the user specifies one.
-- Do not create unnecessary empty space or placeholder content.
-
-==================================================
-2. RESPONSIVE DESIGN
-==================================================
-
-The website MUST work correctly on:
-
-- Desktop
-- Laptop
-- Tablet
-- Mobile
-
-Ensure:
-
-- Responsive layouts and images.
-- Readable text.
-- Accessible buttons.
-- No horizontal scrolling.
-- Working mobile navigation/menu.
-- Proper CSS media queries.
-
-==================================================
-3. NAVIGATION
-==================================================
-
-ALL navigation must work.
-
-Every navigation item must have its own meaningful destination.
-
-For a single-page website, use unique section IDs and smooth scrolling.
-
-Example:
-
-Home → #home
-Restaurants → #restaurants
-Menu → #menu
-About → #about
-Contact → #contact
-
-Rules:
-
-- Never use href="#".
-- Never use fake/dead links.
-- Never make unrelated links point to the same section.
-- Home, About, Contact, Menu, Products, Services, Pricing, etc. must show their correct content.
-- Users must be able to move freely between ALL sections.
-- The logo/brand should return to Home.
-- Mobile navigation must contain all important links and close after selection.
-- Do not create isolated views that trap the user.
-- If separate views are genuinely required, implement working JavaScript navigation and provide access to all other views.
-
-==================================================
-4. CONTENT
-==================================================
-
-Understand the user's request and generate content appropriate to it.
-
-Examples:
-
-Food delivery:
-- Restaurants
-- Food categories
-- Menu items
-- Prices
-- Search/filter
-- Delivery information
-
-Ecommerce:
-- Products
-- Categories
-- Prices
-- Search/filter
-- Cart
-- Checkout
-
-Portfolio:
-- Projects
-- Skills
-- Experience
-- Contact
-
-SaaS:
-- Hero
-- Features
-- Pricing
-- Testimonials
-- CTA
-
-Use realistic content relevant to the requested business.
-
-==================================================
-5. IMAGES
-==================================================
-
-Use images relevant to the actual content.
-
-For repeated items, use different appropriate images.
-
-Never use the same image for unrelated products/items.
-
-Use responsive images with meaningful alt text and object-fit.
-
-If real image URLs are provided by the backend, use those exact URLs and match each image to its corresponding item.
-
-Do NOT invent provided image URLs.
-
-==================================================
-6. DYNAMIC CONTENT
-==================================================
-
-Use JavaScript arrays/objects for repeated content such as:
-
-- Products
-- Food
-- Restaurants
-- Services
-- Reviews
-- Users
-- Statistics
-- Portfolio projects
-- Blog posts
-
-Render repeated elements dynamically where practical.
-
-==================================================
-7. FUNCTIONALITY
-==================================================
-
-Every important interactive element MUST work.
-
-Implement functionality requested by the user, including when applicable:
-
-- Navigation
-- Mobile menu
-- Search
-- Filtering
-- Sorting
-- Tabs
-- FAQ accordion
-- Modals
-- Forms and validation
-- Newsletter
-- Login/signup UI
-- Booking
-- Wishlist
-- Add to Cart
-- Remove from Cart
-- Quantity controls
-- Cart count
-- Subtotal
-- Tax/shipping/delivery
-- Final total
-- Checkout UI
-
-Never create buttons that only look functional.
-
-==================================================
-8. CART / SHOPPING
-==================================================
-
-For ecommerce, food delivery or shopping websites, create a functional cart.
-
-Support:
-
-- Add/remove items
-- Increase/decrease quantity
-- Cart count
-- Automatic calculations
-- Empty-cart state
-- Cart sidebar/modal
-- Checkout UI
-
-Use localStorage when appropriate.
-
-==================================================
-9. SEARCH / FILTER
-==================================================
-
-For products, food, restaurants or searchable content:
-
-- Add working search.
-- Add relevant category filters.
-- Add sorting when useful.
-- Update results dynamically without page reload.
-
-==================================================
-10. FORMS
-==================================================
-
-Forms must contain appropriate fields, labels, validation and success/error feedback.
-
-Contact forms should normally include:
-
-- Name
-- Email
-- Message
-
-Checkout/booking forms should contain relevant information.
-
-==================================================
-11. ACCESSIBILITY & UX
-==================================================
-
-- Use semantic HTML.
-- Maintain proper heading hierarchy.
-- Add image alt text.
-- Use readable contrast.
-- Make controls easy to use.
-- Ensure keyboard/mobile usability.
-- Use clear hover/focus states.
-- Use subtle animations and transitions without excessive effects.
-
-==================================================
-12. CURRENT YEAR
-==================================================
-
-Use the current year dynamically:
-
-document.getElementById("year").textContent = new Date().getFullYear();
-
-Do not hard-code an outdated copyright year.
-
-==================================================
-13. PAGE TYPE
-==================================================
-
-PAGE TYPE will be supplied separately.
-
-If LANDING PAGE:
-
-- Focus on one conversion goal.
-- Strong hero.
-- Clear CTA.
-- Benefits/features.
-- Social proof when appropriate.
-- Relevant supporting sections.
-- Conversion-focused layout.
-
-If FULL WEBSITE:
-
-- Create a complete website experience.
-- Include appropriate navigation and meaningful sections.
-- Include relevant About, Contact, Services, Menu, Products, Pricing, etc.
-- Ensure every navigation destination works.
-
-==================================================
-14. UPLOADED DATA
-==================================================
-
-If uploaded data is provided:
-
-- Use it as the actual website content.
-- Do not replace it with unrelated dummy data.
-- Do not invent information already present in the data.
-- Use its fields intelligently.
-- Create suitable cards, tables, dashboards, charts or other UI.
-- Preserve the actual values.
-
-==================================================
-15. IMAGE QUERIES
-==================================================
-
-If images are required, return unique and specific search queries in
-"imageQueries".
-
-Example:
-
-"margherita pizza"
-"crispy chicken burger"
-"alfredo pasta"
-"chicken biryani"
-
-Rules:
-
-- Each different item should have its own query.
-- Use specific queries.
-- Do not invent image URLs.
-- Do not reuse the same query for unrelated items.
-- The backend may provide real image URLs.
-
-==================================================
-16. QUALITY CHECK
-==================================================
-
-Before returning the result, verify:
-
-- Complete HTML exists.
-- CSS exists.
-- JavaScript exists.
-- Navigation works.
-- Every navigation item reaches the correct destination.
-- Users can move between all sections.
-- Logo returns Home.
-- Mobile menu works.
-- Requested features work.
-- Search/filter works when requested.
-- Cart works when requested.
-- Forms work when requested.
-- Images match their content.
-- Website is responsive.
-- No fake/empty buttons.
-- No broken links.
-- Current year is dynamic.
-- Website matches the user's request.
-
-==================================================
-17. USER REQUEST
-==================================================
-
-USER REQUEST:
-
-{USER_PROMPT}
-
-==================================================
-18. OUTPUT
-==================================================
-
-Return ONLY valid raw JSON.
-
-Return exactly:
-
-{
-    "message": "Short description of the generated website",
-    "imageQueries": [
-        "specific image query 1",
-        "specific image query 2"
-    ],
-    "code": "<COMPLETE HTML DOCUMENT>"
+function detectPageType(prompt = "", explicitType = "auto", uploadedData = null) {
+    const type = explicitType?.toLowerCase()?.trim();
+    if (type === "dashboard" || type === "website" || type === "landing") {
+        return type;
+    }
+
+    if (uploadedData) {
+        return "dashboard";
+    }
+
+    const p = prompt.toLowerCase();
+    if (/\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(p)) {
+        return "dashboard";
+    }
+    if (/\b(landing|waitlist|saas|hero|conversion|lead|coming soon|launch page)\b/i.test(p)) {
+        return "landing";
+    }
+    return "website";
 }
 
-Rules:
-
-- No Markdown.
-- No code fences.
-- No explanations outside JSON.
-- No extra text.
-- "code" must contain the COMPLETE HTML document.
-- HTML must start with <!DOCTYPE html>.
-- Include <html>, <head>, <body>, <style> and <script>.
-- Do not return partial HTML.
-- Do not omit CSS or JavaScript.
-- Return ONLY the JSON object.
-`;
-
-const generateAIResponse = async (prompt) => {
-
-    const provider =
-        process.env.AI_PROVIDER?.toLowerCase() || "openrouter";
-
-    console.log("========================================");
-    console.log("AI PROVIDER:", provider);
-    console.log("========================================");
-
-    // OLLAMA
-    if (provider === "ollama") {
-
-        console.log(
-            "Using Ollama / Qwen2.5-Coder 3B"
-        );
-
-        return await generateOllamaResponse(prompt);
-    }
-
-    // CEREBRAS
-    if (provider === "cerebras") {
-
-        console.log("Using Cerebras");
-
-        return await generateCerebrasResponse(prompt);
-    }
-
-    // GEMINI
-    if (provider === "gemini") {
-
-        console.log("Using Google Gemini");
-
-        return await generateGeminiResponse(prompt);
-    }
-
-    // HUGGING FACE
-    if (provider === "huggingface") {
-
-        console.log(
-            "Using Hugging Face / Qwen3-Coder"
-        );
-
-        return await generateHuggingFaceResponse(prompt);
-    }
-
-    // OPENROUTER
-    console.log(
-        "Using OpenRouter / openrouter/free"
-    );
-
-    return await generateResponse(prompt);
-};
 /*
 ==================================================
-GENERATE WEBSITE
+GENERATE WEBSITE / DASHBOARD / LANDING PAGE
 ==================================================
 */
-
 export const generateWebsite = async (req, res) => {
-
     try {
-
         const totalStart = Date.now();
-
-        console.log(
-            "========== WEBSITE GENERATION START =========="
-        );
-
-        console.log("req.user:", req.user);
+        console.log("========== AI GENERATION START ==========");
 
         const {
             prompt,
-            pageType = "website",
+            pageType = "auto",
+            format = "html",
             uploadedData = null
         } = req.body;
 
-
-        /*
-        ------------------------------------------
-        1. Check prompt / uploaded data
-        ------------------------------------------
-        */
-
         if (!prompt && !uploadedData) {
-
             return res.status(400).json({
-                message: "prompt or uploaded data is required"
+                message: "Prompt or uploaded data is required"
             });
-
         }
 
+        // 1. Determine Page Type
+        const normalizedPageType = detectPageType(prompt, pageType, uploadedData);
 
-        /*
-        ------------------------------------------
-        2. Find user
-        ------------------------------------------
-        */
-
-        const userStart = Date.now();
-
-        const user = await User.findById(
-            req.user._id
-        );
-
-        console.log(
-            "1. Find user:",
-            Date.now() - userStart,
-            "ms"
-        );
-
-
+        // 2. Find User and Check Credits
+        const user = await User.findById(req.user._id);
         if (!user) {
-
-            return res.status(400).json({
-                message: "user not found"
-            });
-
+            return res.status(404).json({ message: "User not found" });
         }
-
-
-        /*
-        ------------------------------------------
-        3. Check credits
-        ------------------------------------------
-        */
 
         if (user.credits < 50) {
-
             return res.status(400).json({
-                message:
-                    "you have not enough credits to generate a website"
+                message: "You do not have enough credits to generate a website (requires 50 credits)."
             });
-
         }
 
-
-        /*
-        ------------------------------------------
-        4. Uploaded data instruction
-        ------------------------------------------
-        */
-
-        const promptStart = Date.now();
-
-        const uploadedDataInstruction = uploadedData
-            ? `
-
-USER UPLOADED DATA:
-
-${JSON.stringify(uploadedData, null, 2)}
-
-IMPORTANT RULES FOR UPLOADED DATA:
-
-- Use the uploaded data as the actual content of the website.
-- Do not invent products, users, services, prices, or other data when the uploaded data already provides them.
-- Create appropriate UI components based on the structure of the uploaded data.
-- Display the uploaded data in a visually attractive and responsive way.
-- If the data contains products, create product cards or an appropriate ecommerce layout.
-- If the data contains users, create an appropriate user/customer interface.
-- If the data contains statistics, create dashboards, cards, tables, or charts where appropriate.
-- Use the field names from the uploaded data intelligently.
-`
-            : "";
-
-
-        /*
-        ------------------------------------------
-        5. Create final prompt
-        ------------------------------------------
-        */
-
-        const finalPrompt =
-            masterPrompt.replace(
-                "{USER_PROMPT}",
-                prompt ||
-                "Create a modern website based on the uploaded data."
-            ) +
-            `
-
-==================================================
-SELECTED PAGE TYPE
-==================================================
-
-${pageType === "landing"
-    ? "LANDING PAGE"
-    : "FULL WEBSITE"}
-
-IMPORTANT:
-Generate the website according to the selected PAGE TYPE.
-
-${uploadedDataInstruction}
-`;
-
-
-        console.log(
-            "UPLOADED DATA:",
-            uploadedData
-        );
-
-        console.log(
-            "AI PAGE TYPE:",
-            pageType
-        );
-
-        console.log(
-            "AI PROMPT PAGE TYPE:",
-            pageType === "landing"
-                ? "LANDING PAGE"
-                : "FULL WEBSITE"
-        );
-
-        console.log(
-            "2. Create final prompt:",
-            Date.now() - promptStart,
-            "ms"
-        );
-
-
-    /*
-------------------------------------------
-4. AI GENERATION + UNSPLASH IMAGES
-------------------------------------------
-*/
-
-let raw = "";
-let parsed = null;
-
-
-/*
-------------------------------------------
-FIRST AI CALL
-Generate image queries + initial website
-------------------------------------------
-*/
-
-for (let i = 0; i < 2 && !parsed; i++) {
-
-    console.log(
-        `AI attempt ${i + 1} started`
-    );
-
-    const aiStart = Date.now();
-
-    raw = await generateAIResponse(
-        finalPrompt
-    );
-
-    console.log(
-        `3.${i + 1}. AI response:`,
-        Date.now() - aiStart,
-        "ms"
-    );
-
-    const jsonStart = Date.now();
-
-    parsed = await extractJson(raw);
-
-    console.log(
-        `4.${i + 1}. JSON extraction:`,
-        Date.now() - jsonStart,
-        "ms"
-    );
-
-
-    /*
-    --------------------------------------
-    Retry invalid JSON
-    --------------------------------------
-    */
-
-    if (!parsed) {
-
-        console.log(
-            `AI attempt ${i + 1} returned invalid JSON. Retrying...`
-        );
-
-        const retryAiStart = Date.now();
-
-        raw = await generateAIResponse(
-            finalPrompt +
-            "\n\nRETURN ONLY RAW JSON."
-        );
-
-        console.log(
-            "Retry AI response:",
-            Date.now() - retryAiStart,
-            "ms"
-        );
-
-        const retryJsonStart = Date.now();
-
-        parsed = await extractJson(raw);
-
-        console.log(
-            "Retry JSON extraction:",
-            Date.now() - retryJsonStart,
-            "ms"
-        );
-    }
-}
-
-
-/*
-------------------------------------------
-CHECK FIRST AI RESPONSE
-------------------------------------------
-*/
-
-if (!parsed) {
-
-    return res.status(500).json({
-
-        message:
-            "AI failed to generate website structure"
-
-    });
-
-}
-
-
-/*
-------------------------------------------
-GET IMAGE QUERIES
-------------------------------------------
-*/
-
-const imageQueries =
-    Array.isArray(parsed.imageQueries)
-        ? parsed.imageQueries
-        : [];
-
-
-console.log(
-    "IMAGE QUERIES FROM AI:",
-    imageQueries
-);
-
-
-/*
-------------------------------------------
-SEARCH UNSPLASH
-------------------------------------------
-*/
-
-let websiteImages = [];
-
-if (imageQueries.length > 0) {
-
-    console.log(
-        "Searching Unsplash..."
-    );
-
-    const imageStart =
-        Date.now();
-
-    websiteImages =
-        await getWebsiteImages(
-            imageQueries
-        );
-
-    console.log(
-        "Unsplash search time:",
-        Date.now() - imageStart,
-        "ms"
-    );
-
-    console.log(
-        "UNSPLASH IMAGES:",
-        websiteImages
-    );
-}
-
-
-/*
-------------------------------------------
-CREATE IMAGE INSTRUCTIONS
-------------------------------------------
-*/
-
-const imageInstructions =
-    websiteImages.length > 0
-        ? `
-
-REAL UNSPLASH IMAGES:
-
-${JSON.stringify(
-    websiteImages,
-    null,
-    2
-)}
-
-IMPORTANT IMAGE RULES:
-
-- Use the provided Unsplash image URLs.
-- Do NOT invent image URLs.
-- Do NOT replace the provided URLs with other URLs.
-- Each item must use the image corresponding to its query.
-- Do NOT use the same image for different items.
-- Match each image to the correct product/food/item.
-- Use the "image" value as the actual image URL.
-- Keep the provided image URLs unchanged.
-
-`
-        : `
-
-NO UNSPLASH IMAGES WERE FOUND.
-
-If no image is provided, use a safe relevant placeholder
-rather than inventing an Unsplash URL.
-
-`;
-
-
-/*
-------------------------------------------
-SECOND AI CALL
-Generate FINAL HTML
-------------------------------------------
-*/
-
-const finalHtmlPrompt = `
-
-${masterPrompt.replace(
-    "{USER_PROMPT}",
-    prompt ||
-    "Create a modern website based on the uploaded data."
-)}
-
-PAGE TYPE:
-${pageType === "landing"
-    ? "LANDING PAGE"
-    : "FULL WEBSITE"}
-
-IMPORTANT:
-Generate the final website according to the selected PAGE TYPE.
-
-${uploadedDataInstruction}
-
-${imageInstructions}
-
-The final response MUST contain:
-
-{
-    "message": "Short description of the generated website",
-    "code": "<COMPLETE HTML DOCUMENT>"
-}
-
-IMPORTANT:
-
-- Return the COMPLETE HTML.
-- Use the provided Unsplash images.
-- Do not return imageQueries in the final response.
-- Do not return markdown.
-- Do not return code fences.
-- Return ONLY valid JSON.
-`;
-
-
-console.log(
-    "Generating final HTML with real images..."
-);
-
-
-let finalRaw = "";
-let finalParsed = null;
-
-
-for (
-    let i = 0;
-    i < 2 && !finalParsed;
-    i++
-) {
-
-    console.log(
-        `FINAL AI attempt ${i + 1} started`
-    );
-
-    const finalAiStart =
-        Date.now();
-
-    finalRaw =
-        await generateAIResponse(
-            finalHtmlPrompt
-        );
-
-    console.log(
-        `FINAL AI response time:`,
-        Date.now() -
-        finalAiStart,
-        "ms"
-    );
-
-
-    finalParsed =
-        await extractJson(
-            finalRaw
-        );
-
-
-    /*
-    --------------------------------------
-    Retry final HTML
-    --------------------------------------
-    */
-
-    if (!finalParsed) {
-
-        console.log(
-            "Final AI returned invalid JSON. Retrying..."
-        );
-
-        finalRaw =
-            await generateAIResponse(
-                finalHtmlPrompt +
-                "\n\nRETURN ONLY RAW JSON."
-            );
-
-        finalParsed =
-            await extractJson(
-                finalRaw
-            );
-    }
-}
-
-
-/*
-------------------------------------------
-USE FINAL AI RESPONSE
-------------------------------------------
-*/
-
-if (finalParsed) {
-
-    parsed = finalParsed;
-
-    raw = finalRaw;
-
-}
-
-
-console.log(
-    "FINAL WEBSITE GENERATED SUCCESSFULLY"
-);
-
-
-        /*
-        ------------------------------------------
-        7. Validate / fallback
-        ------------------------------------------
-        */
+        // 3. Select Correct Prompt Template (HTML5 + Tailwind CSS + Vanilla JS by default for maximum reliability & instant rendering)
+        let selectedPrompt;
+        const wantsReact = format === "react";
+        const wantsHtml = !wantsReact;
+
+        if (normalizedPageType === "dashboard") {
+            selectedPrompt = wantsReact ? reactDashboardPrompt : dashboardPrompt;
+        } else if (normalizedPageType === "website") {
+            selectedPrompt = wantsReact ? reactWebsitePrompt : websitePrompt;
+        } else {
+            selectedPrompt = wantsReact ? reactWebsitePrompt : landingPrompt;
+        }
+
+        // 4. Prepare User Request & Uploaded Data
+        let fallbackRequest = normalizedPageType === "dashboard"
+            ? "Create a professional interactive analytics dashboard."
+            : normalizedPageType === "website"
+                ? "Create a complete professional responsive website."
+                : "Create a high-converting premium landing page.";
+
+        const userRequest = prompt?.trim() || fallbackRequest;
+        const uploadedDataContent = uploadedData
+            ? prepareUploadedDataSummary(uploadedData)
+            : "NO UPLOADED DATA PROVIDED";
+
+        // 5. Build Final Prompt
+        const finalPrompt = selectedPrompt
+            .replace("{USER_PROMPT}", userRequest)
+            .replace("{UPLOADED_DATA}", uploadedDataContent);
+
+        console.log(`Generating [${normalizedPageType.toUpperCase()} - ${wantsHtml ? 'HTML' : 'REACT'}] for prompt: "${userRequest.slice(0, 80)}..."`);
+
+        // 6. Generate AI Response with Retry
+        let raw = "";
+        let parsed = null;
+
+        for (let attempt = 1; attempt <= 2 && !parsed; attempt++) {
+            console.log(`AI attempt ${attempt} started...`);
+            const aiStart = Date.now();
+
+            try {
+                raw = await generateResponse(finalPrompt);
+                console.log(`AI response received in ${Date.now() - aiStart}ms (raw length: ${raw?.length || 0})`);
+                parsed = extractJson(raw);
+            } catch (genErr) {
+                console.error(`AI attempt ${attempt} failed:`, genErr.message);
+            }
+
+            if (!parsed && attempt === 1) {
+                console.log("Invalid JSON on attempt 1. Retrying with strict JSON instruction...");
+                const retryPrompt = `${finalPrompt}\n\nIMPORTANT: Return ONLY valid raw JSON without markdown or code fences.`;
+                try {
+                    raw = await generateResponse(retryPrompt);
+                    parsed = extractJson(raw);
+                } catch (retryErr) {
+                    console.error("Retry attempt failed:", retryErr.message);
+                }
+            }
+        }
 
         if (!parsed || !parsed.code) {
-
-            console.log(
-                "AI response invalid. Using fallback."
-            );
-
-            parsed = {
-
-                message: "fallback",
-
-                code:
-                    raw.includes("<html")
-                        ? raw
-                        : `<html>
-                            <body>
-                                ${raw}
-                            </body>
-                           </html>`
-
-            };
-
+            console.error("AI returned invalid response format:", raw?.slice(0, 500));
+            return res.status(500).json({
+                message: "AI failed to generate valid code. Please try again with a different prompt."
+            });
         }
 
+        // 7. Inject Real High-Resolution Unsplash Images (if applicable)
+        const imageQueries = Array.isArray(parsed.imageQueries) ? parsed.imageQueries : [];
+        let finalCode = normalizeGeneratedCode(parsed.code);
 
-        /*
-        ------------------------------------------
-        8. Create website title
-        ------------------------------------------
-        */
+        const isReactCode = /export\s+default/i.test(finalCode) || /import\s+React/i.test(finalCode) || /function\s+App/i.test(finalCode);
 
-        const websiteTitle =
-            prompt
-                ? prompt.slice(0, 60)
-                : uploadedData
-                    ? "Website from Uploaded Data"
-                    : "Untitled Website";
+        if (!isReactCode) {
+            const imageInjectedHtml = await injectRealImages(finalCode, imageQueries, userRequest);
+            finalCode = normalizeHtml(imageInjectedHtml);
+        }
 
+        // 8. Create Website Title
+        let defaultTitle = normalizedPageType === "dashboard"
+            ? "React Analytics Dashboard"
+            : normalizedPageType === "website"
+                ? "React Application"
+                : "React Landing Page";
 
-        /*
-        ------------------------------------------
-        9. Save website
-        ------------------------------------------
-        */
+        const websiteTitle = prompt?.trim() ? prompt.trim().slice(0, 60) : defaultTitle;
 
-        const websiteDbStart =
-            Date.now();
+        // 9. Save Website to Database
+        const website = await Website.create({
+            user: user._id,
+            title: websiteTitle,
+            latestCode: finalCode,
+            conversation: [
+                {
+                    role: "user",
+                    content: userRequest
+                },
+                {
+                    role: "ai",
+                    content: parsed.message || `${websiteTitle} generated successfully.`
+                }
+            ]
+        });
 
-        const website =
-            await Website.create({
-
-                user: user._id,
-
-                title: websiteTitle,
-
-                latestCode: parsed.code,
-
-                conversation: [
-
-                    {
-                        role: "user",
-                        content:
-                            prompt ||
-                            "Website generated from uploaded data."
-                    },
-
-                    {
-                        role: "ai",
-                        content:
-                            parsed.message || ""
-                    }
-
-                ]
-
-            });
-
-
-        console.log(
-            "5. Website MongoDB save:",
-            Date.now() -
-            websiteDbStart,
-            "ms"
-        );
-
-
-        /*
-        ------------------------------------------
-        10. Update credits
-        ------------------------------------------
-        */
-
-        const creditDbStart =
-            Date.now();
-
-        user.credits =
-            user.credits - 50;
-
+        // 10. Deduct Credits
+        user.credits = Math.max(0, user.credits - 50);
         await user.save();
 
-        console.log(
-            "6. Credit MongoDB update:",
-            Date.now() -
-            creditDbStart,
-            "ms"
-        );
-
-
-        /*
-        ------------------------------------------
-        11. Total time
-        ------------------------------------------
-        */
-
-        console.log(
-            "TOTAL WEBSITE CREATION TIME:",
-            Date.now() -
-            totalStart,
-            "ms"
-        );
-
-        console.log(
-            "========== WEBSITE GENERATION END =========="
-        );
-
-
-        /*
-        ------------------------------------------
-        12. Response
-        ------------------------------------------
-        */
+        console.log(`TOTAL GENERATION TIME: ${Date.now() - totalStart}ms`);
+        console.log("========== AI GENERATION END ==========");
 
         return res.status(201).json({
-
             status: "success",
-
-            website
-
+            website,
+            pageType: normalizedPageType
         });
-
 
     } catch (error) {
-
-        console.error(
-            "GENERATE WEBSITE ERROR:",
-            error
-        );
-
+        console.error("GENERATE WEBSITE ERROR:", error);
         return res.status(500).json({
-
-            message:
-                `generate website error ${error.message}`
-
+            message: `Generate website error: ${error.message}`
         });
-
     }
-
 };
 
+/*
+==================================================
+UPDATE WEBSITE (AI PROMPT REVISION OR CODE SAVE)
+==================================================
+*/
+export const changes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { code, prompt } = req.body;
+
+        const website = await Website.findOne({
+            _id: id,
+            user: req.user._id
+        });
+
+        if (!website) {
+            return res.status(404).json({ message: "Website not found" });
+        }
+
+        // Case 1: Direct manual code edit save
+        if (typeof code === "string" && code.trim().length > 0 && !prompt) {
+            website.latestCode = code;
+            await website.save();
+
+            return res.status(200).json({
+                message: "Website code saved successfully",
+                website,
+                code: website.latestCode
+            });
+        }
+
+        // Case 2: AI Revision via Prompt
+        if (prompt && typeof prompt === "string" && prompt.trim().length > 0) {
+            const userPromptText = prompt.trim();
+            const isReact = /export\s+default/i.test(website.latestCode) || /import\s+React/i.test(website.latestCode) || /function\s+App/i.test(website.latestCode);
+
+            const updateAiPrompt = `
+You are an expert Principal Frontend Architect and UI/UX Designer updating an existing ${isReact ? 'React (JSX) application' : 'website'}.
+
+CURRENT ${isReact ? 'REACT (JSX)' : 'HTML'} CODE:
+${website.latestCode}
+
+USER'S REQUESTED CHANGES:
+${userPromptText}
+
+INSTRUCTIONS:
+1. Carefully and thoroughly apply the user's requested changes directly to the ${isReact ? 'React JSX component' : 'HTML code'}.
+2. If the user asks for icons, add appropriate Lucide icons using <i data-lucide="icon-name" class="w-4 h-4"></i> or Lucide React components and ensure lucide.createIcons() is called.
+3. If the user asks for styling, theme, component, section, or content changes, implement them completely and seamlessly without placeholders.
+4. Return the COMPLETE, updated, fully working standalone ${isReact ? 'React (JSX) component (export default function App() { ... })' : 'HTML document'} preserving all state, hooks, Tailwind CSS classes, and interactivity.
+5. In the "message" field of your JSON response, write a specific, conversational 1-2 sentence description explaining EXACTLY what modifications, components, styling, or icons were added/changed based on the user's request. NEVER return generic phrases like "Website generated successfully" or "Updated".
+6. NEVER include or retain an AI chat sidebar, conversation bubbles, "Describe changes..." prompt bar, or editor UI inside the code. Output ONLY the pure standalone end-user application or dashboard.
+7. CRITICAL: Ensure all links in the navbar, body, and footer are 100% FUNCTIONAL. In the footer, ONLY include real working links (on-page smooth scroll anchors to existing sections, working modal buttons for Privacy/Terms/Contact, working newsletter submission with toast, and Back to Top). NEVER output dead/dummy links like /careers, /blog, /press, etc.
+
+RETURN FORMAT:
+Return ONLY one valid JSON object without markdown or code fences.
+
+The "code" field must contain the COMPLETE updated source code.
+
+IMPORTANT:
+- Do not stringify the source code twice.
+- Do not return literal backslash-n characters like \\n.
+- Do not double-escape quotes or line breaks.
+- The code must be valid after the JSON response is parsed with JSON.parse().
+
+JSON structure:
+
+{
+  "code": "COMPLETE UPDATED SOURCE CODE",
+  "message": "Specific conversational summary of what was changed or added",
+  "imageQueries": []
+}
+`;
+
+            let raw = await generateResponse(updateAiPrompt);
+            let parsed = extractJson(raw);
+
+            if (!parsed || !parsed.code) {
+                // Fallback attempt
+                raw = await generateResponse(`${updateAiPrompt}\n\nIMPORTANT: Return ONLY valid JSON.`);
+                parsed = extractJson(raw);
+            }
+
+            if (!parsed || !parsed.code) {
+                return res.status(500).json({
+                    message: "AI failed to apply the requested updates. Please try rephrasing your request."
+                });
+            }
+
+            // If React code, store pure code; if HTML, normalize
+            const updatedCode = normalizeGeneratedCode(parsed.code);
+
+            const isUpdatedReact =
+                /export\s+default/i.test(updatedCode) ||
+                /import\s+React/i.test(updatedCode) ||
+                /function\s+App/i.test(updatedCode);
+            if (isUpdatedReact) {
+                website.latestCode = updatedCode;
+            } else {
+                const updatedHtml = await injectRealImages(
+                    updatedCode,
+                    parsed.imageQueries || [],
+                    userPromptText
+                );
+
+                website.latestCode = normalizeHtml(updatedHtml);
+            }
+            // Ensure a clear, specific change description for the chat
+            let changeMessage = parsed.message?.trim();
+            if (!changeMessage || /website generated successfully/i.test(changeMessage)) {
+                changeMessage = `Applied your requested changes: "${userPromptText}".`;
+            }
+
+            website.conversation.push(
+                { role: "user", content: userPromptText },
+                { role: "ai", content: changeMessage }
+            );
+
+            await website.save();
+
+            return res.status(200).json({
+                message: changeMessage,
+                website,
+                code: website.latestCode
+            });
+        }
+
+        return res.status(400).json({
+            message: "Either updated code or an AI prompt is required."
+        });
+
+    } catch (error) {
+        console.error("UPDATE WEBSITE ERROR:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 
 /*
 ==================================================
 GET WEBSITE BY ID
 ==================================================
 */
-
-export const getWebsiteById = async (
-    req,
-    res
-) => {
-
+export const getWebsiteById = async (req, res) => {
     try {
-
-        const website =
-            await Website.findOne({
-
-                _id: req.params.id,
-
-                user: req.user._id
-
-            });
-
+        const { id } = req.params;
+        const website = await Website.findOne({
+            _id: id,
+            user: req.user._id
+        });
 
         if (!website) {
-
-            return res.status(400).json({
-
-                message:
-                    "website not found"
-
-            });
-
+            return res.status(404).json({ message: "Website not found" });
         }
 
-
-        return res.status(200).json(
-            website
-        );
-
-
+        return res.status(200).json({ website });
     } catch (error) {
-
-        return res.status(500).json({
-
-            message:
-                `get website by id error ${error.message}`
-
-        });
-
+        console.error("GET WEBSITE ERROR:", error);
+        return res.status(500).json({ message: error.message });
     }
-
 };
-
-
-/*
-==================================================
-UPDATE / CHANGE WEBSITE
-==================================================
-*/
-
-export const changes = async (
-    req,
-    res
-) => {
-
-    try {
-
-        const { prompt } = req.body;
-
-
-        /*
-        ------------------------------------------
-        1. Check prompt
-        ------------------------------------------
-        */
-
-        if (!prompt) {
-
-            return res.status(400).json({
-
-                message:
-                    "prompt is required"
-
-            });
-
-        }
-
-
-        /*
-        ------------------------------------------
-        2. Find website
-        ------------------------------------------
-        */
-
-        const website =
-            await Website.findOne({
-
-                _id: req.params.id,
-
-                user: req.user._id
-
-            });
-
-
-        if (!website) {
-
-            return res.status(400).json({
-
-                message:
-                    "website not found"
-
-            });
-
-        }
-
-
-        /*
-        ------------------------------------------
-        3. Find user
-        ------------------------------------------
-        */
-
-        const user =
-            await User.findById(
-                req.user._id
-            );
-
-
-        if (!user) {
-
-            return res.status(400).json({
-
-                message:
-                    "user not found"
-
-            });
-
-        }
-
-
-        /*
-        ------------------------------------------
-        4. Check credits
-        ------------------------------------------
-        */
-
-        if (user.credits < 25) {
-
-            return res.status(400).json({
-
-                message:
-                    "you have not enough credits to update the website"
-
-            });
-
-        }
-
-
-        /*
-        ------------------------------------------
-        5. Create update prompt
-        ------------------------------------------
-        */
-
-        const updatePrompt = `
-UPDATE THIS HTML WEBSITE.
-
-CURRENT WEBSITE CODE:
-
-${website.latestCode}
-
-USER REQUEST:
-
-${prompt}
-
-IMPORTANT RULES:
-
-- Preserve existing functionality.
-- Preserve existing navigation.
-- Preserve existing pages and sections.
-- Preserve existing design unless the user requests a design change.
-- Only make changes required by the user.
-- Keep the website fully responsive.
-- Use only HTML, CSS and JavaScript.
-- Make sure all existing buttons continue to work.
-- Make sure all existing navigation links continue to work.
-- Do not remove working features.
-- Return the COMPLETE UPDATED HTML.
-- Do not return partial code.
-
-RETURN RAW JSON ONLY:
-
-{
-    "message": "Short confirmation",
-    "code": "<COMPLETE UPDATED HTML>"
-}
-`;
-
-
-        /*
-        ------------------------------------------
-        6. Generate AI response
-        ------------------------------------------
-        */
-
-        let raw = "";
-        let parsed = null;
-
-
-        for (
-            let i = 0;
-            i < 2 && !parsed;
-            i++
-        ) {
-
-            console.log(
-                `UPDATE AI attempt ${i + 1} started`
-            );
-
-
-            const aiStart =
-                Date.now();
-
-
-            raw =
-                await generateAIResponse(
-                    updatePrompt
-                );
-
-
-            console.log(
-                "UPDATE AI response time:",
-                Date.now() -
-                aiStart,
-                "ms"
-            );
-
-
-            /*
-            --------------------------------------
-            Extract JSON
-            --------------------------------------
-            */
-
-            parsed =
-                await extractJson(
-                    raw
-                );
-
-
-            /*
-            --------------------------------------
-            Retry
-            --------------------------------------
-            */
-
-            if (!parsed) {
-
-                console.log(
-                    "Invalid JSON. Retrying..."
-                );
-
-
-                raw =
-                    await generateAIResponse(
-                        updatePrompt +
-                        "\n\nRETURN ONLY RAW VALID JSON."
-                    );
-
-
-                parsed =
-                    await extractJson(
-                        raw
-                    );
-
-            }
-
-        }
-
-
-        /*
-        ------------------------------------------
-        7. Validate AI response
-        ------------------------------------------
-        */
-
-        if (
-            !parsed ||
-            !parsed.code
-        ) {
-
-            console.log(
-                "AI returned invalid response:",
-                raw
-            );
-
-            return res.status(400).json({
-
-                message:
-                    "AI returned invalid response"
-
-            });
-
-        }
-
-
-        /*
-        ------------------------------------------
-        8. Save conversation
-        ------------------------------------------
-        */
-
-        website.conversation.push(
-
-            {
-                role: "user",
-                content: prompt
-            },
-
-            {
-                role: "ai",
-                content:
-                    parsed.message || ""
-            }
-
-        );
-
-
-        /*
-        ------------------------------------------
-        9. Update website code
-        ------------------------------------------
-        */
-
-        website.latestCode =
-            parsed.code;
-
-        await website.save();
-
-
-        /*
-        ------------------------------------------
-        10. Deduct credits
-        ------------------------------------------
-        */
-
-        user.credits =
-            user.credits - 25;
-
-        await user.save();
-
-
-        /*
-        ------------------------------------------
-        11. Response
-        ------------------------------------------
-        */
-
-        return res.status(200).json({
-
-            message:
-                parsed.message || "",
-
-            code:
-                parsed.code,
-
-            remainingCredits:
-                user.credits
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "UPDATE WEBSITE ERROR:",
-            error
-        );
-
-        return res.status(500).json({
-
-            message:
-                `update website error ${error.message}`
-
-        });
-
-    }
-
-};
-
 
 /*
 ==================================================
 GET ALL WEBSITES
 ==================================================
 */
-
-export const getAll = async (
-    req,
-    res
-) => {
-
+export const getAll = async (req, res) => {
     try {
+        const websites = await Website.find({
+            user: req.user._id
+        }).sort({ createdAt: -1 });
 
-        const websites =
-            await Website.find({
-
-                user: req.user._id
-
-            })
-            .sort({
-                createdAt: -1
-            });
-
-
-        return res.status(200).json(
-            websites
-        );
-
-
+        return res.status(200).json({ websites });
     } catch (error) {
-
-        return res.status(500).json({
-
-            message:
-                `get all websites error ${error.message}`
-
-        });
-
+        console.error("GET ALL WEBSITES ERROR:", error);
+        return res.status(500).json({ message: error.message });
     }
-
 };
-
-
-/*
-==================================================
-DEPLOY WEBSITE
-==================================================
-*/
-
-export const deploy = async (
-    req,
-    res
-) => {
-
-    try {
-
-        const website =
-            await Website.findOne({
-
-                _id: req.params.id,
-
-                user: req.user._id
-
-            });
-
-
-        if (!website) {
-
-            return res.status(400).json({
-
-                message:
-                    "website not found"
-
-            });
-
-        }
-
-
-        /*
-        ------------------------------------------
-        Create slug
-        ------------------------------------------
-        */
-
-        if (!website.slug) {
-
-            website.slug =
-                website.title
-                    .toLowerCase()
-                    .replace(
-                        /[^a-z0-9]/g,
-                        ""
-                    )
-                    .slice(0, 60) +
-                website._id
-                    .toString()
-                    .slice(-5);
-
-        }
-
-
-        website.deployed = true;
-
-        website.deployUrl =
-            `${process.env.FRONTEND_URL}/site/${website.slug}`;
-
-
-        await website.save();
-
-
-        return res.status(200).json({
-
-            url:
-                website.deployUrl
-
-        });
-
-
-    } catch (error) {
-
-        return res.status(500).json({
-
-            message:
-                `deploy website error ${error.message}`
-
-        });
-
-    }
-
-};
-
 
 /*
 ==================================================
 GET WEBSITE BY SLUG
 ==================================================
 */
-
-export const getBySlug = async (
-    req,
-    res
-) => {
-
+export const getBySlug = async (req, res) => {
     try {
-
-        const website =
-            await Website.findOne({
-
-                slug: req.params.slug
-
-            });
-
+        const { slug } = req.params;
+        const website = await Website.findOne({ slug });
 
         if (!website) {
-
-            return res.status(400).json({
-
-                message:
-                    "website not found"
-
-            });
-
+            return res.status(404).json({ message: "Website not found" });
         }
 
-
-        return res.status(200).json(
-            website
-        );
-
-
+        return res.status(200).json({ website });
     } catch (error) {
+        console.error("GET WEBSITE BY SLUG ERROR:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 
-        return res.status(500).json({
-
-            message:
-                `get by slug website error ${error.message}`
-
+/*
+==================================================
+DEPLOY WEBSITE
+==================================================
+*/
+export const deploy = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const website = await Website.findOne({
+            _id: id,
+            user: req.user._id
         });
 
-    }
+        if (!website) {
+            return res.status(404).json({ message: "Website not found" });
+        }
 
+        if (!website.slug) {
+            website.slug = `${website._id}-${Date.now()}`;
+        }
+        website.deployed = true;
+        website.deployUrl = `/site/${website.slug}`;
+
+        await website.save();
+
+        return res.status(200).json({
+            message: "Website deployed successfully",
+            slug: website.slug,
+            website
+        });
+    } catch (error) {
+        console.error("DEPLOY WEBSITE ERROR:", error);
+        return res.status(500).json({ message: error.message });
+    }
 };

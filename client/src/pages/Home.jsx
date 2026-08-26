@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
     BarChart3,
@@ -10,11 +10,13 @@ import {
     LogOut,
     Moon,
     Plus,
+    Rocket,
     Settings,
     Sparkles,
     Sun,
     TrendingUp,
     WandSparkles,
+    Zap,
 } from "lucide-react";
 
 import LoginModal from "../components/LoginModal";
@@ -34,16 +36,17 @@ function Home() {
 
     const [openLogin, setOpenLogin] = useState(false);
     const [openProfile, setOpenProfile] = useState(false);
+    const [openDashboard, setOpenDashboard] = useState(false);
     const [websites, setWebsites] = useState([]);
-    const [theme, setTheme] = useState(
-        localStorage.getItem("genweb-theme") || "dark"
-    );
+
+    const [theme, setTheme] = useState(() => {
+        return localStorage.getItem("genweb-theme") || "dark";
+    });
+
+    const profileRef = useRef(null);
+    const dashboardRef = useRef(null);
 
     const isDark = theme === "dark";
-
-    /* =========================================================
-       THEME
-    ========================================================= */
 
     useEffect(() => {
         localStorage.setItem("genweb-theme", theme);
@@ -51,12 +54,34 @@ function Home() {
     }, [theme, isDark]);
 
     const toggleTheme = () => {
-        setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+        setTheme((previousTheme) => {
+            return previousTheme === "dark" ? "light" : "dark";
+        });
     };
 
-    /* =========================================================
-       GET WEBSITES
-    ========================================================= */
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                profileRef.current &&
+                !profileRef.current.contains(event.target)
+            ) {
+                setOpenProfile(false);
+            }
+
+            if (
+                dashboardRef.current &&
+                !dashboardRef.current.contains(event.target)
+            ) {
+                setOpenDashboard(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     useEffect(() => {
         if (!userData) {
@@ -64,7 +89,7 @@ function Home() {
             return;
         }
 
-        const handleGetAllWebsites = async () => {
+        const getWebsites = async () => {
             try {
                 const result = await axios.get(
                     `${serverUrl}/api/website/get-all`,
@@ -73,44 +98,65 @@ function Home() {
                     }
                 );
 
-                setWebsites(result.data || []);
+                const websiteData = Array.isArray(result.data?.websites)
+                    ? result.data.websites
+                    : [];
+
+                setWebsites(websiteData);
             } catch (error) {
                 console.log("Get websites error:", error);
+                setWebsites([]);
             }
         };
 
-        handleGetAllWebsites();
+        getWebsites();
     }, [userData]);
-
-    /* =========================================================
-       LOGOUT
-    ========================================================= */
 
     const handleLogOut = async () => {
         try {
-            await signOut(auth);
+            // 1. Immediately clear localStorage session
+            localStorage.removeItem("genweb_user");
+            localStorage.removeItem("user");
+            localStorage.removeItem("userData");
+            localStorage.removeItem("token");
 
-            await axios.get(`${serverUrl}/api/auth/logout`, {
-                withCredentials: true,
-            });
-
+            // 2. Reset Redux user state
             dispatch(setUserData(null));
+
+            // 3. Clear local component states
             setOpenProfile(false);
+            setOpenDashboard(false);
             setWebsites([]);
+
+            // 4. Clean Firebase and server sessions in background
+            try {
+                await signOut(auth);
+            } catch (e) {}
+
+            try {
+                await axios.get(`${serverUrl}/api/auth/logout`, {
+                    withCredentials: true,
+                });
+            } catch (e) {}
+
+            // 5. Redirect cleanly to homepage
+            navigate("/");
         } catch (error) {
             console.log("Logout error:", error);
+            localStorage.removeItem("genweb_user");
+            localStorage.removeItem("user");
+            dispatch(setUserData(null));
+            navigate("/");
         }
     };
 
-    /* =========================================================
-       LIVE STATISTICS
-    ========================================================= */
+    const safeWebsites = Array.isArray(websites) ? websites : [];
 
-    const totalWebsites = websites.length;
+    const totalWebsites = safeWebsites.length;
 
-    const publishedWebsites = websites.filter(
-        (website) => website.deployed
-    ).length;
+    const publishedWebsites = safeWebsites.filter((website) => {
+        return website?.deployed;
+    }).length;
 
     const draftWebsites = totalWebsites - publishedWebsites;
 
@@ -124,18 +170,11 @@ function Home() {
             ? Math.round((draftWebsites / totalWebsites) * 100)
             : 0;
 
-    /* =========================================================
-       LIVE MONTHLY GRAPH DATA
-       
-       Uses actual website updatedAt values.
-    ========================================================= */
-
     const graphData = useMemo(() => {
         const now = new Date();
-
         const months = [];
 
-        for (let i = 7; i >= 0; i--) {
+        for (let i = 7; i >= 0; i -= 1) {
             const date = new Date(
                 now.getFullYear(),
                 now.getMonth() - i,
@@ -151,29 +190,32 @@ function Home() {
             });
         }
 
-        websites.forEach((website) => {
-            if (!website.updatedAt) return;
+        safeWebsites.forEach((website) => {
+            if (!website?.updatedAt) {
+                return;
+            }
 
-            const updated = new Date(website.updatedAt);
+            const updatedDate = new Date(website.updatedAt);
 
-            const matchingMonth = months.find(
-                (item) =>
-                    item.month ===
-                        updated.toLocaleString("default", {
-                            month: "short",
-                        }) &&
-                    item.year === updated.getFullYear()
-            );
+            if (Number.isNaN(updatedDate.getTime())) {
+                return;
+            }
+
+            const monthName = updatedDate.toLocaleString("default", {
+                month: "short",
+            });
+
+            const year = updatedDate.getFullYear();
+
+            const matchingMonth = months.find((item) => {
+                return item.month === monthName && item.year === year;
+            });
 
             if (matchingMonth) {
                 matchingMonth.count += 1;
             }
         });
 
-        /*
-         * Convert cumulative website creation/update activity
-         * into a useful project activity graph.
-         */
         let runningTotal = 0;
 
         return months.map((item) => {
@@ -186,12 +228,10 @@ function Home() {
         });
     }, [websites]);
 
-    /* =========================================================
-       LINE GRAPH
-    ========================================================= */
-
     const graphPoints = useMemo(() => {
-        if (!graphData.length) return "";
+        if (graphData.length === 0) {
+            return "";
+        }
 
         const width = 560;
         const height = 190;
@@ -206,63 +246,46 @@ function Home() {
             .map((item, index) => {
                 const x =
                     padding +
-                    (index *
-                        (width - padding * 2)) /
+                    (index * (width - padding * 2)) /
                         Math.max(graphData.length - 1, 1);
 
                 const y =
                     height -
                     padding -
-                    (item.value / maxValue) *
-                        (height - padding * 2);
+                    (item.value / maxValue) * (height - padding * 2);
 
                 return `${x},${y}`;
             })
             .join(" ");
     }, [graphData]);
 
-    /* =========================================================
-       DONUT GRAPH
-    ========================================================= */
-
     const publishedDash =
-        totalWebsites > 0 ? (publishedWebsites / totalWebsites) * 360 : 0;
+        totalWebsites > 0
+            ? (publishedWebsites / totalWebsites) * 360
+            : 0;
 
     const draftDash =
-        totalWebsites > 0 ? (draftWebsites / totalWebsites) * 360 : 0;
-
-    /* =========================================================
-       COLORS
-    ========================================================= */
+        totalWebsites > 0
+            ? (draftWebsites / totalWebsites) * 360
+            : 0;
 
     const pageBg = isDark
         ? "bg-[#050507] text-white"
         : "bg-slate-50 text-slate-900";
 
-    const navBg = isDark
-        ? "bg-black/60 border-white/10"
-        : "bg-white/80 border-slate-200";
-
     const cardBg = isDark
         ? "bg-white/[0.035] border-white/10"
         : "bg-white border-slate-200";
 
-    const mutedText = isDark
-        ? "text-zinc-400"
-        : "text-slate-500";
+    const mutedText = isDark ? "text-zinc-400" : "text-slate-500";
 
-    const headingText = isDark
-        ? "text-white"
-        : "text-slate-900";
+    const headingText = isDark ? "text-white" : "text-slate-900";
 
     return (
         <div
             className={`min-h-screen overflow-hidden transition-colors duration-300 ${pageBg}`}
         >
-            {/* =====================================================
-                BACKGROUND GLOW
-            ===================================================== */}
-
+            {/* BACKGROUND */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
                 <div
                     className={`absolute -top-40 left-1/4 w-[500px] h-[500px] rounded-full blur-[140px] ${
@@ -281,136 +304,177 @@ function Home() {
                 />
             </div>
 
-            {/* =====================================================
-                NAVBAR
-            ===================================================== */}
-
+            {/* NAVBAR */}
             <motion.nav
                 initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className={`relative z-50 max-w-7xl mx-auto mt-4 mx-4 md:mx-auto rounded-2xl border backdrop-blur-xl transition-colors duration-300 ${navBg}`}
+                className={`relative z-50 max-w-7xl mx-4 md:mx-auto mt-4 rounded-2xl border backdrop-blur-xl ${
+                    isDark
+                        ? "bg-slate-950/95 border-slate-800 text-white"
+                        : "bg-white border-slate-200 text-slate-900 shadow-lg"
+                }`}
             >
-                <div className="px-5 md:px-7 py-4 flex items-center justify-between">
-                    {/* LOGO */}
-
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                            <Sparkles
-                                size={18}
-                                className="text-white"
-                            />
+                <div className="px-5 md:px-7 py-3.5 flex items-center justify-between">
+                    <button
+                        onClick={() => navigate("/")}
+                        className="flex items-center gap-3 group"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                            <Sparkles size={20} className="text-white" />
                         </div>
 
                         <span
-                            className={`text-lg font-bold ${headingText}`}
+                            className={`text-xl font-bold tracking-tight ${headingText}`}
                         >
                             GenWeb.ai
                         </span>
-                    </div>
+                    </button>
 
-                    {/* NAV LINKS */}
-
-                    <div className="hidden md:flex items-center gap-8 text-sm">
-                        <button
-                            onClick={() => navigate("/dashboard")}
-                            className={`${mutedText} hover:text-purple-400 transition`}
-                        >
-                            Dashboard
-                        </button>
+                    <div className="hidden md:flex items-center gap-2 ml-8">
+                        {userData && (
+                            <button
+                                onClick={() => navigate("/dashboard")}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium ${
+                                    isDark
+                                        ? "text-slate-300 hover:text-white hover:bg-white/10"
+                                        : "text-slate-700 hover:text-violet-600 hover:bg-violet-50"
+                                }`}
+                            >
+                                <LayoutDashboard size={18} />
+                                Dashboard
+                            </button>
+                        )}
 
                         <button
                             onClick={() => navigate("/pricing")}
-                            className={`${mutedText} hover:text-purple-400 transition`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium ${
+                                isDark
+                                    ? "text-slate-300 hover:text-white hover:bg-white/10"
+                                    : "text-slate-700 hover:text-violet-600 hover:bg-violet-50"
+                            }`}
                         >
+                            <Coins size={18} />
                             Pricing
                         </button>
                     </div>
 
-                    {/* RIGHT */}
-
-                    <div className="flex items-center gap-3">
-                        {/* THEME */}
-
+                    <div className="ml-auto flex items-center gap-2.5">
                         <button
                             onClick={toggleTheme}
-                            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition ${
+                            className={`w-11 h-11 rounded-xl border flex items-center justify-center ${
                                 isDark
-                                    ? "bg-white/5 border-white/10 hover:bg-white/10"
-                                    : "bg-slate-100 border-slate-200 hover:bg-slate-200"
+                                    ? "bg-white/5 border-white/10"
+                                    : "bg-slate-50 border-slate-200"
                             }`}
-                            title="Toggle theme"
                         >
                             {isDark ? (
-                                <Sun size={17} />
+                                <Sun size={18} />
                             ) : (
-                                <Moon size={17} />
+                                <Moon size={18} />
                             )}
                         </button>
-
-                        {/* CREDITS */}
 
                         {userData && (
                             <button
                                 onClick={() => navigate("/pricing")}
-                                className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                                className={`hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl border ${
                                     isDark
                                         ? "bg-white/5 border-white/10"
-                                        : "bg-slate-100 border-slate-200"
+                                        : "bg-slate-50 border-slate-200"
                                 }`}
                             >
                                 <Coins
-                                    size={15}
-                                    className="text-yellow-400"
+                                    size={17}
+                                    className="text-yellow-500"
                                 />
-
-                                <span className={mutedText}>
-                                    Credits
+                                <span>Credits</span>
+                                <span className="font-bold">
+                                    {userData?.credits ?? 0}
                                 </span>
-
-                                <span className="font-semibold">
-                                    {userData.credits}
-                                </span>
-
-                                <Plus size={14} />
+                                <Plus size={15} />
                             </button>
                         )}
 
-                        {/* PROFILE */}
-
                         {!userData ? (
-                            <button
-                                onClick={() => setOpenLogin(true)}
-                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:scale-105 transition"
-                            >
-                                Get Started
-                            </button>
-                        ) : (
-                            <div className="relative">
+                            <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() =>
-                                        setOpenProfile(
-                                            !openProfile
-                                        )
-                                    }
-                                    className="flex items-center gap-2"
+                                    onClick={() => setOpenLogin(true)}
+                                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
+                                        isDark
+                                            ? "text-slate-300 hover:text-white hover:bg-white/10"
+                                            : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                                    }`}
                                 >
-                                    <img
-                                        src={
-                                            userData?.avatar ||
-                                            `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                                userData.name || "User"
-                                            )}&background=7c3aed&color=fff`
-                                        }
-                                        alt=""
-                                        referrerPolicy="no-referrer"
-                                        className="w-10 h-10 rounded-xl object-cover border border-white/20"
-                                    />
-
-                                    <ChevronDown
-                                        size={14}
-                                        className={mutedText}
-                                    />
+                                    Login
                                 </button>
+                                <button
+                                    onClick={() => setOpenLogin(true)}
+                                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.02] active:scale-[0.98] transition"
+                                >
+                                    Get Started
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => navigate("/dashboard")}
+                                    className={`hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
+                                        isDark
+                                            ? "bg-violet-600/20 border border-violet-500/30 text-violet-300 hover:bg-violet-600/30"
+                                            : "bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100"
+                                    }`}
+                                >
+                                    <LayoutDashboard size={16} />
+                                    <span>Dashboard</span>
+                                </button>
+
+                                <button
+                                    onClick={handleLogOut}
+                                    className={`hidden sm:flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
+                                        isDark
+                                            ? "border border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/40"
+                                            : "border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                    }`}
+                                >
+                                    <LogOut size={16} />
+                                    <span>Logout</span>
+                                </button>
+
+                                <div
+                                    ref={profileRef}
+                                    className="relative"
+                                >
+                                    <button
+                                        onClick={() =>
+                                            setOpenProfile(!openProfile)
+                                        }
+                                        className={`flex items-center gap-2 ml-1 p-1.5 rounded-xl ${
+                                            isDark
+                                                ? "hover:bg-white/10"
+                                                : "hover:bg-slate-100"
+                                        }`}
+                                    >
+                                        <img
+                                            src={
+                                                userData?.avatar ||
+                                                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                                    userData?.name || "User"
+                                                )}&background=7c3aed&color=fff`
+                                            }
+                                            alt="Profile"
+                                            referrerPolicy="no-referrer"
+                                            className="w-10 h-10 rounded-xl object-cover"
+                                        />
+
+                                        <ChevronDown
+                                            size={15}
+                                            className={
+                                                openProfile
+                                                    ? "rotate-180"
+                                                    : ""
+                                            }
+                                        />
+                                    </button>
 
                                 <AnimatePresence>
                                     {openProfile && (
@@ -418,104 +482,94 @@ function Home() {
                                             initial={{
                                                 opacity: 0,
                                                 y: -8,
-                                                scale: 0.97,
                                             }}
                                             animate={{
                                                 opacity: 1,
                                                 y: 0,
-                                                scale: 1,
                                             }}
                                             exit={{
                                                 opacity: 0,
                                                 y: -8,
-                                                scale: 0.97,
                                             }}
-                                            className={`absolute right-0 mt-3 w-64 rounded-2xl border shadow-2xl overflow-hidden ${
+                                            className={`absolute right-0 mt-3 w-64 rounded-2xl border shadow-2xl overflow-hidden z-50 ${
                                                 isDark
                                                     ? "bg-[#111116] border-white/10"
                                                     : "bg-white border-slate-200"
                                             }`}
                                         >
-                                            <div className="p-4 border-b border-white/10">
+                                            <div
+                                                className={`p-4 border-b ${
+                                                    isDark
+                                                        ? "border-white/10"
+                                                        : "border-slate-100"
+                                                }`}
+                                            >
                                                 <p className="font-semibold truncate">
-                                                    {userData.name}
+                                                    {userData?.name}
                                                 </p>
 
                                                 <p
                                                     className={`text-xs mt-1 truncate ${mutedText}`}
                                                 >
-                                                    {userData.email}
+                                                    {userData?.email}
                                                 </p>
                                             </div>
 
                                             <button
-                                                onClick={() =>
-                                                    navigate(
-                                                        "/dashboard"
-                                                    )
-                                                }
-                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm hover:bg-purple-500/10 transition"
+                                                onClick={() => {
+                                                    setOpenProfile(false);
+                                                    navigate("/dashboard");
+                                                }}
+                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm hover:bg-white/5"
                                             >
-                                                <LayoutDashboard
-                                                    size={16}
-                                                />
+                                                <LayoutDashboard size={17} />
                                                 Dashboard
                                             </button>
 
                                             <button
-                                                onClick={() =>
-                                                    navigate(
-                                                        "/pricing"
-                                                    )
-                                                }
-                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm hover:bg-purple-500/10 transition"
+                                                onClick={() => {
+                                                    setOpenProfile(false);
+                                                    navigate("/pricing");
+                                                }}
+                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm hover:bg-white/5"
                                             >
-                                                <Coins
-                                                    size={16}
-                                                    className="text-yellow-400"
-                                                />
-                                                Credits:{" "}
-                                                {userData.credits}
+                                                <Coins size={17} />
+                                                Credits & Billing
                                             </button>
 
                                             <button
-                                                onClick={toggleTheme}
-                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm hover:bg-purple-500/10 transition"
+                                                onClick={() => {
+                                                    setOpenProfile(false);
+                                                    navigate("/settings");
+                                                }}
+                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm hover:bg-white/5"
                                             >
-                                                {isDark ? (
-                                                    <Sun size={16} />
-                                                ) : (
-                                                    <Moon size={16} />
-                                                )}
-                                                Toggle Theme
+                                                <Settings size={17} />
+                                                Settings
                                             </button>
+
+                                            <div className="border-t border-white/10" />
 
                                             <button
                                                 onClick={handleLogOut}
-                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-500/10 transition border-t border-white/10"
+                                                className="w-full px-4 py-3 flex items-center gap-3 text-sm text-red-400 hover:bg-red-500/10"
                                             >
-                                                <LogOut
-                                                    size={16}
-                                                />
+                                                <LogOut size={17} />
                                                 Logout
                                             </button>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
             </motion.nav>
 
-            {/* =====================================================
-                HERO
-            ===================================================== */}
-
+            {/* MAIN */}
             <main className="relative z-10 max-w-7xl mx-auto px-5 md:px-8 pt-20 pb-20">
                 <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 items-center">
-                    {/* LEFT */}
-
                     <motion.section
                         initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -529,7 +583,6 @@ function Home() {
                             }`}
                         >
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-
                             AI Website Generation Platform
                         </div>
 
@@ -538,7 +591,6 @@ function Home() {
                         >
                             Build websites with
                             <br />
-
                             <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
                                 Real AI Power
                             </span>
@@ -547,12 +599,10 @@ function Home() {
                         <p
                             className={`mt-7 text-lg md:text-xl max-w-2xl leading-relaxed ${mutedText}`}
                         >
-                            Describe your idea and let GenWeb.ai
-                            transform it into a modern, responsive
-                            and production-ready website.
+                            Describe your idea and let GenWeb.ai transform it
+                            into a modern, responsive and production-ready
+                            website.
                         </p>
-
-                        {/* BUTTONS */}
 
                         <div className="flex flex-wrap gap-4 mt-9">
                             <button
@@ -561,36 +611,157 @@ function Home() {
                                         ? navigate("/generate")
                                         : setOpenLogin(true)
                                 }
-                                className="group flex items-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white font-semibold shadow-xl shadow-purple-500/20 hover:scale-[1.03] transition"
+                                className="group flex items-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white font-semibold shadow-xl hover:scale-[1.03] transition-all"
                             >
                                 <WandSparkles size={19} />
-
                                 Generate Website
-
-                                <span className="group-hover:translate-x-1 transition">
-                                    →
-                                </span>
+                                <span>→</span>
                             </button>
 
-                            <button
-                                onClick={() =>
-                                    userData
-                                        ? navigate("/dashboard")
-                                        : setOpenLogin(true)
-                                }
-                                className={`flex items-center gap-3 px-6 py-4 rounded-xl border font-semibold transition hover:-translate-y-0.5 ${
-                                    isDark
-                                        ? "bg-white/5 border-white/10 hover:bg-white/10"
-                                        : "bg-white border-slate-200 hover:bg-slate-100"
-                                }`}
+                            <div
+                                ref={dashboardRef}
+                                className="relative"
                             >
-                                <LayoutDashboard size={18} />
+                                <button
+                                    onClick={() => {
+                                        if (!userData) {
+                                            setOpenLogin(true);
+                                            return;
+                                        }
 
-                                Dashboard
-                            </button>
+                                        setOpenDashboard(!openDashboard);
+                                    }}
+                                    className={`flex items-center gap-3 px-6 py-4 rounded-xl border font-semibold ${
+                                        isDark
+                                            ? "bg-white/5 border-white/10 hover:bg-white/10"
+                                            : "bg-white border-slate-200 hover:bg-slate-100"
+                                    }`}
+                                >
+                                    <LayoutDashboard size={18} />
+                                    Dashboard
+                                    <ChevronDown
+                                        size={16}
+                                        className={
+                                            openDashboard
+                                                ? "rotate-180"
+                                                : ""
+                                        }
+                                    />
+                                </button>
+
+                                <AnimatePresence>
+                                    {openDashboard && (
+                                        <motion.div
+                                            initial={{
+                                                opacity: 0,
+                                                y: 10,
+                                            }}
+                                            animate={{
+                                                opacity: 1,
+                                                y: 0,
+                                            }}
+                                            exit={{
+                                                opacity: 0,
+                                                y: 10,
+                                            }}
+                                            className={`absolute left-0 top-full mt-3 w-72 rounded-2xl border shadow-2xl overflow-hidden z-50 ${
+                                                isDark
+                                                    ? "bg-[#111111] border-white/10"
+                                                    : "bg-white border-slate-200"
+                                            }`}
+                                        >
+                                            <button
+                                                onClick={() => {
+                                                    setOpenDashboard(false);
+                                                    navigate("/dashboard");
+                                                }}
+                                                className="w-full text-left px-5 py-5 border-b border-white/10 hover:bg-white/5"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                                                        <LayoutDashboard
+                                                            size={19}
+                                                            className="text-purple-400"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <p className="font-semibold">
+                                                            Describe Dashboard
+                                                        </p>
+                                                        <p
+                                                            className={`text-sm mt-1 ${mutedText}`}
+                                                        >
+                                                            Generate an AI
+                                                            dashboard
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    setOpenDashboard(false);
+                                                    navigate("/upload");
+                                                }}
+                                                className="w-full text-left px-5 py-5 border-b border-white/10 hover:bg-white/5"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                                        <Plus
+                                                            size={20}
+                                                            className="text-emerald-400"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <p className="font-semibold">
+                                                            Upload Data / Files
+                                                        </p>
+                                                        <p
+                                                            className={`text-sm mt-1 ${mutedText}`}
+                                                        >
+                                                            CSV, JSON and data
+                                                            files
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    setOpenDashboard(false);
+                                                    navigate(
+                                                        "/upload?mode=paste"
+                                                    );
+                                                }}
+                                                className="w-full text-left px-5 py-5 hover:bg-white/5"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                                        <Globe
+                                                            size={19}
+                                                            className="text-blue-400"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <p className="font-semibold">
+                                                            Paste JSON Data
+                                                        </p>
+                                                        <p
+                                                            className={`text-sm mt-1 ${mutedText}`}
+                                                        >
+                                                            Add JSON directly
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
-
-                        {/* FEATURES */}
 
                         <div className="flex flex-wrap gap-6 mt-8">
                             {[
@@ -606,17 +777,13 @@ function Home() {
                                         size={16}
                                         className="text-emerald-400"
                                     />
-
                                     {item}
                                 </div>
                             ))}
                         </div>
                     </motion.section>
 
-                    {/* =================================================
-                        ACTIVITY GRAPH
-                    ================================================= */}
-
+                    {/* GRAPH CARD */}
                     <motion.div
                         initial={{ opacity: 0, x: 30 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -629,9 +796,7 @@ function Home() {
                     >
                         <div className="flex items-start justify-between">
                             <div>
-                                <p
-                                    className={`text-sm ${mutedText}`}
-                                >
+                                <p className={`text-sm ${mutedText}`}>
                                     Website activity
                                 </p>
 
@@ -655,132 +820,43 @@ function Home() {
                                 viewBox="0 0 600 220"
                                 className="w-full h-auto"
                             >
-                                {/* GRID */}
-
-                                {[40, 80, 120, 160].map(
-                                    (y) => (
-                                        <line
-                                            key={y}
-                                            x1="20"
-                                            x2="580"
-                                            y1={y}
-                                            y2={y}
-                                            stroke={
-                                                isDark
-                                                    ? "rgba(255,255,255,0.08)"
-                                                    : "rgba(15,23,42,0.08)"
-                                            }
-                                            strokeDasharray="5 7"
-                                        />
-                                    )
-                                )}
-
-                                {/* AREA */}
+                                {[40, 80, 120, 160].map((y) => (
+                                    <line
+                                        key={y}
+                                        x1="20"
+                                        x2="580"
+                                        y1={y}
+                                        y2={y}
+                                        stroke={
+                                            isDark
+                                                ? "rgba(255,255,255,0.08)"
+                                                : "rgba(15,23,42,0.08)"
+                                        }
+                                        strokeDasharray="5 7"
+                                    />
+                                ))}
 
                                 {graphPoints && (
-                                    <>
-                                        <polyline
-                                            points={`20,200 ${graphPoints} 580,200`}
-                                            fill={
-                                                isDark
-                                                    ? "rgba(34,197,94,0.08)"
-                                                    : "rgba(34,197,94,0.10)"
-                                            }
-                                            stroke="none"
-                                        />
-
-                                        {/* GREEN LINE */}
-
-                                        <polyline
-                                            points={graphPoints}
-                                            fill="none"
-                                            stroke="#22c55e"
-                                            strokeWidth="4"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-
-                                        {/* POINTS */}
-
-                                        {graphData.map(
-                                            (
-                                                item,
-                                                index
-                                            ) => {
-                                                const width = 560;
-                                                const height = 190;
-                                                const padding = 20;
-
-                                                const maxValue =
-                                                    Math.max(
-                                                        ...graphData.map(
-                                                            (
-                                                                d
-                                                            ) =>
-                                                                d.value
-                                                        ),
-                                                        1
-                                                    );
-
-                                                const x =
-                                                    padding +
-                                                    (index *
-                                                        (width -
-                                                            padding *
-                                                                2)) /
-                                                        Math.max(
-                                                            graphData.length -
-                                                                1,
-                                                            1
-                                                        );
-
-                                                const y =
-                                                    height -
-                                                    padding -
-                                                    (item.value /
-                                                        maxValue) *
-                                                        (height -
-                                                            padding *
-                                                                2);
-
-                                                return (
-                                                    <circle
-                                                        key={
-                                                            index
-                                                        }
-                                                        cx={
-                                                            x
-                                                        }
-                                                        cy={
-                                                            y
-                                                        }
-                                                        r="5"
-                                                        fill="#22c55e"
-                                                        stroke={
-                                                            isDark
-                                                                ? "#0d0d14"
-                                                                : "#ffffff"
-                                                        }
-                                                        strokeWidth="3"
-                                                    />
-                                                );
-                                            }
-                                        )}
-                                    </>
+                                    <polyline
+                                        points={graphPoints}
+                                        fill="none"
+                                        stroke="#22c55e"
+                                        strokeWidth="4"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
                                 )}
                             </svg>
 
                             <div className="flex justify-between mt-1">
-                                {graphData.map(
-                                    (item) => (
-                                        <span
-                                            key={`${item.month}-${item.year}`}
-                                            className={`text-xs ${mutedText}`}
-                                        >
-                                            {item.month}
-                                        </span>
-                                    )
-                                )}
+                                {graphData.map((item) => (
+                                    <span
+                                        key={`${item.month}-${item.year}`}
+                                        className={`text-xs ${mutedText}`}
+                                    >
+                                        {item.month}
+                                    </span>
+                                ))}
                             </div>
                         </div>
 
@@ -792,131 +868,125 @@ function Home() {
                                     {totalWebsites}
                                 </p>
 
-                                <p
-                                    className={`text-sm ${mutedText}`}
-                                >
+                                <p className={`text-sm ${mutedText}`}>
                                     Total Websites
                                 </p>
                             </div>
 
                             <div className="flex items-center gap-2 text-sm text-emerald-400">
                                 <TrendingUp size={16} />
-
                                 Live project data
                             </div>
                         </div>
                     </motion.div>
                 </div>
 
-                {/* =====================================================
-                    ANALYTICS CARDS
-                ===================================================== */}
-
+                {/* QUICK ACTIONS */}
                 <section className="grid lg:grid-cols-3 gap-5 mt-10">
-                    {/* TOP PROJECTS */}
-
-                    <div
-                        className={`rounded-3xl border p-6 ${cardBg}`}
-                    >
+                    <div className={`rounded-3xl border p-6 ${cardBg}`}>
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <p
-                                    className={`text-sm ${mutedText}`}
-                                >
-                                    Projects
+                                <p className={`text-sm ${mutedText}`}>
+                                    Get Started
                                 </p>
 
                                 <h3 className="text-xl font-bold">
-                                    Your Websites
+                                    Quick Actions
                                 </h3>
                             </div>
 
-                            <Globe
+                            <WandSparkles
                                 size={20}
                                 className="text-purple-400"
                             />
                         </div>
 
-                        <div className="space-y-4">
-                            {websites.length === 0 ? (
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => navigate("/generate?type=website")}
+                                className="text-left p-4 rounded-2xl border border-white/10 hover:bg-purple-500/10 transition group"
+                            >
+                                <Globe
+                                    size={18}
+                                    className="text-purple-400 mb-3 group-hover:scale-110 transition-transform"
+                                />
+                                <h4 className="text-sm font-semibold">
+                                    Full Website
+                                </h4>
                                 <p
-                                    className={`text-sm ${mutedText}`}
+                                    className={`text-xs mt-1 ${mutedText}`}
                                 >
-                                    No websites created yet.
+                                    Multi-section site
                                 </p>
-                            ) : (
-                                websites
-                                    .slice(0, 4)
-                                    .map(
-                                        (
-                                            website
-                                        ) => (
-                                            <div
-                                                key={
-                                                    website._id
-                                                }
-                                                className={`flex items-center justify-between p-3 rounded-xl ${
-                                                    isDark
-                                                        ? "bg-white/5"
-                                                        : "bg-slate-50"
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0">
-                                                        <Sparkles
-                                                            size={
-                                                                16
-                                                            }
-                                                            className="text-purple-400"
-                                                        />
-                                                    </div>
+                            </button>
 
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-medium truncate">
-                                                            {
-                                                                website.title
-                                                            }
-                                                        </p>
+                            <button
+                                onClick={() =>
+                                    navigate("/generate?type=dashboard")
+                                }
+                                className="text-left p-4 rounded-2xl border border-white/10 hover:bg-cyan-500/10 transition group"
+                            >
+                                <LayoutDashboard
+                                    size={18}
+                                    className="text-cyan-400 mb-3 group-hover:scale-110 transition-transform"
+                                />
+                                <h4 className="text-sm font-semibold">
+                                    Dashboard
+                                </h4>
+                                <p
+                                    className={`text-xs mt-1 ${mutedText}`}
+                                >
+                                    Analytics & charts
+                                </p>
+                            </button>
 
-                                                        <p
-                                                            className={`text-xs ${mutedText}`}
-                                                        >
-                                                            {website.deployed
-                                                                ? "Published"
-                                                                : "Draft"}
-                                                        </p>
-                                                    </div>
-                                                </div>
+                            <button
+                                onClick={() =>
+                                    navigate("/generate?type=landing")
+                                }
+                                className="text-left p-4 rounded-2xl border border-white/10 hover:bg-emerald-500/10 transition group"
+                            >
+                                <Rocket
+                                    size={18}
+                                    className="text-emerald-400 mb-3 group-hover:scale-110 transition-transform"
+                                />
+                                <h4 className="text-sm font-semibold">
+                                    Landing Page
+                                </h4>
+                                <p
+                                    className={`text-xs mt-1 ${mutedText}`}
+                                >
+                                    High-converting SaaS
+                                </p>
+                            </button>
 
-                                                <span
-                                                    className={`w-2 h-2 rounded-full shrink-0 ${
-                                                        website.deployed
-                                                            ? "bg-emerald-400"
-                                                            : "bg-amber-400"
-                                                    }`}
-                                                />
-                                            </div>
-                                        )
-                                    )
-                            )}
+                            <button
+                                onClick={() => navigate("/upload")}
+                                className="text-left p-4 rounded-2xl border border-white/10 hover:bg-amber-500/10 transition group"
+                            >
+                                <BarChart3
+                                    size={18}
+                                    className="text-amber-400 mb-3 group-hover:scale-110 transition-transform"
+                                />
+                                <h4 className="text-sm font-semibold">
+                                    Upload Data
+                                </h4>
+                                <p
+                                    className={`text-xs mt-1 ${mutedText}`}
+                                >
+                                    CSV / JSON to App
+                                </p>
+                            </button>
                         </div>
                     </div>
 
-                    {/* =================================================
-                        TOTAL VISITORS / ACTIVITY
-                    ================================================= */}
-
-                    <div
-                        className={`rounded-3xl border p-6 ${cardBg}`}
-                    >
+                    {/* WEBSITE GROWTH */}
+                    <div className={`rounded-3xl border p-6 ${cardBg}`}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p
-                                    className={`text-sm ${mutedText}`}
-                                >
+                                <p className={`text-sm ${mutedText}`}>
                                     Project activity
                                 </p>
-
                                 <h3 className="text-xl font-bold">
                                     Website Growth
                                 </h3>
@@ -932,10 +1002,7 @@ function Home() {
                             <p className="text-4xl font-bold">
                                 {totalWebsites}
                             </p>
-
-                            <p
-                                className={`text-sm mt-1 ${mutedText}`}
-                            >
+                            <p className={`text-sm mt-1 ${mutedText}`}>
                                 Websites in your account
                             </p>
                         </div>
@@ -946,7 +1013,6 @@ function Home() {
                                     <span className={mutedText}>
                                         Published
                                     </span>
-
                                     <span className="text-emerald-400">
                                         {publishedWebsites}
                                     </span>
@@ -960,7 +1026,7 @@ function Home() {
                                     }`}
                                 >
                                     <div
-                                        className="h-full rounded-full bg-emerald-400 transition-all"
+                                        className="h-full rounded-full bg-emerald-400"
                                         style={{
                                             width: `${publishPercentage}%`,
                                         }}
@@ -973,7 +1039,6 @@ function Home() {
                                     <span className={mutedText}>
                                         Drafts
                                     </span>
-
                                     <span className="text-amber-400">
                                         {draftWebsites}
                                     </span>
@@ -987,7 +1052,7 @@ function Home() {
                                     }`}
                                 >
                                     <div
-                                        className="h-full rounded-full bg-amber-400 transition-all"
+                                        className="h-full rounded-full bg-amber-400"
                                         style={{
                                             width: `${draftPercentage}%`,
                                         }}
@@ -997,21 +1062,13 @@ function Home() {
                         </div>
                     </div>
 
-                    {/* =================================================
-                        CONVERSION RATE DONUT
-                    ================================================= */}
-
-                    <div
-                        className={`rounded-3xl border p-6 ${cardBg}`}
-                    >
+                    {/* PROJECT STATUS */}
+                    <div className={`rounded-3xl border p-6 ${cardBg}`}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p
-                                    className={`text-sm ${mutedText}`}
-                                >
+                                <p className={`text-sm ${mutedText}`}>
                                     Conversion Rate
                                 </p>
-
                                 <h3 className="text-xl font-bold">
                                     Project Status
                                 </h3>
@@ -1024,20 +1081,12 @@ function Home() {
                         </div>
 
                         <div className="flex items-center gap-6 mt-7">
-                            {/* DONUT */}
-
                             <div
                                 className="relative w-32 h-32 rounded-full shrink-0"
                                 style={{
                                     background:
                                         totalWebsites > 0
-                                            ? `conic-gradient(
-                                                #ec4899 0deg ${publishedDash}deg,
-                                                #6366f1 ${publishedDash}deg ${
-                                                  publishedDash +
-                                                  draftDash
-                                              }deg
-                                            )`
+                                            ? `conic-gradient(#ec4899 0deg ${publishedDash}deg, #6366f1 ${publishedDash}deg 360deg)`
                                             : isDark
                                             ? "#27272a"
                                             : "#e2e8f0",
@@ -1053,7 +1102,6 @@ function Home() {
                                     <span className="text-xl font-bold">
                                         {publishPercentage}%
                                     </span>
-
                                     <span
                                         className={`text-[10px] ${mutedText}`}
                                     >
@@ -1062,13 +1110,10 @@ function Home() {
                                 </div>
                             </div>
 
-                            {/* LEGEND */}
-
                             <div className="space-y-4">
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
-
                                         <span className="text-sm">
                                             Published
                                         </span>
@@ -1084,9 +1129,8 @@ function Home() {
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-
                                         <span className="text-sm">
-                                            Draft
+                                            Drafts
                                         </span>
                                     </div>
 
@@ -1098,29 +1142,11 @@ function Home() {
                                 </div>
                             </div>
                         </div>
-
-                        <div
-                            className={`mt-6 pt-4 border-t ${
-                                isDark
-                                    ? "border-white/10"
-                                    : "border-slate-200"
-                            }`}
-                        >
-                            <p
-                                className={`text-xs ${mutedText}`}
-                            >
-                                Your project statistics are based
-                                on your actual generated websites.
-                            </p>
-                        </div>
                     </div>
                 </section>
 
-                {/* =====================================================
-                    YOUR WEBSITES
-                ===================================================== */}
-
-                {userData && websites.length > 0 && (
+                {/* YOUR WEBSITES */}
+                {userData && safeWebsites.length > 0 && (
                     <section className="mt-12">
                         <div className="flex items-center justify-between mb-6">
                             <div>
@@ -1133,31 +1159,24 @@ function Home() {
                                 <p
                                     className={`text-sm mt-1 ${mutedText}`}
                                 >
-                                    Manage your latest AI-generated
-                                    websites.
+                                    Manage your latest AI-generated websites.
                                 </p>
                             </div>
 
                             <button
-                                onClick={() =>
-                                    navigate("/dashboard")
-                                }
-                                className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border text-sm ${
-                                    isDark
-                                        ? "border-white/10 bg-white/5 hover:bg-white/10"
-                                        : "border-slate-200 bg-white hover:bg-slate-100"
-                                }`}
+                                onClick={() => navigate("/dashboard")}
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-sm"
                             >
                                 View All
                             </button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {websites
+                            {safeWebsites
                                 .slice(0, 3)
                                 .map((website, index) => (
                                     <motion.div
-                                        key={website._id}
+                                        key={website._id || index}
                                         initial={{
                                             opacity: 0,
                                             y: 20,
@@ -1166,66 +1185,46 @@ function Home() {
                                             opacity: 1,
                                             y: 0,
                                         }}
-                                        transition={{
-                                            delay:
-                                                index *
-                                                0.08,
+                                        whileHover={{ y: -5 }}
+                                        onClick={() => {
+                                            if (website._id) {
+                                                navigate(
+                                                    `/editor/${website._id}`
+                                                );
+                                            }
                                         }}
-                                        whileHover={{
-                                            y: -5,
-                                        }}
-                                        onClick={() =>
-                                            navigate(
-                                                `/editor/${website._id}`
-                                            )
-                                        }
-                                        className={`group rounded-2xl border overflow-hidden cursor-pointer transition-all ${
+                                        className={`group rounded-2xl border overflow-hidden cursor-pointer ${
                                             isDark
-                                                ? "bg-white/[0.035] border-white/10 hover:border-purple-500/30"
-                                                : "bg-white border-slate-200 hover:border-purple-300 shadow-sm"
+                                                ? "bg-white/[0.035] border-white/10"
+                                                : "bg-white border-slate-200"
                                         }`}
                                     >
-                                        {/* PREVIEW */}
-
                                         <div className="relative h-44 bg-black overflow-hidden">
                                             <iframe
                                                 srcDoc={
-                                                    website.latestCode
+                                                    website.latestCode || ""
                                                 }
                                                 title={
-                                                    website.title
+                                                    website.title || "Website"
                                                 }
+                                                sandbox="allow-scripts allow-same-origin"
                                                 className="absolute top-0 left-0 w-[140%] h-[140%] scale-[0.72] origin-top-left pointer-events-none bg-white"
                                             />
 
-                                            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition" />
-
-                                            {/* STATUS */}
-
-                                            <div className="absolute top-3 left-3">
-                                                {website.deployed ? (
-                                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 backdrop-blur-md text-xs text-emerald-300">
+                                            {website.deployed && (
+                                                <div className="absolute top-3 left-3">
+                                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 text-xs text-emerald-300">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-
                                                         Published
                                                     </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/20 backdrop-blur-md text-xs text-amber-300">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-
-                                                        Draft
-                                                    </div>
-                                                )}
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* DETAILS */}
-
                                         <div className="p-5">
-                                            <h3 className="font-semibold line-clamp-1">
-                                                {
-                                                    website.title
-                                                }
+                                            <h3 className="font-semibold truncate">
+                                                {website.title ||
+                                                    "Untitled Website"}
                                             </h3>
 
                                             <p
@@ -1245,11 +1244,8 @@ function Home() {
                     </section>
                 )}
 
-                {/* =====================================================
-                    EMPTY STATE
-                ===================================================== */}
-
-                {userData && websites.length === 0 && (
+                {/* EMPTY STATE */}
+                {userData && safeWebsites.length === 0 && (
                     <section
                         className={`mt-12 rounded-3xl border p-10 text-center ${
                             isDark
@@ -1271,43 +1267,31 @@ function Home() {
                         <p
                             className={`max-w-lg mx-auto mt-2 text-sm ${mutedText}`}
                         >
-                            Describe your idea and GenWeb.ai will
-                            turn it into a responsive website.
+                            Describe your idea and GenWeb.ai will turn it into a
+                            responsive website.
                         </p>
 
                         <button
-                            onClick={() =>
-                                navigate("/generate")
-                            }
+                            onClick={() => navigate("/generate")}
                             className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:scale-105 transition"
                         >
                             <WandSparkles size={17} />
-
                             Generate Website
                         </button>
                     </section>
                 )}
             </main>
 
-            {/* =====================================================
-                FOOTER
-            ===================================================== */}
-
+            {/* FOOTER */}
             <footer
                 className={`relative z-10 border-t py-8 text-center text-sm ${mutedText} ${
-                    isDark
-                        ? "border-white/10"
-                        : "border-slate-200"
+                    isDark ? "border-white/10" : "border-slate-200"
                 }`}
             >
-                © {new Date().getFullYear()} GenWeb.ai. All rights
-                reserved.
+                © {new Date().getFullYear()} GenWeb.ai. All rights reserved.
             </footer>
 
-            {/* =====================================================
-                LOGIN MODAL
-            ===================================================== */}
-
+            {/* LOGIN MODAL */}
             {openLogin && (
                 <LoginModal
                     open={openLogin}

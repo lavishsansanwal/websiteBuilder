@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FlowSync — Work Better Together</title>
+
+    <style>
+        :root {
+            --primary: #5b5bd6;
+            --primary-dark: #4747bd;
+            --accent: #14b8a6;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --surface-dark: #111827;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 18px;
+            --shadow: 0 20px 60px rgba(15, 23, 42, 0.10);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button {
+            font: inherit;
+            border: none;
+            cursor: pointer;
+        }
+
+        .container {
+            width: min(1180px, 92%);
+            margin: auto;
+        }
+
+        /* NAVBAR */
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .navbar {
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            color: white;
+            background: var(--primary);
+            border-radius: 11px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        .menu-btn {
+            display: none;
+            background: transparent;
+            font-size: 1.5rem;
+        }
+
+        /* HERO */
+
+        .hero {
+            padding: 100px 0 70px;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .badge {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 14px;
+            background: #eef2ff;
+            color: var(--primary);
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.8rem, 6vw, 5.4rem);
+            line-height: 1.05;
+            max-width: 950px;
+            margin: auto;
+            letter-spacing: -0.05em;
+        }
+
+        .hero h1 span {
+            color: var(--primary);
+        }
+
+        .hero p {
+            max-width: 680px;
+            margin: 25px auto;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .hero-note {
+            margin-top: 18px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* DASHBOARD PREVIEW */
+
+        .product-preview {
+            margin-top: 65px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            text-align: left;
+        }
+
+        .browser {
+            display: flex;
+            gap: 7px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #d1d5db;
+        }
+
+        .app-layout {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            min-height: 530px;
+        }
+
+        .sidebar {
+            border-right: 1px solid var(--border);
+            padding: 24px 18px;
+        }
+
+        .sidebar-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin: 22px 0 10px;
+        }
+
+        .side-link {
+            display: block;
+            padding: 10px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .side-link.active {
+            background: #eef2ff;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .workspace {
+            padding: 28px;
+        }
+
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .workspace-header h3 {
+            font-size: 1.5rem;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .metric {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .metric small {
+            color: var(--text-secondary);
+        }
+
+        .metric h2 {
+            margin-top: 8px;
+        }
+
+        .positive {
+            color: var(--success);
+            font-size: 0.85rem;
+        }
+
+        .project-board {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .column {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .column h4 {
+            font-size: 0.9rem;
+            margin-bottom: 14px;
+        }
+
+        .task {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            transition: transform 0.2s ease;
+        }
+
+        .task:hover {
+            transform: translateY(-3px);
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        /* LOGOS */
+
+        .logos {
+            padding: 70px 0;
+            text-align: center;
+        }
+
+        .logos p {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .logo-grid {
+            display: flex;
+            justify-content: space-around;
+            gap: 25px;
+            flex-wrap: wrap;
+            color: #9ca3af;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+
+        /* FEATURES */
+
+        .section {
+            padding: 100px 0;
+        }
+
+        .section-heading {
+            text-align: center;
+            max-width: 680px;
+            margin: 0 auto 55px;
+        }
+
+        .section-heading h2 {
+            font-size: clamp(2rem, 4vw, 3.3rem);
+            line-height: 1.15;
+            margin-bottom: 18px;
+        }
+
+        .section-heading p {
+            color: var(--text-secondary);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+        }
+
+        .feature {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            display: grid;
+            place-items: center;
+            background: #eef2ff;
+            color: var(--primary);
+            border-radius: 12px;
+            font-size: 1.2rem;
+            margin-bottom: 22px;
+        }
+
+        .feature h3 {
+            margin-bottom: 10px;
+        }
+
+        .feature p {
+            color: var(--text-secondary);
+        }
+
+        /* STATS */
+
+        .stats {
+            background: var(--surface-dark);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            text-align: center;
+        }
+
+        .stat h2 {
+            font-size: 2.6rem;
+            color: white;
+        }
+
+        .stat p {
+            color: #9ca3af;
+        }
+
+        /* WORKFLOW */
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 70px;
+            align-items: center;
+        }
+
+        .workflow-content h2 {
+            font-size: 3rem;
+            line-height: 1.15;
+            margin-bottom: 20px;
+        }
+
+        .workflow-content p {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+        }
+
+        .steps {
+            display: grid;
+            gap: 20px;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+        }
+
+        .step-number {
+            min-width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-weight: 800;
+        }
+
+        .workflow-visual {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+        }
+
+        .progress-row {
+            margin-bottom: 25px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: inherit;
+        }
+
+        /* TESTIMONIALS */
+
+        .testimonials {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+        }
+
+        .testimonial {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 28px;
+            border-radius: var(--radius);
+        }
+
+        .quote {
+            font-size: 1.05rem;
+            margin-bottom: 25px;
+        }
+
+        .person {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: #e0e7ff;
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .person small {
+            color: var(--text-secondary);
+        }
+
+        /* PRICING */
+
+        .pricing {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+        }
+
+        .price-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+        }
+
+        .price-card.featured {
+            border: 2px solid var(--primary);
+            position: relative;
+        }
+
+        .popular {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 15px 0;
+        }
+
+        .price span {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .price-card ul {
+            list-style: none;
+            margin: 25px 0;
+        }
+
+        .price-card li {
+            padding: 8px 0;
+            color: var(--text-secondary);
+        }
+
+        /* FAQ */
+
+        .faq {
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .faq-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .faq-answer {
+            display: none;
+            padding: 0 20px 20px;
+            color: var(--text-secondary);
+        }
+
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+
+        /* CTA */
+
+        .cta {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            border-radius: 28px;
+            padding: 70px 25px;
+        }
+
+        .cta h2 {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            margin-bottom: 15px;
+        }
+
+        .cta p {
+            color: #e0e7ff;
+            margin-bottom: 25px;
+        }
+
+        .cta .btn {
+            background: white;
+            color: var(--primary);
+        }
+
+        /* FOOTER */
+
+        footer {
+            padding: 60px 0 25px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr repeat(3, 1fr);
+            gap: 40px;
+            padding-bottom: 50px;
+        }
+
+        .footer-grid h4 {
+            margin-bottom: 15px;
+        }
+
+        .footer-grid a {
+            display: block;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border);
+            padding-top: 25px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 900px) {
+
+            .nav-links,
+            .nav-actions {
+                display: none;
+            }
+
+            .menu-btn {
+                display: block;
+            }
+
+            .nav-links.mobile-open {
+                display: flex;
+                position: absolute;
+                top: 76px;
+                left: 0;
+                right: 0;
+                background: white;
+                flex-direction: column;
+                padding: 25px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .features,
+            .testimonials,
+            .pricing {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .workflow-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+
+            .hero {
+                padding-top: 70px;
+            }
+
+            .metrics,
+            .project-board {
+                grid-template-columns: 1fr;
+            }
+
+            .workspace-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section {
+                padding: 70px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="container navbar">
+            <a href="#home" class="logo">
+                <span class="logo-icon">F</span>
+                FlowSync
+            </a>
+
+            <div class="nav-links" id="navLinks">
+                <a href="#features">Features</a>
+                <a href="#workflow">How it works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+            </div>
+
+            <div class="nav-actions">
+                <button class="btn btn-outline" onclick="showMessage('Welcome back!')">
+                    Log in
+                </button>
+                <a href="#pricing" class="btn btn-primary">
+                    Start for free
+                </a>
+            </div>
+
+            <button class="menu-btn" id="menuBtn" aria-label="Open navigation">
+                ☰
+            </button>
+        </div>
+    </nav>
+
+    <main>
+
+        <!-- HERO -->
+        <section class="hero" id="home">
+            <div class="container">
+                <div class="badge">
+                    ✦ Built for modern teams
+                </div>
+
+                <h1>
+                    Bring your team's work
+                    <span>into perfect flow.</span>
+                </h1>
+
+                <p>
+                    FlowSync gives ambitious teams one intelligent workspace
+                    to plan projects, manage tasks, track progress, and ship
+                    meaningful work faster.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="#pricing" class="btn btn-primary">
+                        Start building for free
+                    </a>
+
+                    <a href="#workflow" class="btn btn-outline">
+                        See how it works
+                    </a>
+                </div>
+
+                <p class="hero-note">
+                    No credit card required · Free for small teams
+                </p>
+
+                <!-- PRODUCT PREVIEW -->
+
+                <div class="product-preview">
+                    <div class="browser">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+
+                    <div class="app-layout">
+
+                        <aside class="sidebar">
+                            <strong>FlowSync</strong>
+
+                            <p class="sidebar-title">Workspace</p>
+
+                            <a href="#home" class="side-link active">
+                                Overview
+                            </a>
+
+                            <a href="#features" class="side-link">
+                                Projects
+                            </a>
+
+                            <a href="#workflow" class="side-link">
+                                My Tasks
+                            </a>
+
+                            <p class="sidebar-title">Management</p>
+
+                            <a href="#pricing" class="side-link">
+                                Team
+                            </a>
+
+                            <a href="#faq" class="side-link">
+                                Settings
+                            </a>
+                        </aside>
+
+                        <section class="workspace">
+                            <div class="workspace-header">
+                                <div>
+                                    <h3>Product Launch</h3>
+                                    <p style="color: var(--text-secondary)">
+                                        Everything is moving forward.
+                                    </p>
+                                </div>
+
+                                <button class="btn btn-primary"
+                                    onclick="addTask()">
+                                    + Add task
+                                </button>
+                            </div>
+
+                            <div class="metrics">
+
+                                <div class="metric">
+                                    <small>Tasks completed</small>
+                                    <h2>68%</h2>
+                                    <span class="positive">
+                                        ↑ 12% this week
+                                    </span>
+                                </div>
+
+                                <div class="metric">
+                                    <small>Active projects</small>
+                                    <h2>12</h2>
+                                    <span class="positive">
+                                        ↑ 3 new projects
+                                    </span>
+                                </div>
+
+                                <div class="metric">
+                                    <small>Team velocity</small>
+                                    <h2>94%</h2>
+                                    <span class="positive">
+                                        ↑ Performing well
+                                    </span>
+                                </div>
+
+                            </div>
+
+                            <div class="project-board" id="projectBoard">
+
+                                <div class="column">
+                                    <h4>To Do · 3</h4>
+
+                                    <div class="task">
+                                        Finalize onboarding flow
+
+                                        <div class="task-meta">
+                                            <span>Design</span>
+                                            <span>Today</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="task">
+                                        Review analytics dashboard
+
+                                        <div class="task-meta">
+                                            <span>Product</span>
+                                            <span>Tomorrow</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="column">
+                                    <h4>In Progress · 2</h4>
+
+                                    <div class="task">
+                                        Build billing experience
+
+                                        <div class="task-meta">
+                                            <span>Engineering</span>
+                                            <span>75%</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="task">
+                                        Prepare launch campaign
+
+                                        <div class="task-meta">
+                                            <span>Marketing</span>
+                                            <span>60%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="column">
+                                    <h4>Completed · 2</h4>
+
+                                    <div class="task">
+                                        Customer research
+
+                                        <div class="task-meta">
+                                            <span>Research</span>
+                                            <span>Done</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="task">
+                                        Update design system
+
+                                        <div class="task-meta">
+                                            <span>Design</span>
+                                            <span>Done</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRUSTED BY -->
+
+        <section class="logos">
+            <div class="container">
+                <p>Trusted by ambitious teams around the world</p>
+
+                <div class="logo-grid">
+                    <span>NOVA</span>
+                    <span>Vertex</span>
+                    <span>Northstar</span>
+                    <span>Orbit</span>
+                    <span>PixelWorks</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURES -->
+
+        <section class="section" id="features">
+            <div class="container">
+
+                <div class="section-heading">
+                    <h2>
+                        Everything your team needs to move faster
+                    </h2>
+
+                    <p>
+                        Replace disconnected tools with one focused workspace
+                        designed around how modern teams actually work.
+                    </p>
+                </div>
+
+                <div class="features">
+
+                    <article class="feature">
+                        <div class="feature-icon">✓</div>
+                        <h3>Smart project planning</h3>
+                        <p>
+                            Organize projects, priorities, and deadlines
+                            without losing visibility into the bigger picture.
+                        </p>
+                    </article>
+
+                    <article class="feature">
+                        <div class="feature-icon">↗</div>
+                        <h3>Real-time progress</h3>
+                        <p>
+                            See exactly what is moving forward and identify
+                            blockers before they slow your team down.
+                        </p>
+                    </article>
+
+                    <article class="feature">
+                        <div class="feature-icon">◉</div>
+                        <h3>One shared workspace</h3>
+                        <p>
+                            Keep conversations, tasks, projects, and decisions
+                            connected in one organized place.
+                        </p>
+                    </article>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- STATS -->
+
+        <section class="section stats">
+            <div class="container">
+                <div class="stats-grid">
+
+                    <div class="stat">
+                        <h2>10k+</h2>
+                        <p>Teams building with FlowSync</p>
+                    </div>
+
+                    <div class="stat">
+                        <h2>32%</h2>
+                        <p>Average productivity increase</p>
+                    </div>
+
+                    <div class="stat">
+                        <h2>4.9/5</h2>
+                        <p>Average customer satisfaction</p>
+                    </div>
+
+                    <div class="stat">
+                        <h2>99.9%</h2>
+                        <p>Platform uptime</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- WORKFLOW -->
+
+        <section class="section" id="workflow">
+            <div class="container workflow-grid">
+
+                <div class="workflow-content">
+                    <h2>
+                        From idea to execution without the chaos.
+                    </h2>
+
+                    <p>
+                        FlowSync gives your team a clear path from planning
+                        to delivery.
+                    </p>
+
+                    <div class="steps">
+
+                        <div class="step">
+                            <div class="step-number">1</div>
+
+                            <div>
+                                <h3>Plan the work</h3>
+                                <p>
+                                    Turn ideas into clear projects and
+                                    actionable tasks.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="step">
+                            <div class="step-number">2</div>
+
+                            <div>
+                                <h3>Keep everyone aligned</h3>
+                                <p>
+                                    Give every team member clarity about
+                                    priorities and responsibilities.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="step">
+                            <div class="step-number">3</div>
+
+                            <div>
+                                <h3>Ship with confidence</h3>
+                                <p>
+                                    Track progress in real time and deliver
+                                    better outcomes faster.
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="workflow-visual">
+
+                    <h3 style="margin-bottom: 30px">
+                        Project progress
+                    </h3>
+
+                    <div class="progress-row">
+                        <div class="progress-label">
+                            <span>Product Design</span>
+                            <strong>92%</strong>
+                        </div>
+
+                        <div class="progress-bar">
+                            <div class="progress-fill"
+                                style="width: 92%">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-row">
+                        <div class="progress-label">
+                            <span>Development</span>
+                            <strong>74%</strong>
+                        </div>
+
+                        <div class="progress-bar">
+                            <div class="progress-fill"
+                                style="width: 74%">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-row">
+                        <div class="progress-label">
+                            <span>Marketing</span>
+                            <strong>58%</strong>
+                        </div>
+
+                        <div class="progress-bar">
+                            <div class="progress-fill"
+                                style="width: 58%">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-row">
+                        <div class="progress-label">
+                            <span>Launch Readiness</span>
+                            <strong>81%</strong>
+                        </div>
+
+                        <div class="progress-bar">
+                            <div class="progress-fill"
+                                style="width: 81%">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TESTIMONIALS -->
+
+        <section class="section">
+            <div class="container">
+
+                <div class="section-heading">
+                    <h2>Loved by teams that care about great work</h2>
+                </div>
+
+                <div class="testimonials">
+
+                    <article class="testimonial">
+                        <p class="quote">
+                            “FlowSync replaced three separate tools for our
+                            product team. We finally have one clear source of
+                            truth.”
+                        </p>
+
+                        <div class="person">
+                            <div class="avatar">AM</div>
+
+                            <div>
+                                <strong>Alex Morgan</strong>
+                                <br>
+                                <small>Head of Product</small>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="testimonial">
+                        <p class="quote">
+                            “The visibility across projects has completely
+                            changed how our team plans and delivers work.”
+                        </p>
+
+                        <div class="person">
+                            <div class="avatar">SK</div>
+
+                            <div>
+                                <strong>Sarah Kim</strong>
+                                <br>
+                                <small>Operations Director</small>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="testimonial">
+                        <p class="quote">
+                            “Simple enough for everyone to use, powerful enough
+                            for our most complex projects.”
+                        </p>
+
+                        <div class="person">
+                            <div class="avatar">JD</div>
+
+                            <div>
+                                <strong>Jordan Davis</strong>
+                                <br>
+                                <small>Engineering Lead</small>
+                            </div>
+                        </div>
+                    </article>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- PRICING -->
+
+        <section class="section" id="pricing">
+            <div class="container">
+
+                <div class="section-heading">
+                    <h2>Simple pricing that grows with your team</h2>
+
+                    <p>
+                        Start free and upgrade when your team needs more.
+                    </p>
+                </div>
+
+                <div class="pricing">
+
+                    <article class="price-card">
+                        <h3>Starter</h3>
+
+                        <div class="price">
+                            $0 <span>/ month</span>
+                        </div>
+
+                        <p>For individuals and small teams.</p>
+
+                        <ul>
+                            <li>✓ Up to 5 users</li>
+                            <li>✓ Unlimited tasks</li>
+                            <li>✓ Basic reporting</li>
+                            <li>✓ Community support</li>
+                        </ul>
+
+                        <button class="btn btn-outline"
+                            onclick="showMessage('Starter plan selected!')">
+                            Get started
+                        </button>
+                    </article>
+
+                    <article class="price-card featured">
+
+                        <div class="popular">
+                            MOST POPULAR
+                        </div>
+
+                        <h3>Growth</h3>
+
+                        <div class="price">
+                            $12 <span>/ user / month</span>
+                        </div>
+
+                        <p>For growing teams that need more power.</p>
+
+                        <ul>
+                            <li>✓ Unlimited users</li>
+                            <li>✓ Advanced dashboards</li>
+                            <li>✓ Automations</li>
+                            <li>✓ Priority support</li>
+                        </ul>
+
+                        <button class="btn btn-primary"
+                            onclick="showMessage('Growth plan selected!')">
+                            Start free trial
+                        </button>
+                    </article>
+
+                    <article class="price-card">
+                        <h3>Scale</h3>
+
+                        <div class="price">
+                            Custom
+                        </div>
+
+                        <p>For large organizations and complex workflows.</p>
+
+                        <ul>
+                            <li>✓ Enterprise security</li>
+                            <li>✓ Custom integrations</li>
+                            <li>✓ Dedicated support</li>
+                            <li>✓ Advanced controls</li>
+                        </ul>
+
+                        <button class="btn btn-outline"
+                            onclick="showMessage('Sales team will contact you!')">
+                            Contact sales
+                        </button>
+                    </article>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+
+        <section class="section" id="faq">
+            <div class="container">
+
+                <div class="section-heading">
+                    <h2>Frequently asked questions</h2>
+                </div>
+
+                <div class="faq">
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Is FlowSync free to use?
+                            <span>+</span>
+                        </button>
+
+                        <div class="faq-answer">
+                            Yes. You can start with the free Starter plan
+                            and upgrade as your team grows.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Can I invite my whole team?
+                            <span>+</span>
+                        </button>
+
+                        <div class="faq-answer">
+                            Yes. FlowSync is designed for collaboration and
+                            allows teams to work together in shared workspaces.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Can I change plans later?
+                            <span>+</span>
+                        </button>
+
+                        <div class="faq-answer">
+                            Yes. You can upgrade or change your plan whenever
+                            your team's requirements change.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- FINAL CTA -->
+
+        <section class="section">
+            <div class="container">
+
+                <div class="cta">
+                    <h2>
+                        Ready to bring your work into flow?
+                    </h2>
+
+                    <p>
+                        Join teams building better products and delivering
+                        their best work with FlowSync.
+                    </p>
+
+                    <button class="btn"
+                        onclick="showMessage('Welcome to FlowSync!')">
+                        Start for free
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+
+    <footer>
+        <div class="container">
+
+            <div class="footer-grid">
+
+                <div>
+                    <div class="logo">
+                        <span class="logo-icon">F</span>
+                        FlowSync
+                    </div>
+
+                    <p style="color: var(--text-secondary); margin-top: 15px; max-width: 300px">
+                        The modern workspace for teams that want to move
+                        faster and build better.
+                    </p>
+                </div>
+
+                <div>
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="#workflow">How it works</a>
+                    <a href="#pricing">Pricing</a>
+                </div>
+
+                <div>
+                    <h4>Company</h4>
+                    <a href="#home">About</a>
+                    <a href="#home">Careers</a>
+                    <a href="#home">Contact</a>
+                </div>
+
+                <div>
+                    <h4>Resources</h4>
+                    <a href="#faq">Help Center</a>
+                    <a href="#faq">Documentation</a>
+                    <a href="#faq">Privacy</a>
+                </div>
+
+            </div>
+
+            <div class="footer-bottom">
+                <span>
+                    © <span id="year"></span> FlowSync. All rights reserved.
+                </span>
+
+                <span>
+                    Built for teams that do great work.
+                </span>
+            </div>
+
+        </div>
+    </footer>
+
+    <script>
+
+        // MOBILE NAVIGATION
+
+        const menuBtn =
+            document.getElementById("menuBtn");
+
+        const navLinks =
+            document.getElementById("navLinks");
+
+        menuBtn.addEventListener("click", () => {
+
+            navLinks.classList.toggle("mobile-open");
+
+        });
+
+        document.querySelectorAll(".nav-links a")
+            .forEach(link => {
+
+                link.addEventListener("click", () => {
+
+                    navLinks.classList.remove(
+                        "mobile-open"
+                    );
+
+                });
+
+            });
+
+
+        // FAQ
+
+        document.querySelectorAll(".faq-question")
+            .forEach(button => {
+
+                button.addEventListener("click", () => {
+
+                    const item =
+                        button.parentElement;
+
+                    item.classList.toggle("open");
+
+                    const icon =
+                        button.querySelector("span");
+
+                    icon.textContent =
+                        item.classList.contains("open")
+                            ? "−"
+                            : "+";
+
+                });
+
+            });
+
+
+        // ADD TASK
+
+        function addTask() {
+
+            const todoColumn =
+                document.querySelector(".column");
+
+            const task =
+                document.createElement("div");
+
+            task.className = "task";
+
+            task.innerHTML = `
+                New project task
+
+                <div class="task-meta">
+                    <span>New</span>
+                    <span>Today</span>
+                </div>
+            `;
+
+            todoColumn.appendChild(task);
+
+        }
+
+
+        // BUTTON MESSAGE
+
+        function showMessage(message) {
+
+            alert(message);
+
+        }
+
+
+        // CURRENT YEAR
+
+        document.getElementById("year")
+            .textContent =
+                new Date().getFullYear();
+
+    </script>
+
+</body>
+</html>

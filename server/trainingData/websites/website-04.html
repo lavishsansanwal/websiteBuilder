@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>VERDE — Conscious Fashion</title>
+
+    <style>
+        :root {
+            --primary: #173d2b;
+            --primary-dark: #0d281b;
+            --accent: #b58a55;
+            --background: #f7f5f0;
+            --surface: #ffffff;
+            --surface-soft: #eeece5;
+            --text: #1b1b19;
+            --muted: #6d7069;
+            --border: #deddd6;
+            --success: #2e7d50;
+            --shadow: 0 15px 45px rgba(20, 32, 24, 0.08);
+            --radius: 18px;
+            --max-width: 1240px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .container {
+            width: min(92%, var(--max-width));
+            margin: auto;
+        }
+
+        /* NAVBAR */
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(247, 245, 240, 0.94);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid transparent;
+            transition: 0.3s ease;
+        }
+
+        header.scrolled {
+            border-color: var(--border);
+        }
+
+        .navbar {
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            font-size: 0.94rem;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .cart-button,
+        .menu-button {
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            padding: 10px 15px;
+            border-radius: 999px;
+            transition: 0.25s ease;
+        }
+
+        .cart-button:hover,
+        .menu-button:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .cart-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.72rem;
+            margin-left: 5px;
+        }
+
+        .menu-button {
+            display: none;
+        }
+
+        /* HERO */
+
+        .hero {
+            min-height: 700px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 70px;
+            padding: 70px 0;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            color: var(--accent);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 6vw, 6.5rem);
+            line-height: 0.98;
+            letter-spacing: -3px;
+            color: var(--primary);
+            margin-bottom: 28px;
+        }
+
+        .hero p {
+            max-width: 560px;
+            color: var(--muted);
+            font-size: 1.08rem;
+            margin-bottom: 32px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .primary-button,
+        .secondary-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+            padding: 0 24px;
+            border-radius: 999px;
+            font-weight: 600;
+            transition: 0.25s ease;
+        }
+
+        .primary-button {
+            background: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+        }
+
+        .primary-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .secondary-button {
+            border: 1px solid var(--border);
+            background: transparent;
+        }
+
+        .secondary-button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 38px;
+            margin-top: 48px;
+        }
+
+        .hero-stat strong {
+            display: block;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .hero-stat span {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .hero-visual {
+            position: relative;
+        }
+
+        .hero-image {
+            height: 600px;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .floating-card {
+            position: absolute;
+            left: -40px;
+            bottom: 40px;
+            max-width: 260px;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .floating-card small {
+            display: block;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .floating-card strong {
+            color: var(--primary);
+        }
+
+        /* TRUST */
+
+        .trust {
+            padding: 28px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .trust-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .trust p {
+            color: var(--muted);
+        }
+
+        .trust-brands {
+            display: flex;
+            gap: 35px;
+            color: var(--primary);
+            font-weight: 700;
+            letter-spacing: 1px;
+            flex-wrap: wrap;
+        }
+
+        /* SECTIONS */
+
+        section {
+            padding: 100px 0;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 30px;
+            margin-bottom: 45px;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2.2rem, 4vw, 4rem);
+            color: var(--primary);
+            letter-spacing: -2px;
+            line-height: 1;
+        }
+
+        .section-header p {
+            max-width: 500px;
+            color: var(--muted);
+        }
+
+        /* CATEGORIES */
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+        }
+
+        .category-card {
+            position: relative;
+            height: 430px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .category-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .category-card:hover img {
+            transform: scale(1.06);
+        }
+
+        .category-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: end;
+            padding: 28px;
+            background: linear-gradient(
+                transparent 40%,
+                rgba(0, 0, 0, 0.58)
+            );
+            color: white;
+        }
+
+        .category-overlay h3 {
+            font-size: 1.8rem;
+        }
+
+        /* PRODUCTS */
+
+        .products {
+            background: var(--surface-soft);
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .product-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: 0.25s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-7px);
+            box-shadow: var(--shadow);
+        }
+
+        .product-image {
+            position: relative;
+            height: 320px;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .product-card:hover .product-image img {
+            transform: scale(1.05);
+        }
+
+        .badge {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            background: var(--primary);
+            color: white;
+            font-size: 0.72rem;
+            padding: 7px 10px;
+            border-radius: 999px;
+        }
+
+        .product-content {
+            padding: 20px;
+        }
+
+        .product-category {
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .product-content h3 {
+            margin: 6px 0 12px;
+            color: var(--primary);
+        }
+
+        .product-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .price {
+            font-weight: 700;
+        }
+
+        .add-button {
+            border: none;
+            background: var(--primary);
+            color: white;
+            padding: 9px 14px;
+            border-radius: 999px;
+            transition: 0.2s ease;
+        }
+
+        .add-button:hover {
+            background: var(--primary-dark);
+        }
+
+        /* STORY */
+
+        .story-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .story-image {
+            height: 570px;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .story-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .story-content h2 {
+            font-size: clamp(2.4rem, 4vw, 4.5rem);
+            line-height: 1;
+            letter-spacing: -2px;
+            color: var(--primary);
+            margin-bottom: 25px;
+        }
+
+        .story-content > p {
+            color: var(--muted);
+            margin-bottom: 30px;
+        }
+
+        .impact-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .impact-item {
+            display: flex;
+            gap: 16px;
+            padding: 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .impact-number {
+            color: var(--accent);
+            font-size: 1.5rem;
+            font-weight: 800;
+            min-width: 55px;
+        }
+
+        .impact-item h4 {
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .impact-item p {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        /* REVIEWS */
+
+        .reviews {
+            background: var(--primary);
+            color: white;
+        }
+
+        .reviews .section-header h2 {
+            color: white;
+        }
+
+        .reviews .section-header p {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .review-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 28px;
+            border-radius: var(--radius);
+        }
+
+        .stars {
+            color: #e2b977;
+            margin-bottom: 18px;
+            letter-spacing: 3px;
+        }
+
+        .review-card p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 25px;
+        }
+
+        .review-user strong {
+            display: block;
+        }
+
+        .review-user span {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        /* NEWSLETTER */
+
+        .newsletter-box {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 60px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .newsletter-box h2 {
+            color: var(--primary);
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            margin-bottom: 15px;
+        }
+
+        .newsletter-box p {
+            color: var(--muted);
+            max-width: 560px;
+            margin: auto;
+        }
+
+        .newsletter-form {
+            max-width: 600px;
+            margin: 30px auto 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .newsletter-form input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--border);
+            padding: 15px 18px;
+            border-radius: 999px;
+            outline: none;
+        }
+
+        .newsletter-form input:focus {
+            border-color: var(--primary);
+        }
+
+        .newsletter-form button {
+            border: none;
+        }
+
+        /* FOOTER */
+
+        footer {
+            background: var(--primary-dark);
+            color: white;
+            padding: 70px 0 25px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr repeat(3, 1fr);
+            gap: 40px;
+            padding-bottom: 50px;
+        }
+
+        .footer-brand p {
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 300px;
+            margin-top: 15px;
+        }
+
+        .footer-column h4 {
+            margin-bottom: 18px;
+        }
+
+        .footer-column a {
+            display: block;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .footer-column a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            padding-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        /* CART TOAST */
+
+        .toast {
+            position: fixed;
+            right: 25px;
+            bottom: 25px;
+            background: var(--primary);
+            color: white;
+            padding: 15px 22px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transform: translateY(120px);
+            opacity: 0;
+            transition: 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1000px) {
+            .hero,
+            .story-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero {
+                padding-top: 40px;
+            }
+
+            .hero-image {
+                height: 500px;
+            }
+
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .category-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .category-card {
+                height: 380px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .nav-links {
+                position: fixed;
+                top: 76px;
+                left: 0;
+                right: 0;
+                background: var(--background);
+                border-bottom: 1px solid var(--border);
+                flex-direction: column;
+                padding: 30px;
+                transform: translateY(-150%);
+                opacity: 0;
+                pointer-events: none;
+                transition: 0.3s ease;
+            }
+
+            .nav-links.active {
+                transform: translateY(0);
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .menu-button {
+                display: block;
+            }
+
+            .cart-button {
+                padding: 9px 12px;
+            }
+
+            .hero {
+                min-height: auto;
+                gap: 45px;
+            }
+
+            .hero h1 {
+                letter-spacing: -2px;
+            }
+
+            .hero-image {
+                height: 420px;
+            }
+
+            .floating-card {
+                left: 15px;
+                bottom: 15px;
+            }
+
+            .hero-stats {
+                gap: 20px;
+            }
+
+            .section-header {
+                align-items: start;
+                flex-direction: column;
+            }
+
+            .product-grid,
+            .review-grid,
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .newsletter-box {
+                padding: 40px 22px;
+            }
+
+            .newsletter-form {
+                flex-direction: column;
+            }
+
+            .newsletter-form button {
+                width: 100%;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+            }
+
+            .trust-content {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .trust-brands {
+                gap: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header id="header">
+        <div class="container navbar">
+
+            <a href="#home" class="logo">VERDE</a>
+
+            <nav class="nav-links" id="navLinks">
+                <a href="#collections">Collections</a>
+                <a href="#products">Shop</a>
+                <a href="#story">Our Story</a>
+                <a href="#reviews">Reviews</a>
+            </nav>
+
+            <div class="nav-actions">
+                <button class="cart-button" id="cartButton">
+                    Cart
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+
+                <button class="menu-button" id="menuButton">
+                    Menu
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <main>
+
+        <section class="container hero" id="home">
+
+            <div class="hero-content">
+
+                <span class="eyebrow">
+                    Conscious fashion for modern living
+                </span>
+
+                <h1>
+                    Wear less.<br>
+                    Choose better.
+                </h1>
+
+                <p>
+                    Timeless essentials designed with natural materials,
+                    thoughtful craftsmanship, and a lighter impact on the planet.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="#products" class="primary-button">
+                        Shop the collection
+                    </a>
+
+                    <a href="#story" class="secondary-button">
+                        Discover VERDE
+                    </a>
+                </div>
+
+                <div class="hero-stats">
+
+                    <div class="hero-stat">
+                        <strong>100%</strong>
+                        <span>Responsible materials</span>
+                    </div>
+
+                    <div class="hero-stat">
+                        <strong>42%</strong>
+                        <span>Less water used</span>
+                    </div>
+
+                    <div class="hero-stat">
+                        <strong>0</strong>
+                        <span>Single-use plastic</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="hero-visual">
+
+                <div class="hero-image">
+                    <img
+                        src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=85"
+                        alt="Modern sustainable fashion"
+                    >
+                </div>
+
+                <div class="floating-card">
+                    <small>Designed for longevity</small>
+                    <strong>
+                        Fewer pieces. Better wardrobes.
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+        <div class="trust">
+
+            <div class="container trust-content">
+
+                <p>
+                    Designed with responsible partners and trusted materials.
+                </p>
+
+                <div class="trust-brands">
+                    <span>ORGANIC</span>
+                    <span>RECYCLED</span>
+                    <span>ETHICAL</span>
+                    <span>LOW IMPACT</span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <section class="container" id="collections">
+
+            <div class="section-header">
+
+                <div>
+                    <span class="eyebrow">Explore VERDE</span>
+
+                    <h2>
+                        Made for every<br>
+                        version of you.
+                    </h2>
+                </div>
+
+                <p>
+                    A considered collection of everyday essentials,
+                    designed to move effortlessly between work,
+                    weekends, and everything in between.
+                </p>
+
+            </div>
+
+            <div class="category-grid">
+
+                <a href="#products" class="category-card">
+
+                    <img
+                        src="https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=85"
+                        alt="Women's sustainable clothing"
+                    >
+
+                    <div class="category-overlay">
+                        <h3>Women's Collection</h3>
+                    </div>
+
+                </a>
+
+                <a href="#products" class="category-card">
+
+                    <img
+                        src="https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&w=1000&q=85"
+                        alt="Men's sustainable clothing"
+                    >
+
+                    <div class="category-overlay">
+                        <h3>Men's Collection</h3>
+                    </div>
+
+                </a>
+
+                <a href="#products" class="category-card">
+
+                    <img
+                        src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1000&q=85"
+                        alt="Everyday essentials"
+                    >
+
+                    <div class="category-overlay">
+                        <h3>Everyday Essentials</h3>
+                    </div>
+
+                </a>
+
+            </div>
+
+        </section>
+
+        <section class="products" id="products">
+
+            <div class="container">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="eyebrow">New arrivals</span>
+
+                        <h2>
+                            The everyday<br>
+                            collection.
+                        </h2>
+                    </div>
+
+                    <a href="#products" class="secondary-button">
+                        View all products
+                    </a>
+
+                </div>
+
+                <div class="product-grid">
+
+                    <article class="product-card">
+
+                        <div class="product-image">
+
+                            <span class="badge">New</span>
+
+                            <img
+                                src="https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=85"
+                                alt="Organic cotton shirt"
+                            >
+
+                        </div>
+
+                        <div class="product-content">
+
+                            <span class="product-category">
+                                Organic Cotton
+                            </span>
+
+                            <h3>
+                                Essential Overshirt
+                            </h3>
+
+                            <div class="product-bottom">
+
+                                <span class="price">$89</span>
+
+                                <button class="add-button">
+                                    Add to Cart
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    <article class="product-card">
+
+                        <div class="product-image">
+
+                            <img
+                                src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=85"
+                                alt="Sustainable linen dress"
+                            >
+
+                        </div>
+
+                        <div class="product-content">
+
+                            <span class="product-category">
+                                European Linen
+                            </span>
+
+                            <h3>
+                                Relaxed Linen Dress
+                            </h3>
+
+                            <div class="product-bottom">
+
+                                <span class="price">$118</span>
+
+                                <button class="add-button">
+                                    Add to Cart
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    <article class="product-card">
+
+                        <div class="product-image">
+
+                            <span class="badge">Best Seller</span>
+
+                            <img
+                                src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=85"
+                                alt="Recycled cotton t-shirt"
+                            >
+
+                        </div>
+
+                        <div class="product-content">
+
+                            <span class="product-category">
+                                Recycled Cotton
+                            </span>
+
+                            <h3>
+                                Classic Everyday Tee
+                            </h3>
+
+                            <div class="product-bottom">
+
+                                <span class="price">$42</span>
+
+                                <button class="add-button">
+                                    Add to Cart
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    <article class="product-card">
+
+                        <div class="product-image">
+
+                            <img
+                                src="https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=800&q=85"
+                                alt="Responsible denim jeans"
+                            >
+
+                        </div>
+
+                        <div class="product-content">
+
+                            <span class="product-category">
+                                Responsible Denim
+                            </span>
+
+                            <h3>
+                                Straight Fit Denim
+                            </h3>
+
+                            <div class="product-bottom">
+
+                                <span class="price">$110</span>
+
+                                <button class="add-button">
+                                    Add to Cart
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="container" id="story">
+
+            <div class="story-grid">
+
+                <div class="story-image">
+
+                    <img
+                        src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1200&q=85"
+                        alt="Sustainable clothing store"
+                    >
+
+                </div>
+
+                <div class="story-content">
+
+                    <span class="eyebrow">
+                        Our responsibility
+                    </span>
+
+                    <h2>
+                        Better choices should feel effortless.
+                    </h2>
+
+                    <p>
+                        VERDE was built on a simple belief:
+                        the things we wear every day should respect both
+                        the people who make them and the world we live in.
+                    </p>
+
+                    <div class="impact-list">
+
+                        <div class="impact-item">
+
+                            <span class="impact-number">01</span>
+
+                            <div>
+                                <h4>Thoughtful materials</h4>
+
+                                <p>
+                                    We prioritize organic, recycled,
+                                    and lower-impact fibers.
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div class="impact-item">
+
+                            <span class="impact-number">02</span>
+
+                            <div>
+                                <h4>Responsible production</h4>
+
+                                <p>
+                                    We work with partners committed
+                                    to ethical and transparent practices.
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div class="impact-item">
+
+                            <span class="impact-number">03</span>
+
+                            <div>
+                                <h4>Designed to last</h4>
+
+                                <p>
+                                    Timeless silhouettes made to stay
+                                    in your wardrobe for years.
+                                </p>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="reviews" id="reviews">
+
+            <div class="container">
+
+                <div class="section-header">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            Loved by our community
+                        </span>
+
+                        <h2>
+                            Clothes with a<br>
+                            better story.
+                        </h2>
+
+                    </div>
+
+                    <p>
+                        Thoughtfully made pieces,
+                        chosen by people who care about
+                        quality as much as impact.
+                    </p>
+
+                </div>
+
+                <div class="review-grid">
+
+                    <article class="review-card">
+
+                        <div class="stars">
+                            ★★★★★
+                        </div>
+
+                        <p>
+                            “The quality immediately stood out.
+                            The fabric feels incredible and the fit
+                            is exactly what I was looking for.”
+                        </p>
+
+                        <div class="review-user">
+                            <strong>Emma Wilson</strong>
+                            <span>Verified customer</span>
+                        </div>
+
+                    </article>
+
+                    <article class="review-card">
+
+                        <div class="stars">
+                            ★★★★★
+                        </div>
+
+                        <p>
+                            “It feels good knowing that I can build
+                            a better wardrobe without compromising
+                            on style.”
+                        </p>
+
+                        <div class="review-user">
+                            <strong>Daniel Brooks</strong>
+                            <span>Verified customer</span>
+                        </div>
+
+                    </article>
+
+                    <article class="review-card">
+
+                        <div class="stars">
+                            ★★★★★
+                        </div>
+
+                        <p>
+                            “Minimal, timeless and beautifully made.
+                            These are genuinely pieces I can see
+                            myself wearing for years.”
+                        </p>
+
+                        <div class="review-user">
+                            <strong>Sophia Lee</strong>
+                            <span>Verified customer</span>
+                        </div>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="container" id="newsletter">
+
+            <div class="newsletter-box">
+
+                <span class="eyebrow">
+                    Stay connected
+                </span>
+
+                <h2>
+                    A better wardrobe starts here.
+                </h2>
+
+                <p>
+                    Receive new collection updates,
+                    thoughtful stories, and exclusive
+                    access to future releases.
+                </p>
+
+                <form class="newsletter-form" id="newsletterForm">
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter your email address"
+                        required
+                    >
+
+                    <button
+                        type="submit"
+                        class="primary-button"
+                    >
+                        Join VERDE
+                    </button>
+
+                </form>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+
+        <div class="container">
+
+            <div class="footer-grid">
+
+                <div class="footer-brand">
+
+                    <div class="logo">
+                        VERDE
+                    </div>
+
+                    <p>
+                        Thoughtfully designed clothing
+                        for a more conscious future.
+                    </p>
+
+                </div>
+
+                <div class="footer-column">
+
+                    <h4>Shop</h4>
+
+                    <a href="#products">New Arrivals</a>
+                    <a href="#collections">Women</a>
+                    <a href="#collections">Men</a>
+                    <a href="#products">Essentials</a>
+
+                </div>
+
+                <div class="footer-column">
+
+                    <h4>About</h4>
+
+                    <a href="#story">Our Story</a>
+                    <a href="#story">Sustainability</a>
+                    <a href="#reviews">Reviews</a>
+
+                </div>
+
+                <div class="footer-column">
+
+                    <h4>Support</h4>
+
+                    <a href="#home">Contact</a>
+                    <a href="#home">Shipping</a>
+                    <a href="#home">Returns</a>
+
+                </div>
+
+            </div>
+
+            <div class="footer-bottom">
+
+                <span>
+                    © <span id="year"></span> VERDE.
+                    All rights reserved.
+                </span>
+
+                <span>
+                    Made with a lighter footprint.
+                </span>
+
+            </div>
+
+        </div>
+
+    </footer>
+
+    <div class="toast" id="toast">
+        Product added to your cart.
+    </div>
+
+    <script>
+
+        const menuButton =
+            document.getElementById("menuButton");
+
+        const navLinks =
+            document.getElementById("navLinks");
+
+        const header =
+            document.getElementById("header");
+
+        const cartCount =
+            document.getElementById("cartCount");
+
+        const toast =
+            document.getElementById("toast");
+
+        let cartItems = 0;
+
+        menuButton.addEventListener(
+            "click",
+            () => {
+                navLinks.classList.toggle("active");
+            }
+        );
+
+        document.querySelectorAll(".nav-links a")
+            .forEach((link) => {
+
+                link.addEventListener(
+                    "click",
+                    () => {
+                        navLinks.classList.remove("active");
+                    }
+                );
+
+            });
+
+        window.addEventListener(
+            "scroll",
+            () => {
+
+                if (window.scrollY > 20) {
+                    header.classList.add("scrolled");
+                } else {
+                    header.classList.remove("scrolled");
+                }
+
+            }
+        );
+
+        document.querySelectorAll(".add-button")
+            .forEach((button) => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        cartItems++;
+
+                        cartCount.textContent =
+                            cartItems;
+
+                        toast.classList.add("show");
+
+                        setTimeout(
+                            () => {
+                                toast.classList.remove("show");
+                            },
+                            2500
+                        );
+
+                    }
+                );
+
+            });
+
+        document.getElementById("cartButton")
+            .addEventListener(
+                "click",
+                () => {
+
+                    alert(
+                        `You currently have ${cartItems} item(s) in your cart.`
+                    );
+
+                }
+            );
+
+        document.getElementById("newsletterForm")
+            .addEventListener(
+                "submit",
+                (event) => {
+
+                    event.preventDefault();
+
+                    const email =
+                        document.getElementById("email");
+
+                    alert(
+                        `Thank you for joining VERDE, ${email.value}!`
+                    );
+
+                    email.value = "";
+
+                }
+            );
+
+        document.getElementById("year").textContent =
+            new Date().getFullYear();
+
+    </script>
+
+</body>
+</html>

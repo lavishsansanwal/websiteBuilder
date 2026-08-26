@@ -1,150 +1,68 @@
-const huggingFaceUrl =
-    "https://router.huggingface.co/v1/chat/completions";
-    const model ="Qwen/Qwen3-Coder-30B-A3B-Instruct";
+import "dotenv/config";
+
+const huggingFaceUrl = "https://router.huggingface.co/v1/chat/completions";
+
+// Candidate models on Hugging Face Inference API
+const HF_MODELS = [
+    "Qwen/Qwen2.5-Coder-32B-Instruct",
+    "meta-llama/Llama-3.3-70B-Instruct",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+];
 
 export const generateHuggingFaceResponse = async (prompt) => {
-    try {
-        console.log("========== HUGGING FACE START ==========");
+    if (!process.env.HF_TOKEN) {
+        throw new Error("HF_TOKEN is missing in server .env");
+    }
 
-        console.log("HF token exists:",
-            !!process.env.HF_TOKEN
-        );
+    let lastError = null;
 
-        console.log("HF model:", model);
+    for (const model of HF_MODELS) {
+        try {
+            console.log(`[Hugging Face] Trying model: ${model}`);
 
-        const response = await fetch(
-            huggingFaceUrl,
-            {
+            const response = await fetch(huggingFaceUrl, {
                 method: "POST",
-
                 headers: {
-                    Authorization:
-                        `Bearer ${process.env.HF_TOKEN}`,
-
-                    "Content-Type":
-                        "application/json",
+                    Authorization: `Bearer ${process.env.HF_TOKEN}`,
+                    "Content-Type": "application/json"
                 },
-
                 body: JSON.stringify({
-
                     model: model,
-
                     messages: [
-
                         {
                             role: "system",
-
-                            content:
-                                "Return ONLY valid raw JSON. Do not use markdown code fences."
+                            content: "You are an elite Frontend Architect. Return ONLY valid raw JSON without markdown code fences containing { \"code\": \"<!DOCTYPE html>...\", \"message\": \"...\", \"imageQueries\": [] }."
                         },
-
                         {
                             role: "user",
-
                             content: prompt
                         }
-
                     ],
-
                     temperature: 0.2,
-
-                    max_tokens: 16000,
-
-                    reasoning_effort: "none"
-
+                    max_tokens: 16000
                 })
+            });
+
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                console.warn(`[Hugging Face] ${model} HTTP ${response.status}:`, responseText.slice(0, 150));
+                continue;
             }
-        );
 
+            const data = JSON.parse(responseText);
+            const content = data.choices?.[0]?.message?.content;
 
-        // Get response as text first
-        const responseText =
-            await response.text();
-
-
-        console.log(
-            "Hugging Face HTTP status:",
-            response.status
-        );
-
-
-        console.log(
-            "Hugging Face raw response:",
-            responseText
-        );
-
-
-        // Check HTTP error
-        if (!response.ok) {
-
-            throw new Error(
-                `Hugging Face error ${response.status}: ${responseText}`
-            );
-
+            if (content && content.length > 50) {
+                console.log(`[Hugging Face] Success with ${model}`);
+                return content;
+            }
+        } catch (err) {
+            console.warn(`[Hugging Face] ${model} error:`, err.message);
+            lastError = err;
         }
-
-
-        // Parse JSON
-        let data;
-
-        try {
-
-            data =
-                JSON.parse(responseText);
-
-        } catch (error) {
-
-            throw new Error(
-                "Hugging Face returned invalid JSON: " +
-                responseText
-            );
-
-        }
-
-
-        // Extract content
-        const content =
-            data.choices?.[0]?.message?.content;
-
-
-        if (!content) {
-
-            console.error(
-                "Invalid Hugging Face response:",
-                JSON.stringify(
-                    data,
-                    null,
-                    2
-                )
-            );
-
-            throw new Error(
-                "Hugging Face returned no message content"
-            );
-
-        }
-
-
-        console.log(
-            "Hugging Face generation successful"
-        );
-
-        console.log(
-            "========== HUGGING FACE END =========="
-        );
-
-
-        return content;
-
-
-    } catch (error) {
-
-        console.error(
-            "HUGGING FACE ERROR:",
-            error
-        );
-
-        throw error;
-
     }
+
+    throw lastError || new Error("All Hugging Face models failed to respond");
 };

@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>TaskFlow Project Dashboard</title>
+
+    <style>
+        :root {
+            --primary: #5b5ce2;
+            --primary-dark: #4546c9;
+            --background: #f6f7fb;
+            --surface: #ffffff;
+            --surface-secondary: #f1f3f9;
+            --text-primary: #171725;
+            --text-secondary: #7a7d8c;
+            --border: #e7e8ef;
+            --success: #18a874;
+            --warning: #f0a52b;
+            --danger: #e65353;
+            --purple: #8b5cf6;
+            --blue: #3b82f6;
+            --sidebar: #171725;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+        }
+
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+
+        .sidebar {
+            width: 250px;
+            background: var(--sidebar);
+            color: white;
+            padding: 28px 18px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 45px;
+            padding-left: 10px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+        }
+
+        .nav-section {
+            margin-bottom: 25px;
+        }
+
+        .nav-label {
+            color: #77798a;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin: 0 10px 10px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 12px;
+            margin-bottom: 5px;
+            border-radius: 9px;
+            color: #a9aab8;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+
+        .nav-icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        .upgrade-card {
+            margin-top: auto;
+            background: linear-gradient(
+                135deg,
+                #5b5ce2,
+                #8b5cf6
+            );
+            padding: 18px;
+            border-radius: 15px;
+        }
+
+        .upgrade-card h4 {
+            margin-bottom: 8px;
+        }
+
+        .upgrade-card p {
+            font-size: 12px;
+            opacity: 0.85;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .upgrade-card button {
+            width: 100%;
+            border: none;
+            background: white;
+            color: var(--primary);
+            padding: 9px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* MAIN */
+
+        .main {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            padding: 28px 38px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 35px;
+        }
+
+        .search {
+            width: 320px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 12px 15px;
+            border-radius: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 14px;
+            background: transparent;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .icon-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(
+                135deg,
+                #f59e0b,
+                #ec4899
+            );
+            display: grid;
+            place-items: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        .profile-info h4 {
+            font-size: 14px;
+        }
+
+        .profile-info span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* HEADER */
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 30px;
+            margin-bottom: 7px;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .primary-button {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .primary-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        /* KPI CARDS */
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .stat-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .stat-title {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .stat-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 17px;
+        }
+
+        .purple {
+            background: #ede9fe;
+            color: var(--purple);
+        }
+
+        .blue {
+            background: #dbeafe;
+            color: var(--blue);
+        }
+
+        .green {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .orange {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        .stat-value {
+            font-size: 27px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            color: var(--success);
+        }
+
+        /* PROJECT OVERVIEW */
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 22px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 23px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .card-header h3 {
+            font-size: 17px;
+        }
+
+        .more {
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        /* PROJECT PROGRESS */
+
+        .project-row {
+            margin-bottom: 22px;
+        }
+
+        .project-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 9px;
+        }
+
+        .project-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .project-percent {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: var(--surface-secondary);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 0.4s ease;
+        }
+
+        /* TEAM */
+
+        .team-member {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .team-member:last-child {
+            border-bottom: none;
+        }
+
+        .member-left {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .member-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .member-info h4 {
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+
+        .member-info span {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        /* TASKS */
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 13px;
+        }
+
+        .task {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            transition: 0.2s;
+        }
+
+        .task:hover {
+            background: var(--surface-secondary);
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .task.completed .task-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .task.completed .task-name {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .priority {
+            font-size: 11px;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .high {
+            color: var(--danger);
+            background: #fee2e2;
+        }
+
+        .medium {
+            color: var(--warning);
+            background: #fef3c7;
+        }
+
+        .low {
+            color: var(--success);
+            background: #d1fae5;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1100px) {
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        @media (max-width: 800px) {
+
+            .sidebar {
+                width: 70px;
+                padding: 20px 10px;
+            }
+
+            .logo span,
+            .nav-item span,
+            .nav-label,
+            .upgrade-card {
+                display: none;
+            }
+
+            .logo {
+                justify-content: center;
+                padding: 0;
+            }
+
+            .nav-item {
+                justify-content: center;
+            }
+
+            .main {
+                margin-left: 70px;
+                width: calc(100% - 70px);
+                padding: 22px;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            .main {
+                margin-left: 0;
+                width: 100%;
+                padding: 18px;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .search {
+                display: none;
+            }
+
+            .profile-info {
+                display: none;
+            }
+
+            .page-header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">✓</div>
+            <span>TaskFlow</span>
+        </div>
+
+        <div class="nav-section">
+
+            <div class="nav-label">WORKSPACE</div>
+
+            <div class="nav-item active">
+                <div class="nav-icon">▦</div>
+                <span>Overview</span>
+            </div>
+
+            <div class="nav-item">
+                <div class="nav-icon">✓</div>
+                <span>My Tasks</span>
+            </div>
+
+            <div class="nav-item">
+                <div class="nav-icon">▤</div>
+                <span>Projects</span>
+            </div>
+
+            <div class="nav-item">
+                <div class="nav-icon">◉</div>
+                <span>Team</span>
+            </div>
+
+        </div>
+
+        <div class="nav-section">
+
+            <div class="nav-label">MANAGEMENT</div>
+
+            <div class="nav-item">
+                <div class="nav-icon">▣</div>
+                <span>Analytics</span>
+            </div>
+
+            <div class="nav-item">
+                <div class="nav-icon">⚙</div>
+                <span>Settings</span>
+            </div>
+
+        </div>
+
+        <div class="upgrade-card">
+
+            <h4>Upgrade your team</h4>
+
+            <p>
+                Unlock advanced analytics,
+                automation and unlimited projects.
+            </p>
+
+            <button onclick="alert('Upgrade options opened!')">
+                Upgrade
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <main class="main">
+
+        <div class="topbar">
+
+            <div class="search">
+                <span>⌕</span>
+                <input
+                    id="searchInput"
+                    placeholder="Search projects or tasks..."
+                >
+            </div>
+
+            <div class="top-actions">
+
+                <button
+                    class="icon-button"
+                    onclick="alert('No new notifications')"
+                >
+                    🔔
+                </button>
+
+                <div class="profile">
+
+                    <div class="avatar">
+                        LC
+                    </div>
+
+                    <div class="profile-info">
+                        <h4>Alex Morgan</h4>
+                        <span>Project Manager</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="page-header">
+
+            <div>
+                <h1>Good morning, Alex 👋</h1>
+
+                <p>
+                    Here is what is happening with your projects today.
+                </p>
+            </div>
+
+            <button
+                class="primary-button"
+                onclick="addTask()"
+            >
+                + New Task
+            </button>
+
+        </div>
+
+
+        <section class="stats">
+
+            <div class="stat-card">
+
+                <div class="stat-top">
+
+                    <span class="stat-title">
+                        Active Projects
+                    </span>
+
+                    <div class="stat-icon purple">
+                        ▤
+                    </div>
+
+                </div>
+
+                <div class="stat-value">
+                    12
+                </div>
+
+                <div class="stat-change">
+                    +2 this month
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-top">
+
+                    <span class="stat-title">
+                        Completed Tasks
+                    </span>
+
+                    <div class="stat-icon green">
+                        ✓
+                    </div>
+
+                </div>
+
+                <div class="stat-value">
+                    248
+                </div>
+
+                <div class="stat-change">
+                    +18.5% this month
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-top">
+
+                    <span class="stat-title">
+                        Pending Tasks
+                    </span>
+
+                    <div class="stat-icon orange">
+                        ⏱
+                    </div>
+
+                </div>
+
+                <div class="stat-value">
+                    37
+                </div>
+
+                <div class="stat-change">
+                    8 due this week
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-top">
+
+                    <span class="stat-title">
+                        Team Members
+                    </span>
+
+                    <div class="stat-icon blue">
+                        ◉
+                    </div>
+
+                </div>
+
+                <div class="stat-value">
+                    24
+                </div>
+
+                <div class="stat-change">
+                    21 currently active
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="content-grid">
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h3>Project Progress</h3>
+
+                    <span class="more">
+                        View all →
+                    </span>
+
+                </div>
+
+
+                <div class="project-row">
+
+                    <div class="project-info">
+                        <span class="project-name">
+                            Website Redesign
+                        </span>
+
+                        <span class="project-percent">
+                            82%
+                        </span>
+                    </div>
+
+                    <div class="progress">
+                        <div
+                            class="progress-bar"
+                            style="width:82%; background:#5b5ce2;"
+                        ></div>
+                    </div>
+
+                </div>
+
+
+                <div class="project-row">
+
+                    <div class="project-info">
+                        <span class="project-name">
+                            Mobile Application
+                        </span>
+
+                        <span class="project-percent">
+                            64%
+                        </span>
+                    </div>
+
+                    <div class="progress">
+                        <div
+                            class="progress-bar"
+                            style="width:64%; background:#3b82f6;"
+                        ></div>
+                    </div>
+
+                </div>
+
+
+                <div class="project-row">
+
+                    <div class="project-info">
+                        <span class="project-name">
+                            Marketing Campaign
+                        </span>
+
+                        <span class="project-percent">
+                            48%
+                        </span>
+                    </div>
+
+                    <div class="progress">
+                        <div
+                            class="progress-bar"
+                            style="width:48%; background:#f0a52b;"
+                        ></div>
+                    </div>
+
+                </div>
+
+
+                <div class="project-row">
+
+                    <div class="project-info">
+                        <span class="project-name">
+                            Analytics Platform
+                        </span>
+
+                        <span class="project-percent">
+                            91%
+                        </span>
+                    </div>
+
+                    <div class="progress">
+                        <div
+                            class="progress-bar"
+                            style="width:91%; background:#18a874;"
+                        ></div>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h3>Team Availability</h3>
+
+                    <span class="more">
+                        •••
+                    </span>
+
+                </div>
+
+
+                <div class="team-member">
+
+                    <div class="member-left">
+
+                        <div
+                            class="member-avatar"
+                            style="background:#5b5ce2;"
+                        >
+                            EM
+                        </div>
+
+                        <div class="member-info">
+                            <h4>Emma Wilson</h4>
+                            <span>Product Designer</span>
+                        </div>
+
+                    </div>
+
+                    <div class="status-dot"></div>
+
+                </div>
+
+
+                <div class="team-member">
+
+                    <div class="member-left">
+
+                        <div
+                            class="member-avatar"
+                            style="background:#ec4899;"
+                        >
+                            JM
+                        </div>
+
+                        <div class="member-info">
+                            <h4>James Miller</h4>
+                            <span>Frontend Developer</span>
+                        </div>
+
+                    </div>
+
+                    <div class="status-dot"></div>
+
+                </div>
+
+
+                <div class="team-member">
+
+                    <div class="member-left">
+
+                        <div
+                            class="member-avatar"
+                            style="background:#3b82f6;"
+                        >
+                            SR
+                        </div>
+
+                        <div class="member-info">
+                            <h4>Sophia Rodriguez</h4>
+                            <span>Marketing Manager</span>
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="status-dot"
+                        style="background:#f0a52b;"
+                    ></div>
+
+                </div>
+
+
+                <div class="team-member">
+
+                    <div class="member-left">
+
+                        <div
+                            class="member-avatar"
+                            style="background:#18a874;"
+                        >
+                            DK
+                        </div>
+
+                        <div class="member-info">
+                            <h4>Daniel Kim</h4>
+                            <span>Backend Developer</span>
+                        </div>
+
+                    </div>
+
+                    <div class="status-dot"></div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <h3>My Tasks</h3>
+
+                <span class="more">
+                    View all →
+                </span>
+
+            </div>
+
+            <div
+                class="task-list"
+                id="taskList"
+            >
+
+                <div class="task">
+
+                    <div
+                        class="task-checkbox"
+                        onclick="toggleTask(this)"
+                    ></div>
+
+                    <div class="task-content">
+
+                        <div class="task-name">
+                            Review homepage redesign
+                        </div>
+
+                        <div class="task-meta">
+                            Website Redesign • Due today
+                        </div>
+
+                    </div>
+
+                    <div class="priority high">
+                        High
+                    </div>
+
+                </div>
+
+
+                <div class="task">
+
+                    <div
+                        class="task-checkbox"
+                        onclick="toggleTask(this)"
+                    ></div>
+
+                    <div class="task-content">
+
+                        <div class="task-name">
+                            Prepare campaign performance report
+                        </div>
+
+                        <div class="task-meta">
+                            Marketing Campaign • Due tomorrow
+                        </div>
+
+                    </div>
+
+                    <div class="priority medium">
+                        Medium
+                    </div>
+
+                </div>
+
+
+                <div class="task completed">
+
+                    <div
+                        class="task-checkbox"
+                        onclick="toggleTask(this)"
+                    >
+                        ✓
+                    </div>
+
+                    <div class="task-content">
+
+                        <div class="task-name">
+                            Update analytics documentation
+                        </div>
+
+                        <div class="task-meta">
+                            Analytics Platform • Completed
+                        </div>
+
+                    </div>
+
+                    <div class="priority low">
+                        Low
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script>
+
+    function toggleTask(element) {
+
+        const task =
+            element.closest(".task");
+
+        task.classList.toggle(
+            "completed"
+        );
+
+        if (
+            task.classList.contains(
+                "completed"
+            )
+        ) {
+
+            element.textContent = "✓";
+
+        } else {
+
+            element.textContent = "";
+
+        }
+
+    }
+
+
+    function addTask() {
+
+        const taskName =
+            prompt(
+                "Enter your new task:"
+            );
+
+        if (!taskName) return;
+
+        const taskList =
+            document.getElementById(
+                "taskList"
+            );
+
+        const task =
+            document.createElement(
+                "div"
+            );
+
+        task.className = "task";
+
+        task.innerHTML = `
+
+            <div
+                class="task-checkbox"
+                onclick="toggleTask(this)"
+            ></div>
+
+            <div class="task-content">
+
+                <div class="task-name">
+                    ${taskName}
+                </div>
+
+                <div class="task-meta">
+                    Personal Task • Just added
+                </div>
+
+            </div>
+
+            <div class="priority medium">
+                Medium
+            </div>
+
+        `;
+
+        taskList.prepend(task);
+
+    }
+
+
+    document
+        .getElementById(
+            "searchInput"
+        )
+        .addEventListener(
+            "input",
+            function () {
+
+                const value =
+                    this.value
+                        .toLowerCase();
+
+                document
+                    .querySelectorAll(
+                        ".task"
+                    )
+                    .forEach(
+                        task => {
+
+                            task.style.display =
+                                task.textContent
+                                    .toLowerCase()
+                                    .includes(value)
+                                        ? "flex"
+                                        : "none";
+
+                        }
+                    );
+
+            }
+        );
+
+
+    document
+        .querySelectorAll(
+            ".nav-item"
+        )
+        .forEach(
+            item => {
+
+                item.addEventListener(
+                    "click",
+                    function () {
+
+                        document
+                            .querySelectorAll(
+                                ".nav-item"
+                            )
+                            .forEach(
+                                nav =>
+                                    nav.classList.remove(
+                                        "active"
+                                    )
+                            );
+
+                        this.classList.add(
+                            "active"
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+</script>
+
+</body>
+</html>
