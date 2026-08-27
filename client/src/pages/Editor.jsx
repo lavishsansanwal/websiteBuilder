@@ -24,7 +24,16 @@ import Editor from "@monaco-editor/react";
 
 const unescapeRawCode = (str) => {
     if (!str || typeof str !== "string") return "";
-    let clean = str;
+    let clean = str.trim();
+
+    // 1. Remove outer JSON wrappers like { "code": " ... " } or { code: ' ... ' }
+    clean = clean.replace(/^```(?:html|json|javascript|js|jsx|react)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    clean = clean.replace(/^\{\s*["']?code["']?\s*:\s*["'`]/i, "").trim();
+    clean = clean.replace(/["'`]\s*,\s*["']?message["']?\s*:\s*[\s\S]*?\}\s*$/i, "").trim();
+    clean = clean.replace(/["'`]\s*,\s*["']?imageQueries["']?\s*:\s*[\s\S]*?\}\s*$/i, "").trim();
+    clean = clean.replace(/["'`]\s*\}\s*$/i, "").trim();
+
+    // 2. Unescape common escape sequences
     if (clean.includes("\\n")) {
         clean = clean.replace(/\\n/g, "\n");
     }
@@ -37,7 +46,25 @@ const unescapeRawCode = (str) => {
     if (clean.includes('\\"')) {
         clean = clean.replace(/\\"/g, '"');
     }
-    return clean;
+
+    // 3. If there is leftover text before <!DOCTYPE html or <html, trim it cleanly
+    const docTypeIdx = clean.search(/<!DOCTYPE\s+html/i);
+    if (docTypeIdx > 0) {
+        clean = clean.slice(docTypeIdx);
+    } else {
+        const htmlTagIdx = clean.search(/<html[\s>]/i);
+        if (htmlTagIdx > 0 && !clean.includes("<!DOCTYPE")) {
+            clean = clean.slice(htmlTagIdx);
+        }
+    }
+
+    // 4. If there is trailing JSON after </html>, trim it cleanly
+    const endHtmlIdx = clean.search(/<\/html>/i);
+    if (endHtmlIdx !== -1) {
+        clean = clean.slice(0, endHtmlIdx + 7);
+    }
+
+    return clean.trim();
 };
 
 const getPreviewCode = (rawCode) => {
@@ -433,9 +460,12 @@ const getPreviewCode = (rawCode) => {
         var emailInput = form.querySelector('input[name="email"], input[placeholder*="email"], input[placeholder*="@"], input[type="email"]');
         var phoneInput = form.querySelector('input[name="phone"], input[placeholder*="Phone"], input[placeholder*="0000"], input[type="tel"]');
 
-        var name = (nameInput && nameInput.value) ? nameInput.value.trim() : 'Lavish Chaudhary';
-        var email = (emailInput && emailInput.value) ? emailInput.value.trim() : 'lavishchaudhary49@gmail.com';
-        var phone = (phoneInput && phoneInput.value) ? phoneInput.value.trim() : '+91 8273046327';
+        var hasNameField = !!nameInput;
+        var hasPhoneField = !!phoneInput;
+
+        var name = (nameInput && nameInput.value && nameInput.value.trim()) ? nameInput.value.trim() : (hasNameField ? 'Lavish Chaudhary' : 'Member');
+        var email = (emailInput && emailInput.value && emailInput.value.trim()) ? emailInput.value.trim() : 'alex@enterprise.com';
+        var phone = (phoneInput && phoneInput.value && phoneInput.value.trim()) ? phoneInput.value.trim() : '';
 
         var submitBtn = form.querySelector('button[type="submit"], button:not([type="button"])') || form.querySelector('button');
         var modalContainer = form.closest('#leadModal, [id*="modal"], [id*="Modal"], .fixed.inset-0');
@@ -444,7 +474,7 @@ const getPreviewCode = (rawCode) => {
 
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⚡</span> Securing Priority Reservation...';
+            submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⚡</span> Processing Request...';
         }
 
         setTimeout(function() {
@@ -455,35 +485,34 @@ const getPreviewCode = (rawCode) => {
                     name: name,
                     email: email,
                     phone: phone,
-                    refId: 'AETH-PRE-' + refId,
-                    status: 'Priority Access Reserved',
+                    refId: 'REF-' + refId,
+                    status: 'Active Request Confirmed',
                     timestamp: new Date().toLocaleString()
                 }));
             } catch (err) {}
 
+            var phoneRowHtml = (hasPhoneField && phone) ? '<div class="flex items-center justify-between border-t border-slate-800/80 pt-2"><span class="text-slate-400">Mobile Updates:</span><span class="text-white font-mono font-bold">' + phone + '</span></div>' : '';
+            var nameHeading = hasNameField ? 'Request Confirmed for ' + name + '!' : 'Request Confirmed!';
+
             if (modalCard) {
                 modalCard.innerHTML = '<div class="text-center space-y-4 py-2 animate-fadeIn text-left sm:text-center">' +
-                    '<button onclick="closeModal(\\'leadModal\\'); if(this.closest(\\'.fixed\\')) this.closest(\\'.fixed\\').style.display=\\'none\\';" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1 rounded-full hover:bg-emerald-950/50">' +
+                    '<button onclick="closeModal(\\'leadModal\\'); if(this.closest(\\'.fixed\\')) this.closest(\\'.fixed\\').style.display=\\'none\\';" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1 rounded-full hover:bg-slate-800">' +
                         '<i data-lucide="x" class="w-5 h-5"></i>' +
                     '</button>' +
                     '<div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-3xl shadow-lg shadow-emerald-500/20">✓</div>' +
                     '<div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono">' +
-                        '<span>PRIORITY VIP REF:</span> <strong>#AETH-PRE-' + refId + '</strong>' +
+                        '<span>CONFIRMATION ID:</span> <strong>#REF-' + refId + '</strong>' +
                     '</div>' +
-                    '<h3 class="text-2xl font-extrabold text-white">Pre-Order Secured for ' + name + '!</h3>' +
+                    '<h3 class="text-2xl font-extrabold text-white">' + nameHeading + '</h3>' +
                     '<p class="text-slate-300 text-xs leading-relaxed max-w-md mx-auto">' +
-                        'Congratulations! Your early-adopter hardware subsidy and priority batch delivery have been locked in. Official access key sent to <strong class="text-emerald-300">' + email + '</strong>.' +
+                        'We received your details successfully. Complete access and verification link sent to <strong class="text-emerald-300">' + email + '</strong>.' +
                     '</p>' +
-                    '<div class="p-4 rounded-xl bg-darkBio-900/90 border border-emerald-900/80 text-left space-y-2.5 text-xs">' +
-                        '<div class="flex items-center justify-between"><span class="text-slate-400">Early-Adopter Subsidy</span><span class="text-emerald-400 font-bold">25% OFF Hardware Locked</span></div>' +
-                        '<div class="flex items-center justify-between"><span class="text-slate-400">Home Energy Audit</span><span class="text-emerald-300 font-bold">FREE ($350 Value Included)</span></div>' +
-                        '<div class="flex items-center justify-between border-t border-emerald-950/60 pt-2"><span class="text-slate-400">Priority SMS Updates</span><span class="text-white font-mono font-bold">' + phone + '</span></div>' +
+                    '<div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-left space-y-2.5 text-xs">' +
+                        '<div class="flex items-center justify-between"><span class="text-slate-400">Email Address:</span><span class="text-emerald-400 font-bold">' + email + '</span></div>' +
+                        '<div class="flex items-center justify-between"><span class="text-slate-400">Status:</span><span class="text-emerald-300 font-bold">Priority Processing Active</span></div>' +
+                        phoneRowHtml +
                     '</div>' +
-                    '<div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-left text-xs text-slate-300 flex items-center gap-3">' +
-                        '<i data-lucide="phone-call" class="w-5 h-5 text-emerald-400 shrink-0"></i>' +
-                        '<span>Our microgrid engineer will contact you shortly to confirm installation slots.</span>' +
-                    '</div>' +
-                    '<button onclick="closeModal(\\'leadModal\\'); if(this.closest(\\'.fixed\\')) this.closest(\\'.fixed\\').style.display=\\'none\\';" class="w-full py-3 rounded-xl bg-emerald-500 text-black font-extrabold text-xs hover:bg-emerald-400 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">' +
+                    '<button onclick="closeModal(\\'leadModal\\'); if(this.closest(\\'.fixed\\')) this.closest(\\'.fixed\\').style.display=\\'none\\';" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-extrabold text-xs hover:opacity-95 transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">' +
                         '<span>Done • Return to Site</span>' +
                     '</button>' +
                 '</div>';
@@ -492,25 +521,22 @@ const getPreviewCode = (rawCode) => {
                 heroContainer.innerHTML = '<div class="text-center space-y-4 py-2 animate-fadeIn">' +
                     '<div class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-lg shadow-emerald-500/20">✓</div>' +
                     '<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono">' +
-                        '<span>PRIORITY REF:</span> <strong>#AETH-' + refId + '</strong>' +
+                        '<span>CONFIRMATION ID:</span> <strong>#REF-' + refId + '</strong>' +
                     '</div>' +
-                    '<h3 class="text-2xl font-extrabold text-white">Proposal Reserved for ' + name + '!</h3>' +
+                    '<h3 class="text-2xl font-extrabold text-white">' + nameHeading + '</h3>' +
                     '<p class="text-slate-300 text-xs leading-relaxed max-w-md mx-auto">' +
-                        'We calculated your microgrid rebate model. A customized PDF spec sheet and solar-storage layout have been prepared for <strong class="text-emerald-300">' + email + '</strong>.' +
+                        'We received your submission. Complete access materials and layout have been prepared for <strong class="text-emerald-300">' + email + '</strong>.' +
                     '</p>' +
-                    '<div class="grid grid-cols-2 gap-3 p-4 rounded-xl bg-darkBio-900 border border-emerald-900/80 text-left">' +
-                        '<div><span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Est. Annual Savings</span><span class="text-emerald-400 font-extrabold text-base sm:text-lg">$1,840 / yr</span></div>' +
-                        '<div><span class="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Federal Tax Credit</span><span class="text-emerald-300 font-extrabold text-base sm:text-lg">30% ($4,200)</span></div>' +
-                    '</div>' +
-                    '<div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-left text-xs text-slate-300 flex items-center gap-3">' +
-                        '<i data-lucide="phone-call" class="w-5 h-5 text-emerald-400 shrink-0"></i>' +
-                        '<span>Our senior energy engineer will call <strong class="text-white">' + phone + '</strong> in under 15 minutes.</span>' +
+                    '<div class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-left space-y-2 text-xs">' +
+                        '<div class="flex justify-between"><span class="text-slate-400">Email:</span><span class="text-white font-bold">' + email + '</span></div>' +
+                        '<div class="flex justify-between"><span class="text-slate-400">Status:</span><span class="text-emerald-400 font-bold">Fast-Track Active</span></div>' +
+                        phoneRowHtml +
                     '</div>' +
                 '</div>';
                 initLucideIcons();
             }
 
-            window.showToast('🎉 Pre-order secured for ' + name + '! Confirmation sent to ' + email);
+            window.showToast('🎉 Request submitted successfully! Confirmation sent to ' + email);
         }, 600);
     };
 
@@ -744,22 +770,222 @@ const getPreviewCode = (rawCode) => {
         }
     };
 
-    window.openLeadModal = window.openLeadModal || function(title) { 
+    window.openLeadModal = function(title) { 
         var modal = document.getElementById('leadModal') || document.getElementById('contactModal');
         if (modal) {
             modal.style.display = 'flex';
+            modal.classList.remove('hidden');
             if (title) {
                 var headerEl = modal.querySelector('h3, .modal-title');
                 if (headerEl) headerEl.textContent = title;
             }
+            if (window.lucide) try { lucide.createIcons(); } catch(e) {}
+            return;
+        }
+
+        var dynamicModal = document.getElementById('dynamicLeadModal');
+        if (!dynamicModal) {
+            dynamicModal = document.createElement('div');
+            dynamicModal.id = 'dynamicLeadModal';
+            dynamicModal.className = 'fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn';
+            
+            var modalTitle = (typeof title === 'string' && title) ? title : 'Request Access & Free Leads';
+
+            dynamicModal.innerHTML = '<div class="glass-card relative w-full max-w-md rounded-3xl p-6 sm:p-8 border border-slate-700 bg-slate-950/95 shadow-2xl text-left">' +
+                '<button onclick="window.closeLeadModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1.5 rounded-full hover:bg-slate-800">' +
+                    '<i data-lucide="x" class="w-5 h-5"></i>' +
+                '</button>' +
+                '<div class="flex items-center gap-2 text-brand-400 text-xs font-bold tracking-widest uppercase mb-2">' +
+                    '<i data-lucide="zap" class="w-4 h-4"></i> Priority Access' +
+                '</div>' +
+                '<h3 class="text-2xl font-extrabold text-white mb-1.5">' + modalTitle + '</h3>' +
+                '<p class="text-slate-400 text-xs mb-6">Complete your request below to get started instantly.</p>' +
+                '<form onsubmit="event.preventDefault(); window.submitLeadForm(event)" class="space-y-4">' +
+                    '<div class="space-y-1.5">' +
+                        '<label class="block text-xs font-bold text-slate-300">Full Name</label>' +
+                        '<div class="relative flex items-center">' +
+                            '<i data-lucide="user" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
+                            '<input type="text" name="name" required placeholder="Alex Morgan" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 transition">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="space-y-1.5">' +
+                        '<label class="block text-xs font-bold text-slate-300">Work Email</label>' +
+                        '<div class="relative flex items-center">' +
+                            '<i data-lucide="mail" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
+                            '<input type="email" name="email" required placeholder="alex@company.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 transition">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="pt-2">' +
+                        '<button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-extrabold text-xs tracking-wider uppercase shadow-lg shadow-brand-500/30 hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">' +
+                            '<span>Claim Access & Free Leads ➔</span>' +
+                        '</button>' +
+                    '</div>' +
+                '</form>' +
+            '</div>';
+
+            document.body.appendChild(dynamicModal);
         } else {
-            window.scrollToContact();
+            dynamicModal.style.display = 'flex';
+        }
+
+        if (window.lucide) {
+            try { lucide.createIcons(); } catch(e) {}
         }
     };
-    window.closeLeadModal = window.closeLeadModal || function() { 
+
+    window.closeLeadModal = function() { 
         var modal = document.getElementById('leadModal') || document.getElementById('contactModal');
-        if (modal) modal.style.display = 'none';
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+        }
+        var dynamicModal = document.getElementById('dynamicLeadModal');
+        if (dynamicModal) {
+            dynamicModal.style.display = 'none';
+        }
     };
+
+    window.openModal = function(id) {
+        var modal = id ? document.getElementById(id) : null;
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.remove('hidden');
+            if (window.lucide) try { lucide.createIcons(); } catch(e) {}
+            return;
+        }
+        var lower = (id || '').toLowerCase();
+        if (lower.includes('sign') || lower.includes('login') || lower.includes('auth')) {
+            window.openSignInModal();
+        } else {
+            window.openLeadModal();
+        }
+    };
+
+    window.closeModal = function(id) {
+        var modal = id ? document.getElementById(id) : null;
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+        }
+        window.closeSignInModal();
+        window.closeLeadModal();
+    };
+
+    // Auto-repair any form missing a submit button on load
+    setTimeout(function() {
+        var allForms = document.querySelectorAll('form');
+        allForms.forEach(function(f) {
+            if (!f.querySelector('button[type="submit"], input[type="submit"]')) {
+                var submitDiv = document.createElement('div');
+                submitDiv.className = 'pt-4';
+                submitDiv.innerHTML = '<button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white font-extrabold text-xs tracking-wider uppercase shadow-xl shadow-brand-500/30 hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">' +
+                    '<span>Submit Request & Claim Free Leads ➔</span>' +
+                '</button>';
+                f.appendChild(submitDiv);
+            }
+        });
+    }, 100);
+
+    // Universal Sign In / Auth Modal Engine
+    window.openSignInModal = function(titleOrEmail) {
+        var existingModal = document.getElementById('signInModal') || document.getElementById('loginModal') || document.getElementById('authModal');
+        if (existingModal) {
+            existingModal.style.display = 'flex';
+            existingModal.classList.remove('hidden');
+            return;
+        }
+
+        var dynamicModal = document.getElementById('dynamicSignInModal');
+        if (!dynamicModal) {
+            dynamicModal = document.createElement('div');
+            dynamicModal.id = 'dynamicSignInModal';
+            dynamicModal.className = 'fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn';
+            
+            var prefilledEmail = (typeof titleOrEmail === 'string' && titleOrEmail.includes('@')) ? titleOrEmail.trim() : 'alex@enterprise.com';
+            var modalTitle = (typeof titleOrEmail === 'string' && !titleOrEmail.includes('@')) ? titleOrEmail : 'Sign In to Your Account';
+
+            dynamicModal.innerHTML = '<div class="glass-card relative w-full max-w-md rounded-3xl p-6 sm:p-8 border border-slate-700 bg-slate-950/95 shadow-2xl text-left">' +
+                '<button onclick="window.closeSignInModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1.5 rounded-full hover:bg-slate-800">' +
+                    '<i data-lucide="x" class="w-5 h-5"></i>' +
+                '</button>' +
+                '<div class="flex items-center gap-2 text-brand-400 text-xs font-bold tracking-widest uppercase mb-2">' +
+                    '<i data-lucide="lock" class="w-4 h-4"></i> Secure Authentication' +
+                '</div>' +
+                '<h3 class="text-2xl font-extrabold text-white mb-1.5">' + modalTitle + '</h3>' +
+                '<p class="text-slate-400 text-xs mb-6">Enter your registered email and password to access the portal.</p>' +
+                '<form onsubmit="event.preventDefault(); window.submitSignInForm(event)" class="space-y-4">' +
+                    '<div class="space-y-1.5">' +
+                        '<label class="block text-xs font-bold text-slate-300">Email Address</label>' +
+                        '<div class="relative flex items-center">' +
+                            '<i data-lucide="mail" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
+                            '<input type="email" name="email" required value="' + prefilledEmail + '" placeholder="name@company.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="space-y-1.5">' +
+                        '<div class="flex justify-between items-center">' +
+                            '<label class="block text-xs font-bold text-slate-300">Password</label>' +
+                            '<a href="javascript:void(0)" onclick="window.showToast(\\'Password reset link sent to email! 🔑\\')" class="text-[11px] text-brand-400 hover:underline">Forgot password?</a>' +
+                        '</div>' +
+                        '<div class="relative flex items-center">' +
+                            '<i data-lucide="key" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
+                            '<input type="password" name="password" required value="••••••••••••" placeholder="Enter your password" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="pt-2">' +
+                        '<button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-extrabold text-xs tracking-wider uppercase shadow-lg shadow-brand-500/30 hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">' +
+                            '<span>Sign In to Portal ➔</span>' +
+                        '</button>' +
+                    '</div>' +
+                '</form>' +
+            '</div>';
+
+            document.body.appendChild(dynamicModal);
+        } else {
+            dynamicModal.style.display = 'flex';
+        }
+
+        if (window.lucide) {
+            try { lucide.createIcons(); } catch(e) {}
+        }
+    };
+
+    window.closeSignInModal = function() {
+        var existingModal = document.getElementById('signInModal') || document.getElementById('loginModal') || document.getElementById('authModal');
+        if (existingModal) {
+            existingModal.style.display = 'none';
+            existingModal.classList.add('hidden');
+        }
+        var dynamicModal = document.getElementById('dynamicSignInModal');
+        if (dynamicModal) {
+            dynamicModal.style.display = 'none';
+        }
+    };
+
+    window.submitSignInForm = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        var form = (e && e.target) ? e.target : document.querySelector('#dynamicSignInModal form');
+        var email = (form && form.querySelector('input[type="email"]')) ? form.querySelector('input[type="email"]').value : 'alex@enterprise.com';
+        var btn = form ? form.querySelector('button[type="submit"]') : null;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="inline-block animate-spin mr-2">⚡</span> Authenticating...';
+        }
+        setTimeout(function() {
+            window.closeSignInModal();
+            window.showToast('✨ Signed in successfully as ' + email + '!');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Sign In to Portal ➔</span>';
+            }
+        }, 600);
+    };
+
+    window.openLoginModal = window.openSignInModal;
+    window.openAuthModal = window.openSignInModal;
+    window.openSignUpModal = window.openSignInModal;
+    window.openSignupModal = window.openSignInModal;
+    window.closeLoginModal = window.closeSignInModal;
+    window.closeAuthModal = window.closeSignInModal;
     window.toggleFaq = window.toggleFaq || function(btn) {
         if (!btn) return;
         var content = btn.nextElementSibling || (btn.parentElement && btn.parentElement.querySelector('.faq-answer, .faq-content, p'));
@@ -1366,9 +1592,6 @@ function WebsiteEditor() {
                                 <span className="text-xs font-semibold text-zinc-300">
                                     Live Preview
                                 </span>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isReactCode ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-                                    {isReactCode ? "⚛️ React JSX" : "🌐 HTML5"}
-                                </span>
                             </div>
                             <span className="text-[11px] text-zinc-500 truncate max-w-[200px]">
                                 {website?.title}
@@ -1377,15 +1600,6 @@ function WebsiteEditor() {
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-2">
-                        <button
-                            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition"
-                            onClick={handleCopyCode}
-                            title="Copy Code to Clipboard"
-                        >
-                            {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                            <span>{copiedCode ? "Copied!" : (isReactCode ? "Copy React" : "Copy HTML")}</span>
-                        </button>
-
                         {!website.deployed && (
                             <button
                                 className="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-sm font-semibold hover:scale-105 transition"

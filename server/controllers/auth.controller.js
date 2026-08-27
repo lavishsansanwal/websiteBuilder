@@ -23,18 +23,21 @@ export const googleAuth = async (req, res) => {
 
         const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-        // 3. Send Cookie and Response
+        const isProduction = process.env.NODE_ENV === "production";
+
+        // 3. Send Cookie and Response (secure must be false on localhost HTTP)
         res.cookie("token", token, {
             httpOnly: true,
-            secure: true, // Keep false for localhost
-            sameSite: "none", // Changed from "strict" to "Lax" for better local auth support
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        return res.status(200).json(user);
+        const userData = user.toObject ? user.toObject() : user;
+        return res.status(200).json({ ...userData, token });
 
     } catch (error) {
-        console.error("Auth Error:", error); // This logs the error to your VS Code terminal
+        console.error("Auth Error:", error);
         return res.status(500).json({ message: `google auth error: ${error.message}` });
     }
 };

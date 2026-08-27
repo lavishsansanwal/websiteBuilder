@@ -240,25 +240,43 @@ export const changes = async (req, res) => {
         // Case 2: AI Revision via Prompt
         if (prompt && typeof prompt === "string" && prompt.trim().length > 0) {
             const userPromptText = prompt.trim();
-            const isReact = /export\s+default/i.test(website.latestCode) || /import\s+React/i.test(website.latestCode) || /function\s+App/i.test(website.latestCode);
+            const isReact = website.framework === "react" ||
+                /import\s+React/i.test(website.latestCode || "") ||
+                /export\s+default/i.test(website.latestCode || "");
+
+            const conversationHistory = (website.conversation || [])
+                .slice(-6)
+                .map(c => `${c.role.toUpperCase()}: ${c.content}`)
+                .join("\n");
 
             const updateAiPrompt = `
 You are an expert Principal Frontend Architect and UI/UX Designer updating an existing ${isReact ? 'React (JSX) application' : 'website'}.
 
+${conversationHistory ? `PREVIOUS USER INSTRUCTIONS & ACTIVE CUSTOMIZATIONS:\n${conversationHistory}\n` : ''}
 CURRENT ${isReact ? 'REACT (JSX)' : 'HTML'} CODE:
 ${website.latestCode}
 
-USER'S REQUESTED CHANGES:
+USER'S NEW REQUESTED CHANGES:
 ${userPromptText}
 
 INSTRUCTIONS:
 1. Carefully and thoroughly apply the user's requested changes directly to the ${isReact ? 'React JSX component' : 'HTML code'}.
-2. If the user asks for icons, add appropriate Lucide icons using <i data-lucide="icon-name" class="w-4 h-4"></i> or Lucide React components and ensure lucide.createIcons() is called.
-3. If the user asks for styling, theme, component, section, or content changes, implement them completely and seamlessly without placeholders.
-4. Return the COMPLETE, updated, fully working standalone ${isReact ? 'React (JSX) component (export default function App() { ... })' : 'HTML document'} preserving all state, hooks, Tailwind CSS classes, and interactivity.
-5. In the "message" field of your JSON response, write a specific, conversational 1-2 sentence description explaining EXACTLY what modifications, components, styling, or icons were added/changed based on the user's request. NEVER return generic phrases like "Website generated successfully" or "Updated".
-6. NEVER include or retain an AI chat sidebar, conversation bubbles, "Describe changes..." prompt bar, or editor UI inside the code. Output ONLY the pure standalone end-user application or dashboard.
-7. CRITICAL: Ensure all links in the navbar, body, and footer are 100% FUNCTIONAL. In the footer, ONLY include real working links (on-page smooth scroll anchors to existing sections, working modal buttons for Privacy/Terms/Contact, working newsletter submission with toast, and Back to Top). NEVER output dead/dummy links like /careers, /blog, /press, etc.
+2. CRITICAL CONTINUITY & CUSTOMIZATION PRESERVATION:
+   - Always preserve and build upon all previously applied customizations (e.g. if the user previously removed phone numbers, kept only email/name, customized colors, or modified copy, DO NOT revert or undo those changes unless explicitly told to do so).
+   - NEVER revert forms to generic default templates. Keep customized field sets intact.
+3. DYNAMIC FORM & FIELD RECONFIGURATIONS:
+   - If the user asks to modify, add, or remove form/sign-in fields (e.g. "remove phone number", "only ask for email", "take only name and email", "add company size"):
+     a) Thoroughly update all relevant on-page forms, modals (e.g., sign-in modals, lead modals, waitlist cards), and live preview inputs to reflect the exact requested field configuration with icons and labels.
+     b) Maintain 100% dynamic interactivity: Submit buttons must show active loading spinners ('⚡ Submitting...'), morph dynamically into the tailored VIP confirmation screen, and show toast notifications.
+     c) In the confirmation breakdown and JavaScript handlers, display ONLY the active fields (e.g., if phone was removed, omit the phone row from the confirmation card).
+4. MANDATORY FORM SUBMIT BUTTON:
+   - Every <form> tag MUST contain a clearly styled <button type="submit"> with gradient background and hover effects. Never output a form without its submit button.
+5. FULL INTERACTION & SCRIPT PRESERVATION:
+   - Preserve all working interactive JavaScript functions in <script>: tab switchers (switchDemoStep), volume pills (selectVolumePill), billing switches (toggleBilling), accordion toggles (toggleFaq), sign-in/lead modal triggers (openSignInModal, openLeadModal, closeModal), and Lucide icons initialization (lucide.createIcons()). NEVER leave dead buttons or placeholder functions.
+6. Return the COMPLETE, updated, fully working standalone ${isReact ? 'React (JSX) component (export default function App() { ... })' : 'HTML document'} preserving all state, hooks, Tailwind CSS classes, and interactivity without truncating.
+7. In the "message" field of your JSON response, write a specific, conversational 1-2 sentence description explaining EXACTLY what modifications, components, styling, or icons were added/changed based on the user's request. NEVER return generic phrases like 'Website generated successfully' or 'Updated'.
+8. NEVER include or retain an AI chat sidebar, conversation bubbles, "Describe changes..." prompt bar, or editor UI inside the code. Output ONLY the pure standalone end-user application or dashboard.
+9. CRITICAL: Ensure all links in the navbar, body, and footer are 100% FUNCTIONAL. In the footer, ONLY include real working links (on-page smooth scroll anchors to existing sections, working modal buttons for Privacy/Terms/Contact, working newsletter submission with toast, and Back to Top). NEVER output dead/dummy links like /careers, /blog, /press, etc.
 
 RETURN FORMAT:
 Return ONLY one valid JSON object without markdown or code fences.

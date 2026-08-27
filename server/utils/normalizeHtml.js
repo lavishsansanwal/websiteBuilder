@@ -3,20 +3,50 @@
  * Guarantees that EVERY generated website has a clean layout,
  * hidden modals/drawers on initial load, vertical body flow, and working CDNs.
  */
+export function stripJsonArtifacts(code) {
+    if (!code || typeof code !== "string") return "";
+    let clean = code.trim();
+
+    clean = clean.replace(/^```(?:html|json|javascript|js|jsx|react)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    clean = clean.replace(/^\{\s*["']?code["']?\s*:\s*["'`]/i, "").trim();
+    clean = clean.replace(/["'`]\s*,\s*["']?message["']?\s*:\s*[\s\S]*?\}\s*$/i, "").trim();
+    clean = clean.replace(/["'`]\s*,\s*["']?imageQueries["']?\s*:\s*[\s\S]*?\}\s*$/i, "").trim();
+    clean = clean.replace(/["'`]\s*\}\s*$/i, "").trim();
+
+    const docTypeIdx = clean.search(/<!DOCTYPE\s+html/i);
+    if (docTypeIdx > 0) {
+        clean = clean.slice(docTypeIdx);
+    } else {
+        const htmlTagIdx = clean.search(/<html[\s>]/i);
+        if (htmlTagIdx > 0 && !clean.includes("<!DOCTYPE")) {
+            clean = clean.slice(htmlTagIdx);
+        }
+    }
+
+    const endHtmlIdx = clean.search(/<\/html>/i);
+    if (endHtmlIdx !== -1) {
+        clean = clean.slice(0, endHtmlIdx + 7);
+    }
+
+    return clean.trim();
+}
+
 export function normalizeHtml(html) {
     if (!html || typeof html !== "string") return html;
 
+    const sanitizedInput = stripJsonArtifacts(html);
+
     // Do NOT normalize React (JSX) component code
-    const isReact = /export\s+default/i.test(html) ||
-                    /import\s+React/i.test(html) ||
-                    /function\s+App/i.test(html) ||
-                    /const\s+App\s*=/i.test(html) ||
-                    /use(State|Effect|Memo|Ref|Callback)\s*\(/i.test(html);
+    const isReact = /export\s+default/i.test(sanitizedInput) ||
+                    /import\s+React/i.test(sanitizedInput) ||
+                    /function\s+App/i.test(sanitizedInput) ||
+                    /const\s+App\s*=/i.test(sanitizedInput) ||
+                    /use(State|Effect|Memo|Ref|Callback)\s*\(/i.test(sanitizedInput);
     if (isReact) {
-        return html;
+        return sanitizedInput;
     }
 
-    let normalized = html
+    let normalized = sanitizedInput
         .replace(/<script>(?:(?!<\/script>)[\s\S])*?__DEFENSIVE_HELPERS__[\s\S]*?<\/script>/gi, "")
         .replace(/<script>(?:(?!<\/script>)[\s\S])*?Auto-initialize Lucide Icons[\s\S]*?<\/script>/gi, "");
 

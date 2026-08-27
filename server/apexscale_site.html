@@ -1,0 +1,1107 @@
+{
+  "code": "<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+
+  <script>
+    /* __DEFENSIVE_HELPERS__ */
+    window.openModal = window.openModal || function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.style.display = 'flex'; }
+      if (window.lucide) lucide.createIcons();
+    };
+    window.closeModal = window.closeModal || function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.style.display = 'none'; }
+    };
+    window.toggleDrawer = window.toggleDrawer || function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.classList.toggle('translate-x-full'); }
+      if (window.lucide) lucide.createIcons();
+    };
+    window.showToast = window.showToast || function(msg) {
+      var existing = document.getElementById('globalToast');
+      if (existing) existing.remove();
+      var toast = document.createElement('div');
+      toast.id = 'globalToast';
+      toast.className = 'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl bg-amber-500 text-black text-xs font-extrabold shadow-2xl transition-all duration-300 flex items-center gap-2';
+      toast.innerHTML = '<span>' + (msg || 'Action completed successfully!') + '</span>';
+      document.body.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 3000);
+    };
+    window.handleMenuSearch = window.handleMenuSearch || function(q) {
+      var query = (q || '').toLowerCase().trim();
+      var items = document.querySelectorAll('[data-name], .menu-item, .glass-card, [data-category]');
+      items.forEach(function(item) {
+        if (item.closest('header') || item.closest('footer') || item.closest('nav')) return;
+        var text = item.textContent.toLowerCase();
+        item.style.display = (!query || text.includes(query)) ? '' : 'none';
+      });
+    };
+    window.filterMenu = window.filterMenu || function(cat) {
+      var category = (cat || 'all').toLowerCase().trim();
+      var items = document.querySelectorAll('[data-category]');
+      items.forEach(function(item) {
+        var itemCat = (item.getAttribute('data-category') || '').toLowerCase();
+        item.style.display = (category === 'all' || itemCat.includes(category)) ? '' : 'none';
+      });
+    };
+    window.filterTable = window.filterTable || function(q) {
+      var query = (q || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#tableBody tr, tbody tr, .table-row, [data-row]');
+      rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        row.style.display = (!query || text.includes(query)) ? '' : 'none';
+      });
+    };
+    window.filterStatus = window.filterStatus || function(status) {
+      var s = (status || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#tableBody tr, tbody tr, .table-row, [data-row]');
+      rows.forEach(function(row) {
+        if (!s || s === 'all' || s === 'all types' || s === 'all status' || s === 'all categories') {
+          row.style.display = '';
+        } else {
+          var text = row.textContent.toLowerCase();
+          row.style.display = text.includes(s) ? '' : 'none';
+        }
+      });
+    };
+    window.filterType = window.filterType || window.filterStatus;
+    window.filterCategory = window.filterCategory || window.filterStatus;
+    window.filterData = window.filterData || window.filterStatus;
+
+    window.sortTable = window.sortTable || function(param) {
+      var table = document.querySelector('table');
+      if (!table) return;
+      var tbody = table.querySelector('tbody') || table;
+      var rows = Array.from(tbody.querySelectorAll('tr'));
+      if (rows.length < 2) return;
+
+      var isNumericParam = !isNaN(Number(param)) && param !== '' && typeof param !== 'boolean';
+      var colIndex = isNumericParam ? Number(param) : 0;
+      var sortDirection = 'asc';
+      var sortStr = String(param || '').toLowerCase();
+
+      if (sortStr.includes('desc') || sortStr.includes('high') || sortStr.includes('z-a')) {
+        sortDirection = 'desc';
+      }
+
+      if (!isNumericParam) {
+        var headers = Array.from(table.querySelectorAll('th'));
+        for (var h = 0; h < headers.length; h++) {
+          var thText = headers[h].textContent.toLowerCase().trim();
+          if (sortStr.includes(thText) || (thText.includes('download') && sortStr.includes('download')) || (thText.includes('comp') && sortStr.includes('comp')) || (thText.includes('rank') && sortStr.includes('rank')) || (thText.includes('volume') && sortStr.includes('volume')) || (thText.includes('search') && sortStr.includes('search'))) {
+            colIndex = h;
+            break;
+          }
+        }
+      }
+
+      rows.sort(function(a, b) {
+        var cellA = (a.children[colIndex] ? a.children[colIndex].textContent : '').trim();
+        var cellB = (b.children[colIndex] ? b.children[colIndex].textContent : '').trim();
+
+        var numA = parseFloat(cellA.split('').filter(function(c) { return (c >= '0' && c <= '9') || c === '.' || c === '-'; }).join(''));
+        var numB = parseFloat(cellB.split('').filter(function(c) { return (c >= '0' && c <= '9') || c === '.' || c === '-'; }).join(''));
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortDirection === 'desc' ? numB - numA : numA - numB;
+        }
+        return sortDirection === 'desc' ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
+      });
+
+      rows.forEach(function(row) { tbody.appendChild(row); });
+      if (window.showToast) window.showToast('Sorted table by ' + (param || 'column'));
+    };
+    window.handleSort = window.handleSort || window.sortTable;
+
+    window.exportToCSV = window.exportToCSV || function() {
+      var table = document.querySelector('table');
+      if (!table) {
+        if (window.showToast) window.showToast('No table records found to export.');
+        return;
+      }
+      var csv = [];
+      var rows = table.querySelectorAll('tr');
+      rows.forEach(function(row) {
+        if (row.style.display === 'none') return;
+        var cols = row.querySelectorAll('th, td');
+        var rowData = [];
+        cols.forEach(function(col) {
+          var text = (col.innerText || col.textContent || '').split(String.fromCharCode(10)).join(' ').replace(/"/g, '""').trim();
+          rowData.push('"' + text + '"');
+        });
+        if (rowData.length > 0) csv.push(rowData.join(','));
+      });
+
+      var csvString = csv.join(String.fromCharCode(10));
+      var blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', 'keyword_dataset_export_' + Date.now() + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      if (window.showToast) window.showToast('Dataset exported as CSV! 📥');
+    };
+    window.exportData = window.exportData || window.exportToCSV;
+    window.downloadCSV = window.downloadCSV || window.exportToCSV;
+    window.exportReport = window.exportReport || window.exportToCSV;
+    window.exportDataset = window.exportDataset || window.exportToCSV;
+
+    window.openLeadModal = window.openLeadModal || function() { (window.openModal && (window.openModal('leadModal') || window.openModal('contactModal'))) || window.showToast('Sign up form opened!'); };
+    window.closeLeadModal = window.closeLeadModal || function() { window.closeModal && (window.closeModal('leadModal') || window.closeModal('contactModal')); };
+    window.submitLeadForm = window.submitLeadForm || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var form = (e && e.target) || document.querySelector('#contact form') || document.querySelector('form');
+      var name = (form && (form.querySelector('input[name="name"]') || form.querySelector('input[type="text"]')) || {}).value || 'there';
+      window.showToast('Thank you, ' + name + '! We received your inquiry and will contact you shortly. 🚀');
+      if (form && form.reset) form.reset();
+    };
+    window.toggleFaq = window.toggleFaq || function(btn) {
+      if (!btn) return;
+      var content = btn.nextElementSibling || (btn.parentElement && btn.parentElement.querySelector('.faq-answer, .faq-content, p'));
+      if (content) content.classList.toggle('hidden');
+    };
+    window.togglePricing = window.togglePricing || function(isAnnual) {
+      var prices = document.querySelectorAll('.price-val, [data-monthly]');
+      prices.forEach(function(el) {
+        var m = el.getAttribute('data-monthly');
+        var a = el.getAttribute('data-annual');
+        if (m && a) el.textContent = isAnnual ? a : m;
+      });
+    };
+
+    window.submitReservation = window.submitReservation || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      window.showToast('Table reservation confirmed! Reference #RES-' + Math.floor(1000 + Math.random() * 9000));
+      window.closeModal('reservationModal');
+    };
+    window.submitReview = window.submitReview || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      window.showToast('Thank you! Your review has been submitted.');
+      window.closeModal('reviewModal');
+    };
+    window.addToCart = window.addToCart || function(id) {
+      window.showToast('Item added to order! 🛒');
+    };
+
+    function handleGlobalClick(event) {
+      var link = event.target.closest("a");
+      if (link) {
+        var href = (link.getAttribute("href") || "").trim();
+        if (!href || href === "#" || href === "/" || href.startsWith("javascript:")) {
+          event.preventDefault();
+          return;
+        }
+        if (href.startsWith("#")) {
+          event.preventDefault();
+          var targetId = decodeURIComponent(href.slice(1)).trim();
+          var target = document.getElementById(targetId) || document.querySelector(href);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+        if (href.startsWith("http://") || href.startsWith("https://")) {
+          event.preventDefault();
+          window.open(href, "_blank", "noopener,noreferrer");
+          return;
+        }
+        event.preventDefault();
+        var cleanId = (href.startsWith('/') ? href.slice(1) : href).trim();
+        var fallbackTarget = document.getElementById(cleanId) || document.querySelector('[data-section="' + cleanId + '"]');
+        if (fallbackTarget) fallbackTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    window.addEventListener("click", handleGlobalClick, true);
+    document.addEventListener("click", handleGlobalClick, true);
+  </script>
+
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexScale AI — High-Intent Lead Generation & Acquisition Engine</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            serif: ['"Playfair Display"', 'Georgia', 'serif']
+          },
+          colors: {
+            dark: {
+              950: '#070b12',
+              900: '#0b0f19',
+              800: '#111827',
+              700: '#1f2937'
+            },
+            brand: {
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca'
+            }
+          },
+          animation: {
+            'pulse-glow': 'pulseGlow 4s infinite ease-in-out',
+            'float': 'float 6s infinite ease-in-out'
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%, 100%': { opacity: 0.4, transform: 'scale(1)' },
+              '50%': { opacity: 0.7, transform: 'scale(1.05)' }
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    .glass-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-nav {
+      background: rgba(7, 11, 18, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glow-purple {
+      box-shadow: 0 0 50px -10px rgba(99, 102, 241, 0.35);
+    }
+    .text-gradient {
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .text-gradient-indigo {
+      background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-[#070b12] text-slate-100 font-sans selection:bg-brand-500 selection:text-white relative min-h-screen flex flex-col overflow-x-hidden antialiased">
+
+  <!-- Ambient Glowing Background Lights -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px] animate-pulse-glow"></div>
+    <div class="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[140px] animate-pulse-glow" style="animation-delay: 2s;"></div>
+    <div class="absolute bottom-10 left-1/4 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[160px]"></div>
+  </div>
+
+  <!-- ==================== 1. STICKY GLASS HEADER ==================== -->
+  <header class="sticky top-0 z-40 glass-nav transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <!-- Brand Logo -->
+      <a href="#hero" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/30 group-hover:scale-105 transition duration-300">
+          <i data-lucide="zap" class="w-5 h-5 fill-white"></i>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
+            ApexScale <span class="text-brand-400 font-semibold text-xs px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20">AI 2.0</span>
+          </span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+        <a href="#features" class="hover:text-white transition">Features</a>
+        <a href="#demo" class="hover:text-white transition">How it Works</a>
+        <a href="#metrics" class="hover:text-white transition">ROI Engine</a>
+        <a href="#pricing" class="hover:text-white transition">Pricing</a>
+        <a href="#testimonials" class="hover:text-white transition">Reviews</a>
+        <a href="#faq" class="hover:text-white transition">FAQ</a>
+      </nav>
+
+      <!-- Header Actions -->
+      <div class="hidden md:flex items-center gap-4">
+        <button onclick="openModal('leadModal')" class="text-sm font-semibold text-slate-300 hover:text-white transition px-3 py-2">
+          Sign In
+        </button>
+        <button onclick="openModal('leadModal')" class="relative inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-brand-600 to-indigo-500 rounded-xl shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 hover:-translate-y-0.5 transition duration-200 overflow-hidden group">
+          <span class="relative z-10 flex items-center gap-2">
+            Get Qualified Leads
+            <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition"></i>
+          </span>
+        </button>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button onclick="toggleMobileNav()" class="md:hidden p-2 text-slate-400 hover:text-white rounded-lg bg-slate-900 border border-slate-800">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+    </div>
+
+    <!-- Mobile Nav Drawer -->
+    <div id="mobileMenu" class="hidden md:hidden border-b border-slate-800 bg-[#0b0f19]/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-3">
+      <a href="#features" onclick="toggleMobileNav()" class="block py-2 text-slate-300 font-medium hover:text-white">Features</a>
+      <a href="#demo" onclick="toggleMobileNav()" class="block py-2 text-slate-300 font-medium hover:text-white">How It Works</a>
+      <a href="#metrics" onclick="toggleMobileNav()" class="block py-2 text-slate-300 font-medium hover:text-white">ROI Engine</a>
+      <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 text-slate-300 font-medium hover:text-white">Pricing</a>
+      <a href="#testimonials" onclick="toggleMobileNav()" class="block py-2 text-slate-300 font-medium hover:text-white">Reviews</a>
+      <a href="#faq" onclick="toggleMobileNav()" class="block py-2 text-slate-300 font-medium hover:text-white">FAQ</a>
+      <div class="pt-4 border-t border-slate-800 flex flex-col gap-3">
+        <button onclick="toggleMobileNav(); openModal('leadModal')" class="w-full text-center py-2.5 rounded-xl border border-slate-700 text-sm font-semibold text-slate-200">
+          Sign In
+        </button>
+        <button onclick="toggleMobileNav(); openModal('leadModal')" class="w-full text-center py-3 rounded-xl bg-brand-600 text-sm font-bold text-white shadow-lg shadow-brand-500/30">
+          Get Qualified Leads Now
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 flex-grow">
+    <!-- ==================== 2. HERO SECTION ==================== -->
+    <section id="hero" class="pt-12 pb-20 md:pt-24 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center relative">
+      
+      <!-- Feature Pill Badge -->
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-brand-500/30 mb-8 hover:border-brand-500/60 transition cursor-pointer group shadow-xl" onclick="openModal('leadModal')">
+        <span class="flex h-2 w-2 rounded-full bg-brand-400 animate-ping"></span>
+        <span class="text-xs font-semibold text-slate-200 tracking-wide flex items-center gap-1.5">
+          ✦ Autonomous B2B Lead Acquisition 3.0 • Request 50 Free Leads 
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-brand-400 group-hover:translate-x-1 transition"></i>
+        </span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white max-w-5xl mx-auto leading-[1.1] mb-6">
+        Turn High-Intent Visitors into <span class="text-gradient-indigo">Verified Buying Clients</span> on Autopilot
+      </h1>
+
+      <!-- Subheading -->
+      <p class="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto font-normal leading-relaxed mb-10">
+        Stop wasting budget on cold outreach. ApexScale AI identifies pre-qualified decision-makers, captures key contact details (Name &amp; Work Email), and schedules high-value demo calls directly into your calendar.
+      </p>
+
+      <!-- Dual Primary CTAs -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 max-w-md mx-auto sm:max-w-none">
+        <button onclick="openModal('leadModal')" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white font-bold text-base shadow-2xl shadow-brand-500/40 hover:shadow-brand-500/60 hover:-translate-y-1 transition duration-200 flex items-center justify-center gap-3 group">
+          <i data-lucide="sparkles" class="w-5 h-5 text-brand-300"></i>
+          <span>Claim Your Free Demo &amp; Leads</span>
+          <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition"></i>
+        </button>
+        <a href="#demo" class="w-full sm:w-auto px-8 py-4 rounded-2xl glass-card text-slate-300 hover:text-white font-semibold text-base border border-slate-700/80 hover:border-slate-500 hover:bg-slate-800/50 transition duration-200 flex items-center justify-center gap-2.5">
+          <i data-lucide="play-circle" class="w-5 h-5 text-brand-400"></i>
+          <span>Watch 2-Min Product Tour</span>
+        </a>
+      </div>
+
+      <!-- Trust Proof Badges -->
+      <div class="pt-4 border-t border-slate-800/80 max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-slate-400 text-xs font-medium">
+        <div class="flex items-center gap-2">
+          <div class="flex -space-x-2">
+            <img class="w-8 h-8 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User">
+            <img class="w-8 h-8 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" alt="User">
+            <img class="w-8 h-8 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="User">
+            <img class="w-8 h-8 rounded-full ring-2 ring-slate-900 object-cover" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80" alt="User">
+          </div>
+          <span class="text-slate-300 font-semibold">Trusted by 12,400+ Sales &amp; Growth Teams</span>
+        </div>
+        <div class="flex items-center gap-6 opacity-60 grayscale hover:grayscale-0 transition duration-300">
+          <span class="font-bold tracking-widest text-slate-300 text-sm">ACME Corp</span>
+          <span class="font-bold tracking-widest text-slate-300 text-sm">VORTEX</span>
+          <span class="font-bold tracking-widest text-slate-300 text-sm">HYPERION</span>
+          <span class="font-bold tracking-widest text-slate-300 text-sm">NEXUS</span>
+        </div>
+      </div>
+
+      <!-- Interactive Hero Mockup Visual -->
+      <div class="mt-14 relative max-w-5xl mx-auto rounded-3xl border border-slate-800 bg-slate-950/90 shadow-2xl overflow-hidden group">
+        <div class="h-11 bg-slate-900/90 border-b border-slate-800 px-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+          </div>
+          <div class="text-xs font-mono text-slate-400 bg-slate-950 px-4 py-1 rounded-md border border-slate-800/80">
+            app.apexscale.ai/live-acquisition-dashboard
+          </div>
+          <div class="flex items-center gap-2 text-xs text-emerald-400 font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Engine Active
+          </div>
+        </div>
+        
+        <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          <!-- Mockup Left Panel: Active Leads Feed -->
+          <div class="col-span-1 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Real-Time High-Intent Leads</h3>
+              <span class="text-xs text-brand-400 font-semibold">+24 Today</span>
+            </div>
+            
+            <!-- Lead Item 1 -->
+            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-brand-500/30 flex items-start gap-3 relative overflow-hidden">
+              <div class="w-2 h-full bg-emerald-500 absolute left-0 top-0 bottom-0"></div>
+              <div class="w-9 h-9 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0 pl-1">
+                JD
+              </div>
+              <div class="text-xs overflow-hidden">
+                <p class="font-bold text-white truncate">Jordan Davis</p>
+                <p class="text-slate-400 text-[11px] truncate">jordan@cloudscale.io</p>
+                <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                  <span class="text-emerald-400 font-semibold">98% Fit Score</span> • Email Verified
+                </div>
+              </div>
+            </div>
+
+            <!-- Lead Item 2 -->
+            <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-3">
+              <div class="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
+                SK
+              </div>
+              <div class="text-xs overflow-hidden">
+                <p class="font-bold text-white truncate">Sarah Koenig</p>
+                <p class="text-slate-400 text-[11px] truncate">sarah@techflow.com</p>
+                <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                  <span class="text-emerald-400 font-semibold">94% Fit Score</span> • Work Email Verified
+                </div>
+              </div>
+            </div>
+
+            <!-- Lead Item 3 -->
+            <div class="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800/80 flex items-start gap-3 opacity-75">
+              <div class="w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                MR
+              </div>
+              <div class="text-xs overflow-hidden">
+                <p class="font-bold text-white truncate">Michael Ross</p>
+                <p class="text-slate-400 text-[11px] truncate">m.ross@enterprisesys.com</p>
+                <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                  <span class="text-amber-400 font-semibold">89% Fit Score</span> • Domain Active
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup Right Panel: Live Conversion Analytics Canvas -->
+          <div class="col-span-1 md:col-span-2 bg-slate-900/40 rounded-2xl border border-slate-800 p-4 md:p-6 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="text-sm font-bold text-white">Lead Volume &amp; Conversion Velocity</h4>
+                <p class="text-xs text-slate-400">Automated qualification rate vs closed revenue</p>
+              </div>
+              <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-semibold text-brand-400">
+                <i data-lucide="trending-up" class="w-4 h-4"></i> +312% Growth
+              </div>
+            </div>
+            
+            <!-- Chart canvas -->
+            <div class="relative h-48 w-full">
+              <canvas id="heroChart"></canvas>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 pt-4 border-t border-slate-800 text-center">
+              <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="block text-xs text-slate-400">Captured Contacts</span>
+                <span class="text-sm font-extrabold text-white">4,892</span>
+              </div>
+              <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="block text-xs text-slate-400">Verified Emails</span>
+                <span class="text-sm font-extrabold text-emerald-400">99.8%</span>
+              </div>
+              <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span class="block text-xs text-slate-400">Avg Lead Response</span>
+                <span class="text-sm font-extrabold text-brand-400">42 Seconds</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3. METRICS & IMPACT STRIP ==================== -->
+    <section id="metrics" class="py-12 bg-slate-900/50 border-y border-slate-800/80 relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div class="space-y-1">
+            <p class="text-3xl md:text-5xl font-extrabold text-gradient-indigo">3.8x</p>
+            <p class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider">Higher Conversion</p>
+            <p class="text-xs text-slate-500">Compared to complex forms</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-3xl md:text-5xl font-extrabold text-white">99.8%</p>
+            <p class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider">Email Deliverability</p>
+            <p class="text-xs text-slate-500">Real-time SMTP &amp; domain validation</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-3xl md:text-5xl font-extrabold text-gradient-indigo">&lt; 1 Min</p>
+            <p class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider">Instant Lead Routing</p>
+            <p class="text-xs text-slate-500">Pushed directly to CRM &amp; Slack</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-3xl md:text-5xl font-extrabold text-white">$14.2M</p>
+            <p class="text-xs sm:text-sm font-semibold text-slate-400 uppercase tracking-wider">Pipeline Generated</p>
+            <p class="text-xs text-slate-500">Across 12,000+ customer campaigns</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. FEATURES BENTO GRID ==================== -->
+    <section id="features" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-brand-400 mb-3">Built For High Growth</h2>
+        <p class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+          Everything You Need to Capture &amp; Convert High-Intent Buyers
+        </p>
+        <p class="mt-4 text-base text-slate-400">
+          An ultra-streamlined lead generation stack powered by artificial intelligence, real-time email verification, and instant CRM sync.
+        </p>
+      </div>
+
+      <!-- Bento Grid Container -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Card 1 (Wide 2-col): Instant Contact Enrichment -->
+        <div class="md:col-span-2 glass-card rounded-3xl p-8 border border-slate-800 hover:border-brand-500/40 transition duration-300 flex flex-col justify-between group relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-brand-600/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400 mb-6">
+              <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-3">Frictionless Lead Capture (Full Name &amp; Work Email)</h3>
+            <p class="text-slate-400 text-sm leading-relaxed max-w-xl mb-6">
+              Maximize form submissions by removing unnecessary fields. ApexScale validates work emails in real-time, eliminating spam and invalid entries while keeping user friction near zero.
+            </p>
+          </div>
+          
+          <!-- Visual Snippet inside Card -->
+          <div class="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 space-y-3 font-mono text-xs">
+            <div class="flex items-center justify-between text-slate-400 border-b border-slate-800/80 pb-2">
+              <span>INCOMING_LEAD_PAYLOAD</span>
+              <span class="text-emerald-400 font-bold">✓ VERIFIED_LIVE</span>
+            </div>
+            <div class="space-y-1 text-slate-300">
+              <p><span class="text-indigo-400">"name":</span> "Alexander Wright"</p>
+              <p><span class="text-indigo-400">"email":</span> "alexander.w@enterprise.com" <span class="text-emerald-400">// Work Domain Valid</span></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: AI Intent Scoring -->
+        <div class="glass-card rounded-3xl p-8 border border-slate-800 hover:border-brand-500/40 transition duration-300 flex flex-col justify-between group">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-6">
+              <i data-lucide="cpu" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-3">Real-Time Predictive Intent Scoring</h3>
+            <p class="text-slate-400 text-sm leading-relaxed mb-6">
+              Identify lead urgency automatically based on company domain, job title, and browsing signals so your sales team contacts the hottest buyers first.
+            </p>
+          </div>
+          <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-400">Predicted Deal Size</span>
+            <span class="text-base font-extrabold text-emerald-400">$45,000 ARR</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Instant Email Trigger -->
+        <div class="glass-card rounded-3xl p-8 border border-slate-800 hover:border-brand-500/40 transition duration-300 flex flex-col justify-between group">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6">
+              <i data-lucide="mail-check" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-3">Instant Speed-to-Lead Email Alerts</h3>
+            <p class="text-slate-400 text-sm leading-relaxed mb-6">
+              Send personalized calendar confirmation emails to the lead within milliseconds of form submission to maximize meeting booking rates.
+            </p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-3 text-xs text-emerald-300 font-medium">
+            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+            <span>Email Triggered to Lead: "Thanks Alex! Your demo is confirmed."</span>
+          </div>
+        </div>
+
+        <!-- Card 4 (Wide 2-col): CRM & Calendar Auto Sync -->
+        <div class="md:col-span-2 glass-card rounded-3xl p-8 border border-slate-800 hover:border-brand-500/40 transition duration-300 flex flex-col justify-between group">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-6">
+              <i data-lucide="workflow" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-3">One-Click Sync to Salesforce, HubSpot &amp; Zapier</h3>
+            <p class="text-slate-400 text-sm leading-relaxed max-w-xl mb-6">
+              Seamlessly push captured leads into your existing sales tech stack. Trigger Slack alerts for high-value leads instantly so your reps strike while interest is high.
+            </p>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs font-semibold">
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center gap-2">
+              <i data-lucide="database" class="w-4 h-4 text-orange-400"></i> HubSpot
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center gap-2">
+              <i data-lucide="cloud" class="w-4 h-4 text-blue-400"></i> Salesforce
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center gap-2">
+              <i data-lucide="message-square" class="w-4 h-4 text-purple-400"></i> Slack Alerts
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i> 5,000+ via Zapier
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 5. HOW IT WORKS / INTERACTIVE DEMO ==================== -->
+    <section id="demo" class="py-24 bg-slate-900/60 border-y border-slate-800 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto rounded-3xl my-12">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-brand-400 mb-3">Simple 3-Step Process</h2>
+        <p class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          How ApexScale Converts Visitors Into Meetings
+        </p>
+      </div>
+
+      <!-- Interactive Steps Nav Tabs -->
+      <div class="flex flex-wrap justify-center gap-3 mb-12">
+        <button id="tab-btn-0" onclick="switchDemoStep(0)" class="demo-tab-btn active-tab px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-brand-600 text-white shadow-lg shadow-brand-500/30">
+          <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">1</span>
+          Capture Name &amp; Email
+        </button>
+        <button id="tab-btn-1" onclick="switchDemoStep(1)" class="demo-tab-btn px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition flex items-center gap-2 border border-slate-800 bg-slate-900/50">
+          <span class="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">2</span>
+          Real-Time Domain Check
+        </button>
+        <button id="tab-btn-2" onclick="switchDemoStep(2)" class="demo-tab-btn px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold text-slate-400 hover:text-white transition flex items-center gap-2 border border-slate-800 bg-slate-900/50">
+          <span class="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">3</span>
+          Instant CRM Routing
+        </button>
+      </div>
+
+      <!-- Interactive Content Panels -->
+      <div class="max-w-4xl mx-auto glass-card rounded-3xl border border-slate-800 p-6 md:p-10 shadow-2xl min-h-[360px] flex items-center justify-center">
+        
+        <!-- Step 0 Panel -->
+        <div id="demo-step-0" class="demo-panel grid grid-cols-1 md:grid-cols-2 gap-8 items-center w-full">
+          <div class="space-y-4 text-left">
+            <div class="inline-block px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs font-bold text-brand-400">
+              Step 1: Low-Friction Lead Capture
+            </div>
+            <h3 class="text-2xl font-bold text-white">Simple 2-Field Embed Form</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Embed our ultra-clean lead form on your site. Capture Full Name and Work Email Address with zero unnecessary friction for maximum conversion.
+            </p>
+            <ul class="space-y-2 text-xs text-slate-300">
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Smart autofill support</li>
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> High submission completion rate</li>
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Fully responsive &amp; customizable style</li>
+            </ul>
+          </div>
+          <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4 text-left shadow-xl">
+            <div class="flex items-center gap-2 text-xs text-brand-400 font-bold border-b border-slate-800 pb-2">
+              <i data-lucide="user-plus" class="w-4 h-4"></i> Live Form Preview
+            </div>
+            <div class="space-y-3 text-xs">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Full Name</label>
+                <input type="text" value="Alex Morgan" readonly class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Work Email</label>
+                <input type="email" value="alex@apexcorp.com" readonly class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1 Panel -->
+        <div id="demo-step-1" class="demo-panel hidden grid grid-cols-1 md:grid-cols-2 gap-8 items-center w-full">
+          <div class="space-y-4 text-left">
+            <div class="inline-block px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-xs font-bold text-purple-400">
+              Step 2: Instant Domain Verification
+            </div>
+            <h3 class="text-2xl font-bold text-white">Email Validation &amp; Company Enrichment</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              In milliseconds, ApexScale verifies if the email domain is active, filters temporary addresses, and enriches lead records with company revenue and headcount.
+            </p>
+            <ul class="space-y-2 text-xs text-slate-300">
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Zero disposable email entries</li>
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Real-time MX lookup</li>
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Company profile enrichment</li>
+            </ul>
+          </div>
+          <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3 text-left font-mono text-xs">
+            <div class="flex items-center justify-between text-emerald-400 border-b border-slate-800 pb-2 font-sans font-bold">
+              <span>Verification Analysis</span>
+              <span>100% Score</span>
+            </div>
+            <p class="text-slate-300"><span class="text-slate-500">Name:</span> Alex Morgan</p>
+            <p class="text-slate-300"><span class="text-slate-500">Email:</span> alex@apexcorp.com</p>
+            <p class="text-slate-300"><span class="text-slate-500">Company:</span> Apex Corp (500-1000 employees)</p>
+            <p class="text-slate-300"><span class="text-slate-500">Deliverability:</span> 99.9% High Reputation</p>
+          </div>
+        </div>
+
+        <!-- Step 2 Panel -->
+        <div id="demo-step-2" class="demo-panel hidden grid grid-cols-1 md:grid-cols-2 gap-8 items-center w-full">
+          <div class="space-y-4 text-left">
+            <div class="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-400">
+              Step 3: Instant Pipeline Push
+            </div>
+            <h3 class="text-2xl font-bold text-white">Automated CRM Routing &amp; Booking</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Qualified leads are immediately routed into your CRM pipeline and an invite link is sent to the prospect's email inbox with zero delay.
+            </p>
+            <ul class="space-y-2 text-xs text-slate-300">
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Direct CRM pipeline injection</li>
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Instant email confirmation dispatch</li>
+              <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Instant Slack alert to AE team</li>
+            </ul>
+          </div>
+          <div class="bg-slate-950 p-6 rounded-2xl border border-emerald-500/30 space-y-4 text-left">
+            <div class="flex items-center gap-3 text-emerald-400 font-bold text-sm">
+              <i data-lucide="check-circle" class="w-6 h-6"></i> Lead Dispatched!
+            </div>
+            <p class="text-xs text-slate-300">Alex Morgan (alex@apexcorp.com) routed to Account Executive pipeline.</p>
+            <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+              <span>Slack Alert Pushed</span>
+              <span class="text-emerald-400 font-semibold">Sent to #sales-leads</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 6. INTERACTIVE PRICING TABLE ==================== -->
+    <section id="pricing" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-brand-400 mb-3">Transparent ROI Pricing</h2>
+        <p class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          Choose the Right Plan for Your Pipeline Growth
+        </p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          All plans include verified email validation, low-friction lead capture, and unlimited CRM routing.
+        </p>
+
+        <!-- Pricing Billing Toggle -->
+        <div class="mt-8 inline-flex items-center gap-3 p-1.5 rounded-2xl glass-card border border-slate-800">
+          <button id="billingMonthly" onclick="togglePricing(false)" class="px-5 py-2 rounded-xl text-xs font-bold transition bg-brand-600 text-white shadow-md">
+            Monthly Billing
+          </button>
+          <button id="billingAnnual" onclick="togglePricing(true)" class="px-5 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:text-white flex items-center gap-1.5">
+            Annual Billing
+            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] border border-emerald-500/30 font-extrabold">SAVE 20%</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3 Tier Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+        
+        <!-- Starter Tier -->
+        <div class="glass-card rounded-3xl p-8 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold text-white">Starter Growth</h3>
+              <span class="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">For Startups</span>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-extrabold text-white price-val" data-monthly="$49" data-annual="$39">$49</span>
+              <span class="text-slate-400 text-xs">/ month</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-6">Essential lead capture for scaling teams wanting high quality lead contact data.</p>
+            <ul class="space-y-3 text-xs text-slate-300 mb-8 border-t border-slate-800 pt-6">
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Up to 500 Verified Leads / mo</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Name &amp; Work Email Capture</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Real-time Email Domain Check</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Email &amp; Slack Alert Integration</li>
+              <li class="flex items-center gap-2.5 text-slate-500"><i data-lucide="x" class="w-4 h-4 shrink-0"></i> Custom CRM Field Enrichment</li>
+            </ul>
+          </div>
+          <button onclick="openModal('leadModal')" class="w-full py-3.5 rounded-xl border border-slate-700 hover:border-brand-500 text-xs font-bold text-white transition bg-slate-900 hover:bg-slate-800">
+            Get Started Free
+          </button>
+        </div>
+
+        <!-- Pro Tier (Highlighted) -->
+        <div class="glass-card rounded-3xl p-8 border-2 border-brand-500 relative flex flex-col justify-between bg-gradient-to-b from-brand-950/40 via-slate-900/80 to-slate-900 shadow-2xl shadow-brand-500/20 scale-105 z-10">
+          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-500 to-indigo-500 text-white text-[10px] font-extrabold uppercase tracking-widest px-4 py-1 rounded-full shadow-lg">
+            ★ MOST POPULAR
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold text-white">Pro Acceleration</h3>
+              <span class="text-xs text-brand-400 bg-brand-500/10 px-3 py-1 rounded-full border border-brand-500/30 font-semibold">Scale Teams</span>
+            </div>
+            <div class="mb-6">
+              <span class="text-5xl font-extrabold text-white price-val" data-monthly="$129" data-annual="$99">$129</span>
+              <span class="text-slate-400 text-xs">/ month</span>
+            </div>
+            <p class="text-xs text-slate-300 mb-6">For high-volume growth teams that demand instant email notifications and rich data enrichment.</p>
+            <ul class="space-y-3 text-xs text-slate-200 mb-8 border-t border-slate-800/80 pt-6">
+              <li class="flex items-center gap-2.5"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> Up to 2,500 Verified Leads / mo</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> Name &amp; Work Email Capture</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> Instant Automated Email Dispatch</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> HubSpot, Salesforce &amp; Zapier Sync</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> AI Intent Scoring &amp; Routing</li>
+            </ul>
+          </div>
+          <button onclick="openModal('leadModal')" class="w-full py-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-xs font-extrabold text-white uppercase tracking-wider shadow-xl shadow-brand-500/30 transition">
+            Start 14-Day Free Trial
+          </button>
+        </div>
+
+        <!-- Enterprise Tier -->
+        <div class="glass-card rounded-3xl p-8 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold text-white">Enterprise</h3>
+              <span class="text-xs text-purple-400 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/30">Custom Scale</span>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-extrabold text-white price-val" data-monthly="$299" data-annual="$249">$299</span>
+              <span class="text-slate-400 text-xs">/ month</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-6">Custom lead volume, SLA uptime guarantee, and dedicated account manager.</p>
+            <ul class="space-y-3 text-xs text-slate-300 mb-8 border-t border-slate-800 pt-6">
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Unlimited Verified Lead Capture</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Full Domain Verification Suite</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Custom Webhooks &amp; Multi-CRM Route</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> Dedicated SOC2 &amp; GDPR Compliance</li>
+              <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-brand-400 shrink-0"></i> 1-on-1 Dedicated Account Executive</li>
+            </ul>
+          </div>
+          <button onclick="openModal('leadModal')" class="w-full py-3.5 rounded-xl border border-slate-700 hover:border-purple-500 text-xs font-bold text-white transition bg-slate-900 hover:bg-slate-800">
+            Contact Enterprise Team
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 7. TESTIMONIALS & WALL OF LOVE ==================== -->
+    <section id="testimonials" class="py-24 bg-slate-950/60 border-y border-slate-800 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto rounded-3xl my-12">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-brand-400 mb-3">Wall of Love</h2>
+        <p class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          Loved by High-Growth Sales Teams Everywhere
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Review 1 -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center gap-1 text-amber-400">
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+            </div>
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed italic">
+              "Simplifying our form to ask for just Name and Work Email increased lead conversions overnight by 3.4x. Our SDR team is getting higher quality qualified leads than ever."
+            </p>
+          </div>
+          <div class="flex items-center gap-3 pt-4 border-t border-slate-800/80">
+            <img class="w-10 h-10 rounded-full object-cover ring-2 ring-brand-500/30" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" alt="Reviewer">
+            <div class="text-xs">
+              <p class="font-bold text-white">Elena Rostova</p>
+              <p class="text-slate-400">VP Demand Gen @ SaaSify</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 2 -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center gap-1 text-amber-400">
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+            </div>
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed italic">
+              "The real-time email verification is magic. We eliminated bad domains and spam entries completely. Our sales team closes 3x more pipeline without chasing fake leads."
+            </p>
+          </div>
+          <div class="flex items-center gap-3 pt-4 border-t border-slate-800/80">
+            <img class="w-10 h-10 rounded-full object-cover ring-2 ring-brand-500/30" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80" alt="Reviewer">
+            <div class="text-xs">
+              <p class="font-bold text-white">Marcus Vance</p>
+              <p class="text-slate-400">Head of Sales @ TechScale Global</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review 3 -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-center gap-1 text-amber-400">
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+              <i data-lucide="star" class="w-4 h-4 fill-amber-400"></i>
+            </div>
+            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed italic">
+              "Setup took less than 5 minutes. Form submissions hit Slack and HubSpot automatically as soon as users provide their name and email. Easily our best ROI software investment."
+            </p>
+          </div>
+          <div class="flex items-center gap-3 pt-4 border-t border-slate-800/80">
+            <img class="w-10 h-10 rounded-full object-cover ring-2 ring-brand-500/30" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80" alt="Reviewer">
+            <div class="text-xs">
+              <p class="font-bold text-white">Sophia Chen</p>
+              <p class="text-slate-400">Founder @ GrowthEngine Labs</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 8. INTERACTIVE FAQ ACCORDION ==================== -->
+    <section id="faq" class="py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-brand-400 mb-3">Got Questions?</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          Frequently Asked Questions
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        
+        <!-- FAQ 1 -->
+        <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+          <button onclick="toggleFaq(this)" class="w-full p-6 text-left flex items-center justify-between font-bold text-slate-100 hover:text-brand-400 transition text-sm sm:text-base">
+            <span>How does the email validation work?</span>
+            <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-slate-400 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content hidden px-6 pb-6 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-4">
+            ApexScale executes real-time MX record lookups, disposable email domain filtering, and live mailbox pinging without sending spam emails. Invalid entries are flagged before submission.
+          </div>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+          <button onclick="toggleFaq(this)" class="w-full p-6 text-left flex items-center justify-between font-bold text-slate-100 hover:text-brand-400 transition text-sm sm:text-base">
+            <span>Can I embed the lead generation form on my custom website?</span>
+            <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-slate-400 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content hidden px-6 pb-6 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-4">
+            Yes! We provide an HTML/JS script widget, Webhook endpoint, React component, and WordPress plugin. You can embed the form in 2 minutes onto Framer, Webflow, React, or custom HTML.
+          </div>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+          <button onclick="toggleFaq(this)" class="w-full p-6 text-left flex items-center justify-between font-bold text-slate-100 hover:text-brand-400 transition text-sm sm:text-base">
+            <span>What happens immediately after a user submits their contact info?</span>
+            <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-slate-400 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content hidden px-6 pb-6 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-4">
+            The contact info (Name &amp; Work Email) is instantaneously enriched and pushed to your CRM (Salesforce, HubSpot, Zapier) and Slack. An automated calendar confirmation is dispatched to the prospect's inbox.
+          </div>
+        </div>
+
+        <!-- FAQ 4 -->
+        <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden">
+          <button onclick="toggleFaq(this)" class="w-full p-6 text-left flex items-center justify-between font-bold text-slate-100 hover:text-brand-400 transition text-sm sm:text-base">
+            <span>Is ApexScale compliant with GDPR and privacy regulations?</span>
+            <i data-lucide="chevron-down" class="faq-icon w-5 h-5 text-slate-400 transition-transform duration-300"></i>
+          </button>
+          <div class="faq-content hidden px-6 pb-6 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-4">
+            100% yes. All forms include automated opt-in disclosures, SOC2 Type II data encryption, and full compliance with international data privacy laws.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 9. HIGH-CONVERTING LEAD CAPTURE SECTION (NAME & EMAIL ONLY) ==================== -->
+    <section id="contact" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div class="glass-card rounded-3xl border border-brand-500/30 p-8 sm:p-12 relative overflow-hidden shadow-2xl glow-purple bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+          
+          <!-- Left Column: Value Prop & Response Guarantee -->
+          <div class="lg:col-span-5 space-y-6 text-left">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs font-bold text-brand-400">
+              <i data-lucide="zap" class="w-3.5 h-3.5"></i> Accelerated Lead Delivery
+            </div>
+            <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Request Your Custom Demo &amp; <span class="text-gradient-indigo">50 Free Leads</span>
+            </h2>
+            <p class="text-slate-300 text-sm leading-relaxed">
+              Enter your full name and work email address below. Our growth team will configure your account and deliver 50 pre-qualified leads directly to your inbox.
+            </p>
+            
+            <div class="space-y-4 pt-2">
+              <div class="flex items-start gap-3 text-xs text-slate-300">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0 mt-0.5">
+                  ✓
+                </div>
+                <div>
+                  <span class="font-bold text-white block">Instant Priority Access</span>
+                  <span>Our specialist will contact your email with your custom sample dataset.</span>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 text-xs text-slate-300">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0 mt-0.5">
+                  ✓
+                </div>
+                <div>
+                  <span class="font-bold text-white block">No Credit Card Required</span>
+                  <span>Start your 14-day evaluation with zero financial commitment.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: FORM (NAME AND EMAIL ONLY) -->
+          <div class="lg:col-span-7 bg-slate-950/90 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl">
+            <form onsubmit="event.preventDefault(); submitLeadForm(event)" class="space-y-5 text-left">
+              
+              <!-- Input 1: Full Name -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300 tracking-wide uppercase">Full Name <span class="text-brand-400">*</span></label>
+                <div class="relative flex items-center">
+                  <i data-lucide="user" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>
+                  <input type="text" name="name" required placeholder="e.g. Alex Morgan" class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                </div>
+              </div>
+
+              <!-- Input 2: Work Email -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300 tracking-wide uppercase">Work Email Address <span class="text-brand-400">*</span></label>
+                <div class="relative flex items-center">
+                  <i data-lucide="mail" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>
+                  <input type="email" name="email" required placeholder="alex@company.com" class="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+                </div>
+              </div>
+
+              <!-- Context Option Pills: Expected Monthly Leads -->
+              <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-300 tracking-wide uppercase">Expected Monthly Lead Volume</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <button type="button" onclick="selectVolumePill(this)" class="vol-pill active-pill px-3 py-2 rounded-xl border border-brand-500 bg-brand-600/30 text-xs font-bold text-white transition text-center">
+                    100 - 500
+</body>
+</html>

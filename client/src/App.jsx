@@ -17,8 +17,31 @@ import LiveSite from "./pages/LiveSite";
 import Pricing from "./pages/Pricing";
 import Workbench from "./pages/Workbench";
 import Upload from "./pages/Upload";
+import axios from "axios";
 
 export const serverUrl = "http://localhost:8000";
+
+// Global axios interceptor to attach authentication credentials automatically
+axios.interceptors.request.use((config) => {
+    config.withCredentials = true;
+    try {
+        const storedUser = localStorage.getItem("genweb_user") || localStorage.getItem("user");
+        if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            if (parsed._id) {
+                config.headers["x-user-id"] = parsed._id;
+            }
+            if (parsed.token) {
+                config.headers["Authorization"] = `Bearer ${parsed.token}`;
+            }
+        }
+        const token = localStorage.getItem("genweb_token") || localStorage.getItem("token");
+        if (token && !config.headers["Authorization"]) {
+            config.headers["Authorization"] = `Bearer ${token}`;
+        }
+    } catch (e) {}
+    return config;
+}, (error) => Promise.reject(error));
 
 function App() {
     useGetCurrentUser();

@@ -70,26 +70,62 @@ Build a luxury, warm, ambient dining website:
 
 --------------------------------------------------
 
-### 🛍️ IF E-COMMERCE / STREETWEAR / FASHION / ELECTRONICS / RETAIL STORE:
-Build an ultra-sleek, end-to-end online store:
-- **Theme**: Obsidian dark theme (\`bg-[#070b12] text-slate-100\`) with amber/orange accents.
-- **Required Sections**:
-  1. Sticky Navbar with Brand Logo, Search trigger, Wishlist counter, Cart counter (starts at 0 / hidden when empty), and Track Order button.
-  2. Hero Section with Announcement pill, high-impact imagery, dual CTAs ("Shop Collection", "Lookbook"), and trust badges.
-  3. Product Catalog with Live Search, Multi-Category Filter Pills, and Sort Dropdown.
-  4. Product Grid (6-8 items) with badges ("20% OFF", "Bestseller"), hover zoom, wishlist heart toggle, quick view eye button, price, and Add to Cart button.
-  5. Lookbook & Brand Story showcase.
-  6. Customer Reviews & Ratings section with 5-star breakdown bars and "Write a Review" modal.
-  7. Order Tracking Section with 4-step progress timeline.
-  8. Modern Functional Footer (ONLY working on-page anchors \`#hero\`, \`#products\`, \`#lookbook\`, \`#reviews\`, \`#tracking\`, working modal triggers \`#privacyModal\`, \`#trackingModal\`, newsletter subscription with toast, and Back-to-Top).
-- **Required Modals & Drawers**:
-  - \`#privacyModal\` (Terms & Privacy modal - \`style="display: none;"\` by default).
-  - \`#productModal\` (Product Quick View with size pills, color selector, quantity, and specs).
-  - \`#cartDrawer\` (Slide-out cart drawer: **MUST start completely empty** with \`let cart = [];\`. When empty, renders "Your bag is empty" empty state with a "Browse Collection" button. Items are ONLY added when user clicks "Add to Cart").
-  - \`#wishlistDrawer\` (Slide-out wishlist drawer with Move to Cart and Remove actions).
-  - \`#checkoutModal\` (Multi-step checkout with shipping address and simulated payment gateway: Card / UPI / COD).
-  - \`#trackingModal\` (Order tracking modal with 4-step progress timeline).
-  - \`#reviewModal\` (Write a review modal).
+### 🛍️ IF E-COMMERCE / STREETWEAR / SNEAKERS / FASHION / ELECTRONICS / MULTI-CATEGORY RETAIL (e.g. Snitch, Flipkart, Zara, Nike):
+Build an ultra-rich, multi-collection, high-converting retail storefront with deep catalog departments and rich interactivity:
+- **Theme**: Luxury obsidian streetwear / modern retail dark theme (\`bg-[#06080d] text-slate-100\`) with vibrant neon amber, electric violet, or cobalt accents (\`text-amber-400\`, \`bg-amber-500\`, \`border-amber-500/20\`, \`bg-slate-900/90\`, \`border-slate-800\`).
+- **Required Multi-Department & Multi-Collection Architecture (At least 12-16 realistic products across collections)**:
+  1. **Top Announcement Strip & Sticky Navbar**:
+     - Promotional top ticker (e.g., "⚡ DROP 04: Free Express Delivery on orders over $100 • Use Code: STREET20 for 20% OFF").
+     - Brand Logo (e.g., "✦ KRONOS APPAREL" / "SNITCH LAB").
+     - Department Links ("Sneakers", "Hoodies & Tees", "Cargo Pants", "Lookbook", "Sale").
+     - Search Bar trigger with live instant input.
+     - Wishlist Heart button (\`onclick="openWishlistDrawer()"\`) with badge counter.
+     - Dynamic Bag / Cart button (\`onclick="openCartDrawer()"\`) with live count badge \`<span id="cartCountBadge" class="bg-amber-500 text-black font-extrabold text-xs px-2 py-0.5 rounded-full">0</span>\`.
+  2. **High-Impact Hero Banner (#hero)**:
+     - Full-bleed hero banner with bold editorial street model / sneaker drop photo, seasonal badge ("LIMITED SUMMER DROP 2024"), heavy kinetic typography ("UNFILTERED STREETWEAR & SNEAKER ARCHIVE"), and dual CTAs ("Shop All Drops", "Explore Lookbook").
+  3. **Visual Department Category Strip / Carousel (#categories)**:
+     - 5-6 circular/card department shortcuts with high-res photos and category labels:
+       - 👟 **Sneakers & Trainers** (\`onclick="filterCategory('sneakers')"\`)
+       - 👕 **Oversized Graphic Tees** (\`onclick="filterCategory('tees')"\`)
+       - 🧥 **Heavyweight Hoodies** (\`onclick="filterCategory('hoodies')"\`)
+       - 👖 **Tactical Cargo & Denim** (\`onclick="filterCategory('pants')"\`)
+       - 🥼 **Windbreakers & Outerwear** (\`onclick="filterCategory('jackets')"\`)
+       - 🧢 **Caps, Bags & Accessories** (\`onclick="filterCategory('accessories')"\`)
+  4. **Multi-Category Filter Tabs & Real-Time Search Bar (#products)**:
+     - Live search input: \`<input type="text" oninput="handleProductSearch(this.value)" placeholder="Search sneakers, boxy hoodies, parachute pants...">\`.
+     - Filter Pills: \`All Items (16)\`, \`Sneakers (4)\`, \`Hoodies & Tees (4)\`, \`Cargo Pants (4)\`, \`Outerwear (4)\`, \`Accessories (4)\`.
+     - Sort dropdown (Featured, Price: Low to High, Price: High to Low, Customer Rating).
+  5. **Rich Product Grid (At least 12-16 Diverse, High-Res Product Cards)**:
+     - Each product card MUST include:
+       - Product Image with smooth hover-zoom and discount pill (e.g. \`30% OFF\`, \`BESTSELLER\`, \`HOT DROP\`).
+       - Heart wishlist toggle button (\`onclick="toggleWishlist(this, 'product_id')"\`).
+       - Quick View eye button (\`onclick="openProductModal('product_id')"\`).
+       - Product Title (e.g. "AeroRunner High-Top Retro Trainers", "Tokyo Acid-Wash Boxy Tee", "Modular 6-Pocket Tactical Cargo").
+       - Star Rating ⭐⭐⭐⭐⭐ \`(4.9 • 180+ sold)\`.
+       - Pricing: Sale price \`$89.00\` + Original strikethrough \`$130.00\`.
+       - Size Selector Pills (\`S\`, \`M\`, \`L\`, \`XL\` or \`US 8\`, \`US 9\`, \`US 10\`, \`US 11\`).
+       - Color Swatches (\`⚫ Black\`, \`⚪ Off-White\`, \`🟢 Olive\`, \`🟣 Violet\`).
+       - Primary Action Button: \`<button onclick="addToCart('p1', 'AeroRunner High-Top', 89, 'https://images.unsplash.com/...', 'US 9', 'Black')" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"><i data-lucide="shopping-bag"></i> Add to Bag</button>\`.
+  6. **Curated Footwear & Sneaker Lab Section (#sneaker-lab)**:
+     - Dedicated highlight showcasing 3-4 limited edition sneakers with 360 view badge, cushioned insole specs, and direct size selection.
+  7. **Editorial Urban Lookbook (#lookbook)**:
+     - High-fashion lifestyle model photoshoot with interactive "Shop the Look" callouts.
+  8. **Flash Deal Countdown Section (#flash-sale)**:
+     - Live JS countdown timer (\`04h : 18m : 45s\`), progress bar ("78% Claimed"), and instant discount promo code box with copy button.
+  9. **Verified Customer Reviews & Photo Gallery (#reviews)**:
+     - 4.9/5 overall rating summary with 5-star distribution bars, verified buyer badges, and "Write a Review" modal trigger (\`openModal('reviewModal')\`).
+  10. **Order Tracking & Dispatch Timeline (#tracking)**:
+      - Live tracking search box (e.g. Enter \`#KRN-8492\`) with interactive 4-step dispatch status (Order Placed ➔ Packed ➔ Shipped ➔ Delivered).
+  11. **Modern Functional Footer (STRICTLY WORKING LINKS ONLY)**:
+      - Brand story, working on-page anchors (\`#hero\`, \`#products\`, \`#categories\`, \`#lookbook\`, \`#reviews\`, \`#tracking\`), newsletter sign-up with toast, payment partner badges (Visa, Mastercard, Apple Pay, UPI), and working \`#privacyModal\` trigger.
+- **Required Modals & Drawers for E-Commerce**:
+  - \`#cartDrawer\` (Slide-out shopping bag: **Starts empty** with \`let cart = [];\`. When items are added, renders thumbnail, title, size, color, quantity adjusters \`+\` / \`-\`, remove button, subtotal, promo code input \`STREET20\`, and "Proceed to Checkout" button).
+  - \`#wishlistDrawer\` (Slide-out saved items drawer with "Move to Bag" action).
+  - \`#productModal\` (Product Quick View with image gallery, detailed sizing chart, material breakdown, and Add to Bag).
+  - \`#checkoutModal\` (Step 1: Shipping address with Name, Email, Phone, Address; Step 2: Payment choice with Card/UPI/COD; Step 3: Instant confirmed order receipt with Order ID \`#KRN-9482\`).
+  - \`#trackingModal\` (Interactive delivery status lookup modal).
+  - \`#reviewModal\` (Interactive review submission modal).
+  - \`#privacyModal\` (Terms & Shipping policy modal).
 
 --------------------------------------------------
 

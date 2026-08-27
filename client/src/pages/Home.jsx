@@ -84,11 +84,6 @@ function Home() {
     }, []);
 
     useEffect(() => {
-        if (!userData) {
-            setWebsites([]);
-            return;
-        }
-
         const getWebsites = async () => {
             try {
                 const result = await axios.get(
@@ -105,7 +100,6 @@ function Home() {
                 setWebsites(websiteData);
             } catch (error) {
                 console.log("Get websites error:", error);
-                setWebsites([]);
             }
         };
 
@@ -191,11 +185,12 @@ function Home() {
         }
 
         safeWebsites.forEach((website) => {
-            if (!website?.updatedAt) {
+            const dateStr = website?.updatedAt || website?.createdAt;
+            if (!dateStr) {
                 return;
             }
 
-            const updatedDate = new Date(website.updatedAt);
+            const updatedDate = new Date(dateStr);
 
             if (Number.isNaN(updatedDate.getTime())) {
                 return;
@@ -226,7 +221,7 @@ function Home() {
                 value: runningTotal,
             };
         });
-    }, [websites]);
+    }, [safeWebsites]);
 
     const graphPoints = useMemo(() => {
         if (graphData.length === 0) {
