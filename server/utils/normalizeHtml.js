@@ -376,7 +376,21 @@ export function normalizeHtml(html) {
         normalized = normalized.replace("</body>", `${lucideScript}</body>`);
     }
 
-    // 10. Ensure closing </body> and </html>
+    // 10. Sanitize raw unescaped newlines and corrupted methods inside <script> blocks
+    normalized = normalized.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, scriptAttrs, scriptBody) => {
+        let cleanBody = scriptBody
+            .replace(/\.join\(\s*['"]\s*\n\s*['"]\s*\)/g, ".join(String.fromCharCode(10))")
+            .replace(/\.split\(\s*['"]\s*\n\s*['"]\s*\)/g, ".split(String.fromCharCode(10))")
+            .replace(/csvRows\.join\(['"][^'"]*['"]\)/g, "csvRows.join(String.fromCharCode(10))")
+            .replace(/URL\.createObjecturl/g, "URL.createObjectURL")
+            .replace(/URL\.revokeObjecturl/g, "URL.revokeObjectURL")
+            .replace(/URL\.createObjectURL\(['"][^'"]*unsplash[^'"]*['"]\)/gi, "URL.createObjectURL(blob)")
+            .replace(/URL\.revokeObjectURL\(['"][^'"]*unsplash[^'"]*['"]\)/gi, "URL.revokeObjectURL(url)");
+
+        return `<script${scriptAttrs}>${cleanBody}</script>`;
+    });
+
+    // 11. Ensure closing </body> and </html>
     if (!normalized.includes("</body>")) {
         normalized += "\n</body>\n</html>";
     }

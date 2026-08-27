@@ -1,6 +1,6 @@
 import axios from "axios";
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { serverUrl } from "../App";
 
 import {
@@ -22,6 +22,7 @@ import {
     Rocket,
     Send,
     Sparkles,
+    Trash2,
     User,
     X,
     Zap
@@ -1153,6 +1154,7 @@ const getPreviewCode = (rawCode) => {
 
 function WebsiteEditor() {
     const { id } = useParams();
+    const navigate = useNavigate();
 
     // ==========================================
     // STATES & REFS
@@ -1172,6 +1174,26 @@ function WebsiteEditor() {
     const [copiedCode, setCopiedCode] = useState(false);
     const [copiedMessageIdx, setCopiedMessageIdx] = useState(null);
     const [showScrollBottom, setShowScrollBottom] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // ==========================================
+    // DELETE WEBSITE FROM DB
+    // ==========================================
+
+    const handleDeleteSite = async () => {
+        try {
+            setIsDeleting(true);
+            await axios.delete(`${serverUrl}/api/website/delete/${id}`, {
+                withCredentials: true
+            });
+            navigate("/dashboard");
+        } catch (err) {
+            console.error("DELETE WEBSITE ERROR:", err);
+            alert(err.response?.data?.message || "Failed to delete project from database");
+            setIsDeleting(false);
+        }
+    };
 
     const chatContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -2485,8 +2507,19 @@ function WebsiteEditor() {
                             onClick={() =>
                                 setShowFullPreview(true)
                             }
+                            title="Fullscreen Preview"
                         >
                             <Monitor size={18} />
+                        </button>
+
+                        <button
+                            className="p-2 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded-lg transition"
+                            onClick={() =>
+                                setShowDeleteModal(true)
+                            }
+                            title="Delete project from database"
+                        >
+                            <Trash2 size={18} />
                         </button>
 
                     </div>
@@ -2648,6 +2681,37 @@ function WebsiteEditor() {
                 )}
 
             </AnimatePresence>
+
+            {/* DELETE CONFIRMATION MODAL */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+                    <div className="w-full max-w-md p-6 rounded-2xl border border-white/10 bg-zinc-950 text-white shadow-2xl">
+                        <div className="w-12 h-12 rounded-xl bg-red-500/15 border border-red-500/20 text-red-400 flex items-center justify-center mb-4">
+                            <Trash2 size={24} />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Delete Project from Database?</h3>
+                        <p className="text-sm text-zinc-400 mb-6">
+                            Are you sure you want to permanently delete <strong className="text-red-400 font-semibold">"{website?.title || "Untitled Project"}"</strong>? This will remove all generated code, assets, and AI conversation history from MongoDB. This action cannot be undone.
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowDeleteModal(false)}
+                                disabled={isDeleting}
+                                className="px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 hover:bg-white/5 text-zinc-300 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteSite}
+                                disabled={isDeleting}
+                                className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white flex items-center gap-2 transition disabled:opacity-60 cursor-pointer"
+                            >
+                                {isDeleting ? "Deleting..." : "Permanently Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

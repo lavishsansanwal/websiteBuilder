@@ -88,7 +88,14 @@ const TECH_IMAGE_PATTERNS = [
 export async function injectRealImages(htmlCode, imageQueries = [], userPrompt = "") {
     if (typeof htmlCode !== "string" || !htmlCode) return htmlCode;
 
-    let processedCode = htmlCode;
+    // Isolate <script> blocks so image/CSS URL regexes NEVER modify JavaScript code
+    const scriptBlocks = [];
+    let processedCode = htmlCode.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (match) => {
+        const placeholder = `___SCRIPT_PROTECTED_BLOCK_${scriptBlocks.length}___`;
+        scriptBlocks.push(match);
+        return placeholder;
+    });
+
     let fetchedImages = [];
 
     // 1. Fetch real images for imageQueries if provided
@@ -334,6 +341,11 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
             : domainPool[0];
 
         return `url('${heroImg}')`;
+    });
+
+    // 6. Restore all protected <script> blocks
+    scriptBlocks.forEach((scriptContent, idx) => {
+        processedCode = processedCode.replace(`___SCRIPT_PROTECTED_BLOCK_${idx}___`, () => scriptContent);
     });
 
     return processedCode;

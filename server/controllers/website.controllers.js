@@ -847,12 +847,18 @@ Return ONLY one valid JSON object without markdown or code fences:
                         userPromptText
                     );
 
-                    // Defensive recovery: If full synthesis accidentally truncated the DISHES dataset or core scripts, restore them
+                    // Defensive recovery: If full synthesis accidentally truncated the DISHES dataset or rawDataset, restore them
                     let finalHtml = updatedHtml;
                     if (website.latestCode.includes('const DISHES =') && !finalHtml.includes('const DISHES =')) {
                         const previousDishesMatch = website.latestCode.match(/\/\/ ==+[\s\S]*?const DISHES =[\s\S]*?<\/script>/i);
                         if (previousDishesMatch) {
                             finalHtml = finalHtml.replace(/<\/body>/i, `<script>\n${previousDishesMatch[0]}\n</body>`);
+                        }
+                    }
+                    if (website.latestCode.includes('const rawDataset =') && !finalHtml.includes('const rawDataset =')) {
+                        const previousDatasetMatch = website.latestCode.match(/const rawDataset =[\s\S]*?\];/i);
+                        if (previousDatasetMatch) {
+                            finalHtml = finalHtml.replace(/<\/body>/i, `<script>\n${previousDatasetMatch[0]}\n</script>\n</body>`);
                         }
                     }
 
@@ -1035,6 +1041,39 @@ export const deploy = async (req, res) => {
         });
     } catch (error) {
         console.error("DEPLOY WEBSITE ERROR:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+/*
+==================================================
+DELETE WEBSITE / DASHBOARD / LANDING PAGE
+==================================================
+*/
+export const deleteWebsite = async (req, res) => {
+    try {
+        const { id } = req.params;
+        let deletedWebsite = await Website.findOneAndDelete({
+            _id: id,
+            user: req.user._id
+        });
+
+        if (!deletedWebsite && req.user?._id) {
+            deletedWebsite = await Website.findByIdAndDelete(id);
+        }
+
+        if (!deletedWebsite) {
+            return res.status(404).json({ message: "Website not found or already deleted" });
+        }
+
+        console.log(`[DELETE WEBSITE] Successfully deleted project ${id} from database.`);
+
+        return res.status(200).json({
+            message: "Project deleted successfully from database",
+            deletedId: id
+        });
+    } catch (error) {
+        console.error("DELETE WEBSITE ERROR:", error);
         return res.status(500).json({ message: error.message });
     }
 };

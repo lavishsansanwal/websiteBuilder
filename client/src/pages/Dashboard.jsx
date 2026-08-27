@@ -8,7 +8,9 @@ import {
     Plus,
     LayoutDashboard,
     ExternalLink,
-    Clock
+    Clock,
+    Trash2,
+    AlertTriangle
 } from "lucide-react";
 
 import React, { useEffect, useState } from "react";
@@ -40,6 +42,37 @@ function Dashboard() {
     const [error, setError] = useState("");
     const [copiedId, setCopiedId] = useState(null);
     const [deployingId, setDeployingId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
+    const [deleteModalSite, setDeleteModalSite] = useState(null);
+
+    // ==========================================
+    // DELETE WEBSITE
+    // ==========================================
+
+    const handleDelete = async (id) => {
+        try {
+            setDeletingId(id);
+            const result = await axios.delete(
+                `${serverUrl}/api/website/delete/${id}`,
+                {
+                    withCredentials: true
+                }
+            );
+
+            console.log("DELETE WEBSITE RESPONSE:", result.data);
+
+            setWebsites((prev) => prev.filter((w) => w._id !== id));
+            setDeleteModalSite(null);
+        } catch (error) {
+            console.error("DELETE WEBSITE ERROR:", error);
+            alert(
+                error.response?.data?.message ||
+                "Failed to delete website from database"
+            );
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     // ==========================================
     // WATCH THEME
@@ -667,24 +700,30 @@ function Dashboard() {
                                                 className="absolute top-9 left-0 w-[140%] h-[140%] scale-[0.715] origin-top-left pointer-events-none bg-white border-0"
                                             />
 
-                                            {/* STATUS */}
-
-                                            {w.deployed && (
-
-                                                <div className="absolute top-12 left-3 z-30">
-
-                                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-400/25 backdrop-blur-xl">
-
-                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-
-                                                        <span className="text-[11px] font-semibold text-emerald-500">
-                                                            Published
-                                                        </span>
-
-                                                    </div>
-
+                                            {/* STATUS & ACTIONS */}
+                                            <div className="absolute top-12 left-3 right-3 z-30 flex items-center justify-between pointer-events-none">
+                                                <div>
+                                                    {w.deployed && (
+                                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-400/25 backdrop-blur-xl">
+                                                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                            <span className="text-[11px] font-semibold text-emerald-500">
+                                                                Published
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
+
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeleteModalSite(w);
+                                                    }}
+                                                    title="Delete from database"
+                                                    className="w-8 h-8 rounded-full bg-black/70 hover:bg-red-600 text-zinc-300 hover:text-white flex items-center justify-center border border-white/10 hover:border-red-400/40 transition shadow-lg pointer-events-auto cursor-pointer"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
 
                                             {/* OPEN EDITOR */}
 
@@ -723,7 +762,7 @@ function Dashboard() {
 
                                                 </div>
 
-                                                <div className="min-w-0">
+                                                <div className="min-w-0 flex-1">
 
                                                     <h3 className="text-base font-semibold line-clamp-2">
 
@@ -775,23 +814,34 @@ function Dashboard() {
 
                                             {!w.deployed ? (
 
-                                                <button
-                                                    disabled={isDeploying}
-                                                    onClick={() =>
-                                                        handleDeploy(
-                                                            w._id
-                                                        )
-                                                    }
-                                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:opacity-90 disabled:opacity-60 text-white transition"
-                                                >
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        disabled={isDeploying}
+                                                        onClick={() =>
+                                                            handleDeploy(
+                                                                w._id
+                                                            )
+                                                        }
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:opacity-90 disabled:opacity-60 text-white transition"
+                                                    >
+                                                        <Rocket size={16} />
+                                                        {isDeploying
+                                                            ? "Deploying..."
+                                                            : "Deploy"}
+                                                    </button>
 
-                                                    <Rocket size={16} />
-
-                                                    {isDeploying
-                                                        ? "Deploying..."
-                                                        : "Deploy Website"}
-
-                                                </button>
+                                                    <button
+                                                        onClick={() => setDeleteModalSite(w)}
+                                                        title="Delete website from database"
+                                                        className={`w-12 flex items-center justify-center rounded-xl border transition ${
+                                                            darkMode
+                                                                ? "bg-white/5 border-white/10 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-400 hover:text-red-400"
+                                                                : "bg-gray-50 border-gray-200 hover:bg-red-50 hover:border-red-200 text-gray-500 hover:text-red-500"
+                                                        }`}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
 
                                             ) : (
 
@@ -847,6 +897,18 @@ function Dashboard() {
 
                                                     </button>
 
+                                                    <button
+                                                        onClick={() => setDeleteModalSite(w)}
+                                                        title="Delete website from database"
+                                                        className={`w-12 flex items-center justify-center rounded-xl border transition ${
+                                                            darkMode
+                                                                ? "bg-white/5 border-white/10 hover:bg-red-500/20 hover:border-red-500/40 text-zinc-400 hover:text-red-400"
+                                                                : "bg-gray-50 border-gray-200 hover:bg-red-50 hover:border-red-200 text-gray-500 hover:text-red-500"
+                                                        }`}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+
                                                 </div>
                                             )}
 
@@ -858,6 +920,37 @@ function Dashboard() {
 
                         </div>
 
+                    </div>
+                )}
+
+                {/* DELETE CONFIRMATION MODAL */}
+                {deleteModalSite && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+                        <div className={`w-full max-w-md p-6 rounded-2xl border shadow-2xl ${darkMode ? "bg-zinc-950 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
+                            <div className="w-12 h-12 rounded-xl bg-red-500/15 border border-red-500/20 text-red-400 flex items-center justify-center mb-4">
+                                <Trash2 size={24} />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Delete from Database?</h3>
+                            <p className={`text-sm mb-6 ${darkMode ? "text-zinc-400" : "text-gray-500"}`}>
+                                Are you sure you want to permanently delete <strong className="text-red-400 font-semibold">"{deleteModalSite.title || "Untitled Website"}"</strong>? This will remove all generated code, assets, and history from your database. This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={() => setDeleteModalSite(null)}
+                                    disabled={deletingId === deleteModalSite._id}
+                                    className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition ${darkMode ? "border-white/10 hover:bg-white/5 text-zinc-300" : "border-gray-200 hover:bg-gray-50 text-gray-700"}`}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(deleteModalSite._id)}
+                                    disabled={deletingId === deleteModalSite._id}
+                                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white flex items-center gap-2 transition disabled:opacity-60 cursor-pointer"
+                                >
+                                    {deletingId === deleteModalSite._id ? "Deleting..." : "Permanently Delete"}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 
