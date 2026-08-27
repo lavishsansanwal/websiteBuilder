@@ -138,20 +138,27 @@ STRICT DOMAIN-MATCHED HIGH-RESOLUTION IMAGES
 ==================================================
 You MUST select image URLs that EXACTLY match the website's topic and business domain:
 
-1. FOR RESTAURANTS, BISTROS, CAFES, PIZZERIAS & FOOD:
-   - Dining Ambiance Hero: https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400&auto=format&fit=crop&q=80
-   - Romantic Candlelit Table: https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000&auto=format&fit=crop&q=80
-   - Artisanal Pasta: https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&auto=format&fit=crop&q=80
-   - Tagliatelle Bolognese: https://images.unsplash.com/photo-1546549032-9571cd6b27df?w=800&auto=format&fit=crop&q=80
-   - Wood-fired Neapolitan Pizza: https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&auto=format&fit=crop&q=80
-   - Bruschetta & Antipasti: https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=800&auto=format&fit=crop&q=80
-   - Italian Vintage Wine: https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=800&auto=format&fit=crop&q=80
-   - Master Chef Preparing Dish: https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=800&auto=format&fit=crop&q=80
-   - Tiramisu / Dolce: https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&auto=format&fit=crop&q=80
-   - Florentine Steak: https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80
-   - Burrata Caprese Salad: https://images.unsplash.com/photo-1580638149300-65f0b9e8fbff?w=800&auto=format&fit=crop&q=80
-   - Cocktails & Bar: https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&auto=format&fit=crop&q=80
-   * CRITICAL: Always use authentic Unsplash URLs and return specific search queries in "imageQueries". NEVER put electronics, sneakers, or headphones on a restaurant website!
+1. FOR FOOD DELIVERY, RESTAURANTS, BISTROS, CAFES & MULTI-CUISINE PLATFORMS:
+   - Feast Table Hero: https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1400&auto=format&fit=crop&q=80
+   - Royal Handi Biryani: https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&auto=format&fit=crop&q=80
+   - Saffron Dum Biryani: https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&auto=format&fit=crop&q=80
+   - Wood-fired Neapolitan Pizza: https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&auto=format&fit=crop&q=80
+   - Truffle Mushroom Pizza: https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80
+   - Double Smash Wagyu Burger: https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=80
+   - Bacon Cheeseburger Stack: https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=800&auto=format&fit=crop&q=80
+   - Velvet Butter Chicken: https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=800&auto=format&fit=crop&q=80
+   - 24-Hour Dal Makhani: https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80
+   - Crispy Golden Masala Dosa: https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=800&auto=format&fit=crop&q=80
+   - Steamed Idli & Medu Vada: https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=800&auto=format&fit=crop&q=80
+   - Steamed Crystal Dim Sum: https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=800&auto=format&fit=crop&q=80
+   - Fiery Szechuan Chili Noodles: https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800&auto=format&fit=crop&q=80
+   - Artisanal Tiramisu Al Caffè: https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&auto=format&fit=crop&q=80
+   - Molten Dark Chocolate Lava: https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&auto=format&fit=crop&q=80
+   - Fresh Atlantic Salmon Poké Bowl: https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80
+   - Quinoa Superfood Salad: https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80
+   - Royal Alphonso Mango Lassi: https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=800&auto=format&fit=crop&q=80
+   - Nitro Cold Brew Coffee: https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=800&auto=format&fit=crop&q=80
+   * CRITICAL: STRICTLY USE REAL-WORLD UNSPLASH PHOTOGRAPHY. NEVER USE 3D RENDERS, ANIME, DRAWINGS, OR ILLUSTRATIONS. ONLY 100% REAL FOOD AND RESTAURANT PHOTOGRAPHY!
 
 2. FOR STREETWEAR, SNEAKERS & FASHION APPAREL:
    - Street Hero: https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1400&auto=format&fit=crop&q=80

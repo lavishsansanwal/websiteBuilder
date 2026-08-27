@@ -1,22 +1,28 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { serverUrl } from "../App";
 
 import {
+    ArrowDown,
+    Bot,
     Code2,
     Copy,
     Check,
     CheckCircle2,
+    ChevronRight,
     Compass,
+    CornerDownLeft,
     Download,
     Flame,
     Layers,
     MessageSquare,
     Monitor,
+    RefreshCw,
     Rocket,
     Send,
     Sparkles,
+    User,
     X,
     Zap
 } from "lucide-react";
@@ -1149,7 +1155,7 @@ function WebsiteEditor() {
     const { id } = useParams();
 
     // ==========================================
-    // STATES
+    // STATES & REFS
     // ==========================================
 
     const [website, setWebsite] = useState(null);
@@ -1158,23 +1164,17 @@ function WebsiteEditor() {
     const [messages, setMessages] = useState([]);
     const [prompt, setPrompt] = useState("");
 
-    const [updateLoading, setUpdateLoading] =
-        useState(false);
+    const [updateLoading, setUpdateLoading] = useState(false);
+    const [thinkingIndex, setThinkingIndex] = useState(0);
+    const [showCode, setShowCode] = useState(false);
+    const [showFullPreview, setShowFullPreview] = useState(false);
+    const [showChat, setShowChat] = useState(false);
+    const [copiedCode, setCopiedCode] = useState(false);
+    const [copiedMessageIdx, setCopiedMessageIdx] = useState(null);
+    const [showScrollBottom, setShowScrollBottom] = useState(false);
 
-    const [thinkingIndex, setThinkingIndex] =
-        useState(0);
-
-    const [showCode, setShowCode] =
-        useState(false);
-
-    const [showFullPreview, setShowFullPreview] =
-        useState(false);
-
-    const [showChat, setShowChat] =
-        useState(false);
-
-    const [copiedCode, setCopiedCode] =
-        useState(false);
+    const chatContainerRef = useRef(null);
+    const messagesEndRef = useRef(null);
 
     const isReactCode = /export\s+default/i.test(code) || /import\s+React/i.test(code) || /function\s+App/i.test(code);
 
@@ -1183,6 +1183,14 @@ function WebsiteEditor() {
             navigator.clipboard.writeText(code);
             setCopiedCode(true);
             setTimeout(() => setCopiedCode(false), 2000);
+        }
+    };
+
+    const handleCopyMessage = (text, idx) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text);
+            setCopiedMessageIdx(idx);
+            setTimeout(() => setCopiedMessageIdx(null), 2000);
         }
     };
 
@@ -1198,24 +1206,41 @@ function WebsiteEditor() {
     };
 
     // ==========================================
-    // THINKING STEPS
+    // THINKING STEPS & PROGRESS
     // ==========================================
 
     const thinkingSteps = [
-        "Understanding your request…",
-        "Planning layout changes…",
-        "Improving responsiveness…",
-        "Applying animations…",
-        "Finalizing update…"
+        { title: "Analyzing DOM & style tree...", detail: "Inspecting component hierarchy & tokens", progress: 25 },
+        { title: "Refactoring layout & components...", detail: "Applying requested UI modifications", progress: 50 },
+        { title: "Wiring interactive JS event handlers...", detail: "Adding dynamic click & state logic", progress: 75 },
+        { title: "Finalizing animations & live preview...", detail: "Rendering updated code into preview", progress: 95 }
     ];
+
+    // ==========================================
+    // AUTO-SCROLL TO BOTTOM
+    // ==========================================
+
+    const scrollToBottom = (behavior = "smooth") => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior, block: "nearest" });
+        }
+    };
+
+    useEffect(() => {
+        scrollToBottom("smooth");
+    }, [messages, updateLoading, thinkingIndex]);
+
+    const handleChatScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 80;
+        setShowScrollBottom(!isNearBottom);
+    };
 
     // ==========================================
     // SAFE MESSAGES
     // ==========================================
 
-    const safeMessages = Array.isArray(messages)
-        ? messages
-        : [];
+    const safeMessages = Array.isArray(messages) ? messages : [];
 
     // ==========================================
     // GET WEBSITE
@@ -1233,18 +1258,10 @@ function WebsiteEditor() {
                     }
                 );
 
-                console.log(
-                    "GET WEBSITE RESPONSE:",
-                    result.data
-                );
-
-                const websiteData =
-                    result.data?.website;
+                const websiteData = result.data?.website;
 
                 if (!websiteData) {
-                    throw new Error(
-                        "Website data was not returned by the server"
-                    );
+                    throw new Error("Website data was not returned by the server");
                 }
 
                 setWebsite(websiteData);
@@ -1264,11 +1281,7 @@ function WebsiteEditor() {
                 );
 
             } catch (error) {
-                console.error(
-                    "GET WEBSITE ERROR:",
-                    error
-                );
-
+                console.error("GET WEBSITE ERROR:", error);
                 setError(
                     error.response?.data?.message ||
                     error.message ||
@@ -1291,11 +1304,7 @@ function WebsiteEditor() {
         if (!updateLoading) return;
 
         const interval = setInterval(() => {
-            setThinkingIndex(
-                (currentIndex) =>
-                    (currentIndex + 1) %
-                    thinkingSteps.length
-            );
+            setThinkingIndex((currentIndex) => (currentIndex + 1) % thinkingSteps.length);
         }, 1200);
 
         return () => clearInterval(interval);
@@ -1311,35 +1320,27 @@ function WebsiteEditor() {
             ? customPrompt.trim()
             : prompt.trim();
 
-        if (!text) return;
+        if (!text || updateLoading) return;
 
         setPrompt("");
         setUpdateLoading(true);
 
+        const now = new Date().toISOString();
+
         setMessages((previousMessages) => [
-            ...(Array.isArray(previousMessages)
-                ? previousMessages
-                : []),
+            ...(Array.isArray(previousMessages) ? previousMessages : []),
             {
                 role: "user",
-                content: text
+                content: text,
+                createdAt: now
             }
         ]);
 
         try {
             const result = await axios.post(
                 `${serverUrl}/api/website/update/${id}`,
-                {
-                    prompt: text
-                },
-                {
-                    withCredentials: true
-                }
-            );
-
-            console.log(
-                "UPDATE SUCCESS:",
-                result.data
+                { prompt: text },
+                { withCredentials: true }
             );
 
             if (typeof result.data?.code === "string") {
@@ -1357,34 +1358,28 @@ function WebsiteEditor() {
             const latestAiMessage = Array.isArray(updatedConv) ? updatedConv[updatedConv.length - 1] : null;
 
             setMessages((previousMessages) => [
-                ...(Array.isArray(previousMessages)
-                    ? previousMessages
-                    : []),
+                ...(Array.isArray(previousMessages) ? previousMessages : []),
                 {
                     role: "ai",
-                    content:
-                        result.data?.message ||
-                        "Website updated successfully.",
+                    content: result.data?.message || "Website updated successfully.",
+                    phase: latestAiMessage?.phase || 2,
+                    interactiveCard: latestAiMessage?.interactiveCard || null,
                     agentQuestions: latestAiMessage?.agentQuestions || [],
-                    suggestions: latestAiMessage?.suggestions || []
+                    suggestions: latestAiMessage?.suggestions || [],
+                    createdAt: new Date().toISOString()
                 }
             ]);
 
         } catch (error) {
-            console.error(
-                "UPDATE ERROR:",
-                error
-            );
-
+            console.error("UPDATE ERROR:", error);
             setMessages((previousMessages) => [
-                ...(Array.isArray(previousMessages)
-                    ? previousMessages
-                    : []),
+                ...(Array.isArray(previousMessages) ? previousMessages : []),
                 {
                     role: "ai",
                     content:
                         error.response?.data?.message ||
-                        "Something went wrong while updating the website."
+                        "Something went wrong while updating the website.",
+                    createdAt: new Date().toISOString()
                 }
             ]);
 
@@ -1408,15 +1403,7 @@ function WebsiteEditor() {
                 }
             );
 
-            console.log(
-                "DEPLOY SUCCESS:",
-                result.data
-            );
-
-            const deployUrl =
-                result.data?.url ||
-                result.data?.deployUrl ||
-                "";
+            const deployUrl = result.data?.url || result.data?.deployUrl || "";
 
             setWebsite((previousWebsite) => ({
                 ...previousWebsite,
@@ -1425,17 +1412,11 @@ function WebsiteEditor() {
             }));
 
             if (deployUrl) {
-                window.open(
-                    deployUrl,
-                    "_blank"
-                );
+                window.open(deployUrl, "_blank");
             }
 
         } catch (error) {
-            console.error(
-                "DEPLOY ERROR:",
-                error
-            );
+            console.error("DEPLOY ERROR:", error);
         }
     };
 
@@ -1464,40 +1445,44 @@ function WebsiteEditor() {
     }
 
     // ==========================================
-    // CONTEXTUAL SUGGESTIONS HELPER (FALLBACK)
+    // CONTEXTUAL SUGGESTIONS HELPER (FALLBACK & SEED)
     // ==========================================
 
     const getDomainSuggestions = (title = "", code = "", turns = 1) => {
         const text = (title + " " + code).toLowerCase();
         const phase = Math.min(4, Math.max(1, turns));
 
-        // 1. E-Commerce
-        if (/\b(store|shop|e-commerce|ecommerce|sneaker|streetwear|shoe|clothing|fashion|retail|product|cart|bag|catalog|order)\b/i.test(text)) {
-            let card = {
-                question: "What high-impact feature should we add next to elevate this store?",
-                options: [
-                    {
-                        icon: "⚡",
-                        label: "Add Flash Sale Countdown Banner",
-                        description: "Adds a 24-hour urgency timer with live stock bar and 20% discount coupon STREET20",
-                        prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20"
-                    },
-                    {
-                        icon: "⭐",
-                        label: "Verified Customer Photo Reviews",
-                        description: "Adds customer review grid with star breakdowns, customer lookbook photos, and review modal",
-                        prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal"
-                    },
-                    {
-                        icon: "📏",
-                        label: "Interactive Size & Fit Guide",
-                        description: "Adds size chart modal with US/UK/EU conversions for apparel and sneakers",
-                        prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear"
-                    }
-                ]
-            };
+        let card = null;
+        let agentQuestions = [];
+        let suggestions = [];
 
-            if (phase === 3) {
+        // 1. E-Commerce / Streetwear / Sneaker / Retail Store
+        if (/\b(store|shop|e-commerce|ecommerce|sneaker|streetwear|shoe|clothing|fashion|retail|product|cart|bag|catalog|order)\b/i.test(text)) {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "What high-impact feature should we add next to elevate this store?",
+                    options: [
+                        {
+                            icon: "⚡",
+                            label: "Add Flash Sale Countdown Banner",
+                            description: "Adds a 24-hour urgency timer with live stock bar and 20% discount coupon STREET20",
+                            prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20"
+                        },
+                        {
+                            icon: "⭐",
+                            label: "Verified Customer Photo Reviews",
+                            description: "Adds customer review grid with star breakdowns, customer lookbook photos, and review modal",
+                            prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal"
+                        },
+                        {
+                            icon: "📏",
+                            label: "Interactive Size & Fit Guide",
+                            description: "Adds size chart modal with US/UK/EU conversions for apparel and sneakers",
+                            prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
                 card = {
                     question: "Which visual vibe and color palette fits your brand vision?",
                     options: [
@@ -1521,153 +1506,477 @@ function WebsiteEditor() {
                         }
                     ]
                 };
+            } else {
+                card = {
+                    question: "How should we maximize launch conversions and customer checkout?",
+                    options: [
+                        {
+                            icon: "💳",
+                            label: "1-Click Sticky Buy Bar",
+                            description: "Adds a persistent floating bottom bar with Quick Buy & Size selector on scroll",
+                            prompt: "Add a floating sticky bottom Quick Buy bar that appears when scrolling with instant size selector and checkout button"
+                        },
+                        {
+                            icon: "🎁",
+                            label: "Wheel of Fortune Promo Popup",
+                            description: "Adds an exit-intent gamified discount spinner offering up to 30% off",
+                            prompt: "Add an exit-intent gamified discount spinner modal offering up to 30% off discount codes"
+                        },
+                        {
+                            icon: "📦",
+                            label: "Free Shipping Threshold Bar",
+                            description: "Dynamic cart progress bar showing 'Add $15 more for FREE Express Shipping'",
+                            prompt: "Add a dynamic Free Shipping threshold progress bar banner in the header and cart drawer"
+                        }
+                    ]
+                };
             }
 
-            return {
-                phase,
-                interactiveCard: card,
-                agentQuestions: [
-                    "Would you like to add a Flash Sale countdown timer with a 20% discount coupon code?",
-                    "Should we add verified customer reviews with photo galleries and star ratings?",
-                    "Do you want to add size guide measurement charts and color swatches on product cards?"
-                ],
-                suggestions: [
-                    { label: "+ Add Flash Sale Timer", prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20" },
-                    { label: "+ Customer Photo Reviews", prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal" },
-                    { label: "+ Neon Cyberpunk Theme", prompt: "Switch the color scheme to high-energy Neon Cyberpunk with electric cyan and violet glow accents" },
-                    { label: "+ Size Guide Modal", prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear" }
-                ]
-            };
+            agentQuestions = [
+                "Would you like to add a Flash Sale countdown timer with a 20% discount coupon code?",
+                "Should we add verified customer reviews with photo galleries and star ratings?",
+                "Do you want to add size guide measurement charts and color swatches on product cards?"
+            ];
+
+            suggestions = [
+                { label: "+ Sticky Frosted Navbar", prompt: "Make the main navigation bar a floating frosted glass sticky header with backdrop blur" },
+                { label: "+ Trust Badges & Guarantee", prompt: "Add an authentic trust badges row with 30-day money-back guarantee, free returns, and SSL secure checkout" },
+                { label: "+ Currency Selector (USD/EUR/INR)", prompt: "Add an interactive currency switcher dropdown (USD, EUR, GBP, INR) in the top bar" },
+                { label: "+ Floating WhatsApp Support", prompt: "Add a floating WhatsApp live chat support button in the bottom right corner with online status pill" },
+                { label: "+ Instagram Lookbook Grid", prompt: "Add an Instagram shoppable community lookbook grid section with hover overlays" }
+            ];
+
+        // 2. Restaurant / Cafe / Bakery / Dining / Food Delivery
+        } else if (/\b(restaurant|bistro|cafe|bakery|dining|food|menu|pizza|pasta|dish|chef|cuisine|table|reservation)\b/i.test(text)) {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "How should dining guests interact with your restaurant online?",
+                    options: [
+                        {
+                            icon: "📅",
+                            label: "Table Reservation Booking Modal",
+                            description: "Interactive reservation form with date/time pickers, party size, and confirmed table ticket",
+                            prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking"
+                        },
+                        {
+                            icon: "🥗",
+                            label: "Dietary Badges & Search Filter",
+                            description: "Instant menu search with Vegan, Gluten-Free, and Chef Choice filter pills",
+                            prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu"
+                        },
+                        {
+                            icon: "🍷",
+                            label: "Sommelier Wine Pairing Notes",
+                            description: "Curated wine pairing recommendations and flavor profiles under each signature dish",
+                            prompt: "Add sommelier wine pairing notes and flavor profiles to each signature dish card on the menu"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
+                card = {
+                    question: "What ambiance aesthetic best reflects your dining experience?",
+                    options: [
+                        {
+                            icon: "🕯️",
+                            label: "Candlelit Dark Warmth",
+                            description: "Deep espresso & warm gold accents with elegant serif headings and soft ambient glows",
+                            prompt: "Upgrade the theme to Candlelit Dark Warmth with deep espresso background and warm gold accents"
+                        },
+                        {
+                            icon: "🌿",
+                            label: "Modern Botanical Organic",
+                            description: "Sage green, stone textures, clean typography, and farm-to-table natural vibes",
+                            prompt: "Switch to Modern Botanical Organic theme with sage green tones, clean typography, and organic styling"
+                        },
+                        {
+                            icon: "🍕",
+                            label: "Rustic Italian Trattoria",
+                            description: "Warm terracotta, brick red, and chalkboard style menu accents",
+                            prompt: "Apply a Rustic Italian Trattoria theme with warm terracotta highlights and artisan menu styling"
+                        }
+                    ]
+                };
+            } else {
+                card = {
+                    question: "Which ordering and loyalty channels should we activate?",
+                    options: [
+                        {
+                            icon: "🛍️",
+                            label: "Slide-out Takeaway Drawer",
+                            description: "Quick online takeaway order cart drawer with pickup time slot picker",
+                            prompt: "Add a slide-out online takeaway order drawer with pickup time selector and checkout"
+                        },
+                        {
+                            icon: "👑",
+                            label: "VIP Dining Club Perks",
+                            description: "Loyalty club signup section with free appetizer on first visit",
+                            prompt: "Add a VIP Dining Club membership section offering exclusive tasting invitations and welcome perks"
+                        },
+                        {
+                            icon: "🎁",
+                            label: "Digital Gift Card Selector",
+                            description: "Interactive gift card denomination picker ($25, $50, $100) with instant voucher preview",
+                            prompt: "Add an interactive dining gift card selector with preset amounts ($25, $50, $100) and instant digital voucher preview"
+                        }
+                    ]
+                };
+            }
+
+            agentQuestions = [
+                "Would you like to add an online Table Reservation modal with date picker and party size?",
+                "Should we add dietary badges (🌱 Vegan, 🌾 Gluten-Free, ⭐ Chef's Special) to the menu?",
+                "Do you want an interactive Wine Pairing recommendation on signature dishes?"
+            ];
+
+            suggestions = [
+                { label: "+ Today's Chef Specials Carousel", prompt: "Add an animated Today's Chef Specials highlighted carousel at the top of the menu" },
+                { label: "+ Live Opening Hours Badge", prompt: "Add a live 'Open Now / Closes at 11 PM' badge and detailed opening hours schedule in the header" },
+                { label: "+ Interactive Map & Directions", prompt: "Add an interactive Google Map location section with one-click 'Get Directions' button" },
+                { label: "+ Chef Story & Kitchen Gallery", prompt: "Add a master chef story section with kitchen action photo gallery and culinary awards badges" },
+                { label: "+ Food Critic Quotes", prompt: "Add a quotes section featuring rave reviews from food critics and Michelin-guide mentions" }
+            ];
+
+        // 3. Dashboard / Analytics / Admin / KPI
+        } else if (/\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(text)) {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "What analytical actions should users be able to take on this dashboard?",
+                    options: [
+                        {
+                            icon: "📥",
+                            label: "Export to CSV & PDF Reports",
+                            description: "Instant data table export buttons with simulated progress toast and download",
+                            prompt: "Add working Export to CSV and Export to PDF action buttons above the data table"
+                        },
+                        {
+                            icon: "📅",
+                            label: "Interactive Date Range Filters",
+                            description: "Pills for Last 7 Days, 30 Days, and Yearly data filtering that update charts",
+                            prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data"
+                        },
+                        {
+                            icon: "📈",
+                            label: "AI Revenue Forecasting Graph",
+                            description: "Predictive revenue curve with 95% confidence bands and KPI projection metrics",
+                            prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
+                card = {
+                    question: "Which dashboard layout and visual theme do you prefer?",
+                    options: [
+                        {
+                            icon: "🌑",
+                            label: "Midnight OLED Dark Mode",
+                            description: "Sleek obsidian background with vibrant electric neon metric cards and glowing sparks",
+                            prompt: "Upgrade to Midnight OLED Dark Mode with sleek obsidian background and vibrant glowing charts"
+                        },
+                        {
+                            icon: "💎",
+                            label: "Clean Enterprise FinTech Light",
+                            description: "Crisp white cards, subtle borders, slate blue charts, and high-density tables",
+                            prompt: "Apply Clean Enterprise FinTech Light theme with crisp white cards and refined slate blue accents"
+                        },
+                        {
+                            icon: "📊",
+                            label: "Multi-Panel Dense Grid",
+                            description: "Compact multi-panel layout with real-time ticker strip and tight metric grids",
+                            prompt: "Reorganize dashboard into a high-density multi-panel grid with compact ticker strips"
+                        }
+                    ]
+                };
+            } else {
+                card = {
+                    question: "What real-time monitoring tools should we enable?",
+                    options: [
+                        {
+                            icon: "🔔",
+                            label: "Threshold Alert Trigger Modal",
+                            description: "Configure automated KPI threshold alert rules with email/Slack preview",
+                            prompt: "Add an interactive threshold alert trigger modal with target value sliders and notification previews"
+                        },
+                        {
+                            icon: "⚡",
+                            label: "Live Activity Stream Feed",
+                            description: "Real-time scrolling event feed with user avatars, actions, and timestamp pulses",
+                            prompt: "Add a real-time live activity stream feed panel with user avatars and timestamped event badges"
+                        },
+                        {
+                            icon: "👥",
+                            label: "Team Permission Manager",
+                            description: "Interactive team members access matrix with Admin, Editor, Viewer toggles",
+                            prompt: "Add a team members permission management modal with role toggle switches (Admin, Editor, Viewer)"
+                        }
+                    ]
+                };
+            }
+
+            agentQuestions = [
+                "Would you like an 'Export to CSV / PDF' button on the transactions table?",
+                "Should we add date range filter pickers (Last 7 Days, Last 30 Days) for the charts?",
+                "Do you want live threshold alert pills and status filters for the table?"
+            ];
+
+            suggestions = [
+                { label: "+ Dark / Light Theme Toggle", prompt: "Add an interactive instant Dark Mode and Light Mode theme toggle switch in the dashboard top header" },
+                { label: "+ Table Search & Filter Bar", prompt: "Add a real-time search input bar and status dropdown filter (Completed, Pending, Failed) above the main table" },
+                { label: "+ Metric Target Progress Rings", prompt: "Add circular percentage progress rings to the top KPI cards showing monthly goal completion" },
+                { label: "+ Collapsible Left Sidebar", prompt: "Make the left navigation sidebar smoothly collapsible with icon-only compact mode toggle" },
+                { label: "+ Real-Time Polling Indicator", prompt: "Add a live pulsing green 'Live Data Syncing (every 5s)' indicator with manual Refresh Data button" }
+            ];
+
+        // 4. SaaS Landing Page / Lead Funnel / Startup
+        } else if (/\b(saas|landing|waitlist|lead|conversion|startup|software|app|pricing|b2b)\b/i.test(text)) {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "What primary conversion goal should we optimize this page for?",
+                    options: [
+                        {
+                            icon: "💳",
+                            label: "3-Tier Pricing Table with Annual Switch",
+                            description: "Tier cards (Starter, Pro, Enterprise) with monthly/annual 20% discount toggle",
+                            prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge"
+                        },
+                        {
+                            icon: "🎬",
+                            label: "Interactive Video Demo Modal",
+                            description: "Video trigger button in hero section with floating feature badges and modal player",
+                            prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights"
+                        },
+                        {
+                            icon: "📧",
+                            label: "Frictionless Email-Only Lead Capture",
+                            description: "Streamlines all sign-in and lead forms to collect only email without phone number",
+                            prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
+                card = {
+                    question: "Which visual vibe and brand personality should this landing page project?",
+                    options: [
+                        {
+                            icon: "✨",
+                            label: "Linear / Vercel Modern Dark",
+                            description: "Deep black backdrop, subtle glowing gradients, thin borders, and crisp sans typography",
+                            prompt: "Style page with Linear/Vercel modern dark aesthetic with subtle mesh glow and crisp borders"
+                        },
+                        {
+                            icon: "🚀",
+                            label: "Hyper-Growth Vibrant Gradient",
+                            description: "Electric indigo-to-purple mesh background with bold animated CTA buttons",
+                            prompt: "Switch to Hyper-Growth Vibrant Gradient theme with rich purple/indigo accents and bold animated buttons"
+                        },
+                        {
+                            icon: "🛡️",
+                            label: "Enterprise B2B Trust Slate",
+                            description: "Deep slate navy, sharp high-contrast typography, and bank-grade security badges",
+                            prompt: "Apply Enterprise B2B Trust Slate theme with deep navy background and high-contrast badges"
+                        }
+                    ]
+                };
+            } else {
+                card = {
+                    question: "How should we handle objections and build maximum buyer trust?",
+                    options: [
+                        {
+                            icon: "❓",
+                            label: "Expandable FAQ Accordion",
+                            description: "Interactive FAQ accordion answering top 6 buyer objections with smooth animated collapses",
+                            prompt: "Add an interactive expandable FAQ accordion section with smooth toggle animations"
+                        },
+                        {
+                            icon: "🏆",
+                            label: "Wall of Love Testimonial Grid",
+                            description: "Bento grid of authentic customer tweets, quotes, star ratings, and company logos",
+                            prompt: "Add a Wall of Love Bento grid with customer testimonial quotes, star ratings, and company badges"
+                        },
+                        {
+                            icon: "⚔️",
+                            label: "Competitor Comparison Matrix",
+                            description: "Feature comparison table showing your product vs Old Way vs Competitors with green checkmarks",
+                            prompt: "Add a competitor comparison matrix table highlighting your unique advantages with checkmark icons"
+                        }
+                    ]
+                };
+            }
+
+            agentQuestions = [
+                "Would you like to add a 3-tier Pricing Table with Monthly vs Annual (Save 20%) billing switch?",
+                "Should we add a customer video demo modal or client logos marquee for social proof?",
+                "Do you want the Lead Capture form to ask only for Email, or also Phone & Company Size?"
+            ];
+
+            suggestions = [
+                { label: "+ Client Logos Marquee Strip", prompt: "Add an infinite scrolling animated logos marquee of Fortune 500 companies trusted by your product" },
+                { label: "+ Live ROI Calculator Widget", prompt: "Add an interactive ROI savings slider widget where users drag their team size to see estimated annual savings" },
+                { label: "+ Trustpilot 4.9★ Badge", prompt: "Add a floating Trustpilot 4.9/5 stars rated social proof badge under the main hero CTA button" },
+                { label: "+ Exit-Intent Special Offer Modal", prompt: "Add an exit-intent discount popup offering 14 days free trial with instant activation" },
+                { label: "+ Sticky Floating CTA Bar", prompt: "Add a subtle sticky top announcement bar with '🎉 Launch Special: Get 50% off first 3 months - Claim Now'" }
+            ];
+
+        // 5. Default General / Agency / Portfolio
+        } else {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "How should prospective clients and visitors engage with your work?",
+                    options: [
+                        {
+                            icon: "🎨",
+                            label: "Interactive Case Studies Filter Grid",
+                            description: "Filterable work portfolio tabs with client metrics, tech badges, and modal preview",
+                            prompt: "Add interactive portfolio case studies with category filter tabs and live client metrics"
+                        },
+                        {
+                            icon: "📅",
+                            label: "1-on-1 Consultation Booking Modal",
+                            description: "Interactive consultation booking modal with date and project scope selector",
+                            prompt: "Add an interactive consultation booking modal with date and project scope selector"
+                        },
+                        {
+                            icon: "🏆",
+                            label: "Client Results & Impact Metrics",
+                            description: "Animated count-up stats: $12M+ Revenue Generated, 99.8% CSAT, 45+ Projects Delivered",
+                            prompt: "Add an animated key metrics and results section showcasing client growth stats and ROI"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
+                card = {
+                    question: "Which creative aesthetic best showcases your craft?",
+                    options: [
+                        {
+                            icon: "🌌",
+                            label: "Ultra-Sleek Dark Glassmorphic",
+                            description: "Modern dark aesthetic with animated mesh gradients and glowing border cards",
+                            prompt: "Upgrade the UI to a modern ultra-sleek dark glassmorphic theme with animated subtle mesh gradients"
+                        },
+                        {
+                            icon: "⚡",
+                            label: "Editorial Brutalist Modern",
+                            description: "Bold oversized typography, stark monochrome contrast, and high-impact layout",
+                            prompt: "Switch to an Editorial Brutalist theme with bold oversized typography and high-contrast styling"
+                        },
+                        {
+                            icon: "🌈",
+                            label: "Pastel Neo-Studio Clean",
+                            description: "Soft cream background, warm pastel accent badges, and rounded playful cards",
+                            prompt: "Apply a Pastel Neo-Studio Clean aesthetic with refined cream backdrop and warm accent cards"
+                        }
+                    ]
+                };
+            } else {
+                card = {
+                    question: "What final conversion touchpoints should we add for clients?",
+                    options: [
+                        {
+                            icon: "💬",
+                            label: "Verified Testimonial Slider",
+                            description: "Interactive testimonial slider with client quotes, verified badges, and company roles",
+                            prompt: "Add an interactive client testimonial carousel with 5-star ratings and company avatar badges"
+                        },
+                        {
+                            icon: "📄",
+                            label: "Download Pitch Deck / Resume",
+                            description: "Instant download button for PDF portfolio & interactive viewer modal",
+                            prompt: "Add a 'Download Pitch Deck / Resume' action button with interactive preview modal"
+                        },
+                        {
+                            icon: "💸",
+                            label: "Project Scope & Budget Estimator",
+                            description: "Step-by-step interactive project budget & scope calculator with instant quote summary",
+                            prompt: "Add an interactive project price and timeline estimator calculator widget"
+                        }
+                    ]
+                };
+            }
+
+            agentQuestions = [
+                "Would you like to add an interactive Project Case Studies filter by category?",
+                "Should we add a Contact Consultation booking calendar with instant confirmation?",
+                "Do you want to switch the visual theme to Dark Glassmorphism or Light Minimalist?"
+            ];
+
+            suggestions = [
+                { label: "+ Skills & Tech Stack Grid", prompt: "Add an interactive Skills & Tech Stack grid with animated proficiency bars and tool icons" },
+                { label: "+ Experience Timeline Roadmap", prompt: "Add a vertical career and milestone experience timeline with company logos and key achievements" },
+                { label: "+ Floating Let's Talk Button", prompt: "Add a floating quick contact button in the bottom corner with direct email/calendar trigger" },
+                { label: "+ Client Logo Wall & Badges", prompt: "Add a featured client logos grid showing prestigious brands worked with" },
+                { label: "+ Back to Top Smooth Scroll", prompt: "Add a floating Back to Top button that appears when scrolling down and smoothly scrolls to top" }
+            ];
         }
 
-        // 2. Restaurant
-        if (/\b(restaurant|bistro|cafe|bakery|dining|food|menu|pizza|pasta|dish|chef|cuisine|table|reservation)\b/i.test(text)) {
-            let card = {
-                question: "How should dining guests interact with your restaurant online?",
-                options: [
-                    {
-                        icon: "📅",
-                        label: "Table Reservation Booking Modal",
-                        description: "Interactive reservation form with date/time pickers, party size, and confirmed table ticket",
-                        prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking"
-                    },
-                    {
-                        icon: "🥗",
-                        label: "Dietary Badges & Search Filter",
-                        description: "Instant menu search with Vegan, Gluten-Free, and Chef Choice filter pills",
-                        prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu"
-                    },
-                    {
-                        icon: "🍷",
-                        label: "Sommelier Wine Pairing Notes",
-                        description: "Curated wine pairing recommendations and flavor profiles under each signature dish",
-                        prompt: "Add sommelier wine pairing notes and flavor profiles to each signature dish card on the menu"
-                    }
-                ]
-            };
-
-            return {
-                phase,
-                interactiveCard: card,
-                agentQuestions: [
-                    "Would you like to add an online Table Reservation modal with date picker and party size?",
-                    "Should we add dietary badges (🌱 Vegan, 🌾 Gluten-Free, ⭐ Chef's Special) to the menu?",
-                    "Do you want an interactive Wine Pairing recommendation on signature dishes?"
-                ],
-                suggestions: [
-                    { label: "+ Table Booking Modal", prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking" },
-                    { label: "+ Add Dietary Badges", prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu" },
-                    { label: "+ Chef Story & Ambiance", prompt: "Add a master chef story section and ambient restaurant interior photo gallery" }
-                ]
-            };
+        // Dynamic Deduplication Safety: filter out any suggestion whose label overlaps with the active card's options
+        if (card && Array.isArray(card.options)) {
+            const cardOptionKeys = card.options.map(o => (o.label || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
+            suggestions = suggestions.filter(s => {
+                const sKey = (s.label || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                return !cardOptionKeys.some(cKey => cKey.includes(sKey) || sKey.includes(cKey));
+            });
         }
-
-        // 3. Dashboard
-        if (/\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(text)) {
-            let card = {
-                question: "What analytical actions should users be able to take on this dashboard?",
-                options: [
-                    {
-                        icon: "📥",
-                        label: "Export to CSV & PDF Reports",
-                        description: "Instant data table export buttons with simulated progress toast and download",
-                        prompt: "Add working Export to CSV and Export to PDF action buttons above the data table"
-                    },
-                    {
-                        icon: "📅",
-                        label: "Interactive Date Range Filters",
-                        description: "Pills for Last 7 Days, 30 Days, and Yearly data filtering that update charts",
-                        prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data"
-                    },
-                    {
-                        icon: "📈",
-                        label: "AI Revenue Forecasting Graph",
-                        description: "Predictive revenue curve with 95% confidence bands and KPI projection metrics",
-                        prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands"
-                    }
-                ]
-            };
-
-            return {
-                phase,
-                interactiveCard: card,
-                agentQuestions: [
-                    "Would you like an 'Export to CSV / PDF' button on the transactions table?",
-                    "Should we add date range filter pickers (Last 7 Days, Last 30 Days) for the charts?",
-                    "Do you want live threshold alert pills and status filters for the table?"
-                ],
-                suggestions: [
-                    { label: "+ Export CSV / PDF", prompt: "Add working Export to CSV and Export to PDF action buttons above the data table" },
-                    { label: "+ Date Range Filters", prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data" },
-                    { label: "+ Revenue Forecasting", prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands" }
-                ]
-            };
-        }
-
-        // 4. SaaS / Landing Page Default
-        let card = {
-            question: "What primary conversion goal should we optimize this page for?",
-            options: [
-                {
-                    icon: "💳",
-                    label: "3-Tier Pricing Table with Annual Switch",
-                    description: "Tier cards (Starter, Pro, Enterprise) with monthly/annual 20% discount toggle",
-                    prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge"
-                },
-                {
-                    icon: "🎬",
-                    label: "Interactive Video Demo Modal",
-                    description: "Video trigger button in hero section with floating feature badges and modal player",
-                    prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights"
-                },
-                {
-                    icon: "📧",
-                    label: "Frictionless Email-Only Lead Capture",
-                    description: "Streamlines all sign-in and lead forms to collect only email without phone number",
-                    prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number"
-                }
-            ]
-        };
 
         return {
             phase,
             interactiveCard: card,
-            agentQuestions: [
-                "Would you like to add a 3-tier Pricing Table with Monthly vs Annual (Save 20%) billing switch?",
-                "Should we add a customer video demo modal or client logos marquee for social proof?",
-                "Do you want the Lead Capture form to ask only for Email, or also Phone & Company Size?"
-            ],
-            suggestions: [
-                { label: "+ Add Pricing Toggle", prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge" },
-                { label: "+ Add Video Demo Modal", prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights" },
-                { label: "+ Only Ask for Email", prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number" },
-                { label: "+ Expandable FAQ Accordion", prompt: "Add an interactive expandable FAQ accordion section with smooth toggle animations" }
-            ]
+            agentQuestions,
+            suggestions
         };
     };
 
+    // Quick Action Prompt Chips above input bar
+    const getQuickPromptChips = () => {
+        const text = (website?.title + " " + code).toLowerCase();
+        if (/\b(store|shop|shoe|sneaker|fashion|retail|product)\b/i.test(text)) {
+            return [
+                { label: "✨ Frosted Glass Header", prompt: "Make the navbar a modern floating frosted glass sticky header with backdrop blur" },
+                { label: "🏷️ Add Sale Badge on Cards", prompt: "Add animated 'HOT' and '-20% OFF' discount badges to top selling product cards" },
+                { label: "📱 Mobile Sticky Cart Bar", prompt: "Add a floating sticky bottom cart bar for mobile screens with 1-click checkout" },
+                { label: "🎨 Dark High-Contrast Theme", prompt: "Switch page theme to sleek dark high-contrast mode with vibrant glowing buttons" }
+            ];
+        }
+        if (/\b(restaurant|food|menu|cafe|dining|delivery|cuisine)\b/i.test(text)) {
+            return [
+                { label: "🍛 Indian & Biryani Specials", prompt: "Highlight Indian curries, royal saffron biryani handis, and tandoori naans on the menu" },
+                { label: "🍕 Wood-Fired Pizza Strip", prompt: "Add Neapolitan wood-fired artisanal pizza highlights with crispy blistered crusts" },
+                { label: "🥥 South Indian Ghee Dosas", prompt: "Add golden crispy ghee roast dosas, steamed idlis, and coconut chutney tiffins" },
+                { label: "🍔 Wagyu Smash Burgers", prompt: "Add double smash Wagyu burgers with truffle aioli and crispy loaded fries" },
+                { label: "🥢 Dim Sum & Chinese Wok", prompt: "Add handmade crystal dim sum steamers and fiery Sichuan wok noodles" },
+                { label: "🌮 Street Food & Pani Puri", prompt: "Add 6-flavor pani puri shots, Mumbai pav bhaji, and crispy kathi wraps" },
+                { label: "🥐 French Bakery & Desserts", prompt: "Add flaky French butter croissants, sourdough loaves, and tiramisu dolci" },
+                { label: "🥗 Healthy Superfood Bowls", prompt: "Add organic Atlantic salmon poké bowls and Mediterranean quinoa salads" }
+            ];
+        }
+        if (/\b(dashboard|analytics|admin|crm)\b/i.test(text)) {
+            return [
+                { label: "🌗 Dark / Light Mode Switch", prompt: "Add an interactive Dark Mode and Light Mode toggle switch in the dashboard top header" },
+                { label: "🔍 Table Instant Search Bar", prompt: "Add an instant search input bar above the transactions table that filters rows dynamically" },
+                { label: "📊 Add Metric Sparkline Chart", prompt: "Add mini sparkline trend curves inside all top KPI summary cards" },
+                { label: "⚡ Live Syncing Pulse", prompt: "Add a pulsing 'Live Connected (every 5s)' status badge in top right corner" }
+            ];
+        }
+        return [
+            { label: "✨ Floating Frosted Navbar", prompt: "Upgrade navigation into a modern floating frosted glass sticky navbar" },
+            { label: "🎨 Dark Glassmorphic Theme", prompt: "Upgrade page theme to an ultra-sleek dark glassmorphic style with subtle mesh glows" },
+            { label: "📱 Mobile Responsive Polish", prompt: "Refine responsive grid layouts and touch tap target sizes for mobile screens" },
+            { label: "⚡ Smooth Hover Micro-FX", prompt: "Add smooth spring-hover lift effects and glowing border transitions to all cards and buttons" }
+        ];
+    };
+
+    // Timestamp Formatter Helper
+    const formatTimestamp = (isoString) => {
+        if (!isoString) return "Just now";
+        try {
+            const date = new Date(isoString);
+            if (isNaN(date.getTime())) return "Just now";
+            return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        } catch {
+            return "Just now";
+        }
+    };
+
     // ==========================================
-    // CHAT MESSAGES RENDERER
+    // CHAT MESSAGES RENDERER (LIVE AI STREAM)
     // ==========================================
 
     const renderChatMessages = () => {
@@ -1676,27 +1985,40 @@ function WebsiteEditor() {
         const currentPhase = Math.min(4, Math.max(1, currentTurnCount));
 
         const phaseSteps = [
-            { step: 1, title: "Layout" },
-            { step: 2, title: "Features" },
-            { step: 3, title: "Styling" },
-            { step: 4, title: "Launch" }
+            { step: 1, title: "Layout", desc: "Core Structure" },
+            { step: 2, title: "Features", desc: "Key Interactions" },
+            { step: 3, title: "Styling", desc: "Colors & Theme" },
+            { step: 4, title: "Launch", desc: "Conversions" }
         ];
 
         return (
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+            <div
+                ref={chatContainerRef}
+                onScroll={handleChatScroll}
+                className="flex-1 overflow-y-auto px-3.5 py-4 space-y-4 relative scroll-smooth"
+            >
+                {/* Live AI Status Bar */}
+                <div className="p-3 rounded-2xl bg-zinc-900/90 border border-white/10 shadow-lg space-y-2.5 backdrop-blur-md">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex items-center justify-center">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="absolute w-4 h-4 rounded-full bg-emerald-400/30 animate-ping" />
+                            </div>
+                            <span className="text-xs font-bold text-white tracking-wide">
+                                AI Co-Pilot
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">
+                                Live & Connected
+                            </span>
+                        </div>
 
-                {/* Design Phase Roadmap Tracker */}
-                <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-lg space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400">
-                        <span className="flex items-center gap-1.5 text-indigo-400 uppercase tracking-wider">
-                            <Compass size={13} className="text-indigo-400" />
-                            <span>Design Evolution Roadmap</span>
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono">
-                            Phase {currentPhase} of 4
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-semibold">
+                            Phase {currentPhase}/4
                         </span>
                     </div>
 
+                    {/* Design Evolution Roadmap */}
                     <div className="grid grid-cols-4 gap-1.5 pt-1">
                         {phaseSteps.map((s) => {
                             const isDone = s.step < currentPhase;
@@ -1704,21 +2026,21 @@ function WebsiteEditor() {
                             return (
                                 <div
                                     key={s.step}
-                                    className={`py-1 px-1.5 rounded-lg text-center text-[10px] font-bold transition-all ${
+                                    className={`py-1.5 px-1 rounded-xl text-center text-[10px] font-bold transition-all ${
                                         isActive
-                                            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-900/40 ring-1 ring-white/30"
+                                            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-900/40 ring-1 ring-white/30 scale-[1.02]"
                                             : isDone
-                                            ? "bg-emerald-950/60 border border-emerald-500/30 text-emerald-400"
-                                            : "bg-white/5 text-zinc-500"
+                                            ? "bg-emerald-950/50 border border-emerald-500/30 text-emerald-400"
+                                            : "bg-white/5 text-zinc-500 border border-transparent"
                                     }`}
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {isDone ? (
-                                            <CheckCircle2 size={10} className="text-emerald-400" />
+                                            <CheckCircle2 size={10} className="text-emerald-400 shrink-0" />
                                         ) : isActive ? (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
                                         ) : null}
-                                        <span>{s.title}</span>
+                                        <span className="truncate">{s.title}</span>
                                     </div>
                                 </div>
                             );
@@ -1726,16 +2048,16 @@ function WebsiteEditor() {
                     </div>
                 </div>
 
-                {/* Kickstarter State (If 0 messages) */}
+                {/* Kickstarter Initial State (If 0 messages) */}
                 {safeMessages.length === 0 && !updateLoading && (
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/50 via-purple-950/30 to-black border border-indigo-500/30 text-left space-y-3.5 shadow-2xl animate-fadeIn">
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/60 via-purple-950/30 to-black border border-indigo-500/40 text-left space-y-3 shadow-2xl animate-fadeIn">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-                                <Sparkles size={16} />
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
+                                <Sparkles size={18} />
                             </div>
                             <div>
-                                <h4 className="text-xs font-black text-white uppercase tracking-wider">AI Design Co-Pilot Ready</h4>
-                                <p className="text-[11px] text-zinc-400">Select a high-impact direction to start:</p>
+                                <h4 className="text-xs font-black text-white uppercase tracking-wider">AI Design Partner Ready</h4>
+                                <p className="text-[11px] text-zinc-400">Choose a high-impact direction to get started:</p>
                             </div>
                         </div>
 
@@ -1750,7 +2072,7 @@ function WebsiteEditor() {
                                             key={oIdx}
                                             onClick={() => handleUpdate(opt.prompt)}
                                             disabled={updateLoading}
-                                            className="w-full p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/50 text-left transition-all group flex items-start gap-2.5 cursor-pointer shadow-sm hover:scale-[1.01]"
+                                            className="w-full p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-400/60 text-left transition-all group flex items-start gap-2.5 cursor-pointer shadow-sm hover:scale-[1.01] active:scale-95 disabled:opacity-50"
                                         >
                                             <span className="text-base shrink-0 pt-0.5">{opt.icon}</span>
                                             <div className="flex-1 min-w-0">
@@ -1768,56 +2090,105 @@ function WebsiteEditor() {
                     </div>
                 )}
 
-                {/* Conversation Turns */}
+                {/* Conversation Message Stream */}
                 {safeMessages.map((message, index) => {
                     const isLatestAi = message.role === "ai" && index === safeMessages.length - 1;
                     const fallback = isLatestAi ? getDomainSuggestions(website?.title, code, currentTurnCount) : null;
 
-                    const card = message.interactiveCard || fallback?.interactiveCard;
-                    const questions = (Array.isArray(message.agentQuestions) && message.agentQuestions.length > 0)
-                        ? message.agentQuestions
-                        : (fallback ? fallback.agentQuestions : []);
-
-                    const suggestions = (Array.isArray(message.suggestions) && message.suggestions.length > 0)
+                    const rawCard = message.interactiveCard || fallback?.interactiveCard;
+                    const rawSuggestions = (Array.isArray(message.suggestions) && message.suggestions.length > 0)
                         ? message.suggestions
                         : (fallback ? fallback.suggestions : []);
+
+                    // Deduplication Filter: Guarantee Quick Toggles never duplicate any Active Card Option
+                    let deduplicatedSuggestions = rawSuggestions;
+                    if (rawCard && Array.isArray(rawCard.options)) {
+                        const cardKeys = rawCard.options.map(o => (o.label || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
+                        deduplicatedSuggestions = rawSuggestions.filter(s => {
+                            const sKey = (s.label || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+                            return !cardKeys.some(cKey => cKey.includes(sKey) || sKey.includes(cKey));
+                        });
+                    }
+
+                    const isUser = message.role === "user";
 
                     return (
                         <div
                             key={index}
-                            className={`space-y-2.5 ${
-                                message.role === "user"
-                                    ? "max-w-[85%] ml-auto"
-                                    : "max-w-[98%] mr-auto"
+                            className={`flex flex-col space-y-1.5 ${
+                                isUser ? "items-end" : "items-start"
                             }`}
                         >
-                            {/* Message Bubble */}
-                            <div
-                                className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                                    message.role === "user"
-                                        ? "bg-white text-black font-medium shadow-md"
-                                        : "bg-zinc-900/90 border border-white/10 text-zinc-200 shadow-lg"
-                                }`}
-                            >
-                                {message.content}
+                            {/* Role Label & Timestamp */}
+                            <div className="flex items-center gap-1.5 px-1 text-[11px] text-zinc-400">
+                                {isUser ? (
+                                    <>
+                                        <span>{formatTimestamp(message.createdAt)}</span>
+                                        <span className="font-semibold text-zinc-300">You</span>
+                                        <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold">
+                                            <User size={11} />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-sm">
+                                            <Bot size={11} />
+                                        </div>
+                                        <span className="font-semibold text-indigo-300">AI Co-Pilot</span>
+                                        <span>•</span>
+                                        <span>{formatTimestamp(message.createdAt)}</span>
+                                    </>
+                                )}
                             </div>
 
-                            {/* Interactive AI Co-Pilot Question Card & Options */}
-                            {message.role === "ai" && (
-                                <div className="space-y-3 pt-1">
+                            {/* Main Message Bubble */}
+                            <div
+                                className={`group relative px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words transition-all ${
+                                    isUser
+                                        ? "max-w-[88%] bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-sm shadow-md shadow-indigo-950/40"
+                                        : "max-w-[98%] bg-zinc-900/95 border border-white/10 text-zinc-200 rounded-tl-sm shadow-xl hover:border-white/20"
+                                }`}
+                            >
+                                <div className="text-[13px]">{message.content}</div>
+
+                                {/* Copy message pill */}
+                                {!isUser && (
+                                    <button
+                                        onClick={() => handleCopyMessage(message.content, index)}
+                                        className="absolute -top-2.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded-full bg-zinc-800 border border-white/10 text-[10px] text-zinc-300 hover:text-white flex items-center gap-1 shadow-md cursor-pointer"
+                                        title="Copy response"
+                                    >
+                                        {copiedMessageIdx === index ? (
+                                            <>
+                                                <Check size={10} className="text-emerald-400" />
+                                                <span className="text-emerald-400">Copied</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy size={10} />
+                                                <span>Copy</span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Interactive AI Co-Pilot Strategic Card & Quick Toggles */}
+                            {!isUser && (
+                                <div className="w-full space-y-3 pt-1">
                                     
-                                    {/* 1. Multi-Choice Interactive Question Card */}
-                                    {card && Array.isArray(card.options) && card.options.length > 0 && (
+                                    {/* 1. Multi-Choice Interactive Inquiry Card */}
+                                    {rawCard && Array.isArray(rawCard.options) && rawCard.options.length > 0 && (
                                         <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-black border border-indigo-500/30 text-left space-y-2.5 shadow-xl animate-fadeIn">
                                             <div className="flex items-center gap-1.5 text-indigo-400 font-extrabold text-[11px] uppercase tracking-wider">
                                                 <Compass size={13} className="text-amber-400" />
                                                 <span>AI Co-Pilot Inquires:</span>
                                             </div>
                                             <p className="text-xs font-bold text-white leading-snug">
-                                                {card.question}
+                                                {rawCard.question}
                                             </p>
                                             <div className="space-y-2 pt-1">
-                                                {card.options.map((opt, oIdx) => (
+                                                {rawCard.options.map((opt, oIdx) => (
                                                     <button
                                                         key={oIdx}
                                                         onClick={() => handleUpdate(opt.prompt)}
@@ -1842,15 +2213,15 @@ function WebsiteEditor() {
                                         </div>
                                     )}
 
-                                    {/* 2. Secondary Quick Action Pills */}
-                                    {suggestions.length > 0 && (
-                                        <div className="space-y-1.5 text-left">
+                                    {/* 2. Secondary Unique Quick Action Pills */}
+                                    {deduplicatedSuggestions.length > 0 && (
+                                        <div className="space-y-1.5 text-left pt-0.5">
                                             <span className="text-[10px] uppercase font-extrabold text-zinc-400 tracking-wider flex items-center gap-1.5">
                                                 <Zap size={11} className="text-amber-400" />
                                                 <span>Quick Toggles:</span>
                                             </span>
                                             <div className="flex flex-wrap gap-1.5">
-                                                {suggestions.map((s, sIdx) => (
+                                                {deduplicatedSuggestions.map((s, sIdx) => (
                                                     <button
                                                         key={sIdx}
                                                         onClick={() => handleUpdate(s.prompt || s.label)}
@@ -1871,13 +2242,61 @@ function WebsiteEditor() {
                     );
                 })}
 
+                {/* Real-time AI Thinking Card */}
                 {updateLoading && (
-                    <div className="max-w-[85%] mr-auto">
-                        <div className="px-4 py-3 rounded-2xl text-xs bg-zinc-900 border border-white/10 text-indigo-400 flex items-center gap-2 shadow-lg animate-pulse">
-                            <Sparkles size={14} className="text-amber-400 animate-spin" />
-                            <span>{thinkingSteps[thinkingIndex]}</span>
+                    <div className="max-w-[95%] mr-auto space-y-1.5 animate-fadeIn">
+                        <div className="flex items-center gap-1.5 px-1 text-[11px] text-zinc-400">
+                            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white">
+                                <Sparkles size={11} className="animate-spin" />
+                            </div>
+                            <span className="font-semibold text-indigo-300">AI Co-Pilot is coding...</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-zinc-900 border border-indigo-500/30 text-zinc-200 shadow-xl space-y-2.5">
+                            <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                                    <span className="font-bold text-white">
+                                        {thinkingSteps[thinkingIndex].title}
+                                    </span>
+                                </div>
+                                <span className="text-[10px] font-mono text-indigo-400 font-semibold">
+                                    {thinkingSteps[thinkingIndex].progress}%
+                                </span>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out"
+                                    style={{ width: `${thinkingSteps[thinkingIndex].progress}%` }}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-0.5">
+                                <span>{thinkingSteps[thinkingIndex].detail}</span>
+                                <div className="flex items-center gap-1">
+                                    <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                                    <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                                    <span className="w-1 h-1 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                                </div>
+                            </div>
                         </div>
                     </div>
+                )}
+
+                {/* Auto-scroll target anchor */}
+                <div ref={messagesEndRef} className="h-1" />
+
+                {/* Floating Jump to Latest Button */}
+                {showScrollBottom && (
+                    <button
+                        onClick={() => scrollToBottom("smooth")}
+                        className="sticky bottom-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-zinc-800/90 border border-white/20 hover:bg-zinc-700 text-white text-xs font-semibold shadow-2xl flex items-center gap-1.5 backdrop-blur-md transition-all hover:scale-105"
+                    >
+                        <ArrowDown size={12} />
+                        <span>Jump to latest</span>
+                    </button>
                 )}
 
             </div>
@@ -1890,9 +2309,20 @@ function WebsiteEditor() {
 
     const renderHeader = (onClose) => (
         <div className="h-14 shrink-0 px-4 flex items-center justify-between border-b border-white/10 bg-black">
-            <span className="font-semibold truncate">
-                {website?.title || "Untitled Website"}
-            </span>
+            <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
+                    <Sparkles size={16} />
+                </div>
+                <div className="min-w-0">
+                    <span className="font-semibold text-sm truncate block text-white">
+                        {website?.title || "Untitled Website"}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                        <span>Live AI Editor</span>
+                    </span>
+                </div>
+            </div>
 
             {onClose && (
                 <button
@@ -1906,49 +2336,79 @@ function WebsiteEditor() {
     );
 
     // ==========================================
-    // CHAT INPUT RENDERER
+    // CHAT INPUT RENDERER (LIVE AI CONSOLE)
     // ==========================================
 
-    const renderChatInput = () => (
-        <div className="p-3 border-t border-white/10 bg-black">
+    const renderChatInput = () => {
+        const chips = getQuickPromptChips();
 
-            <div className="flex gap-2">
+        return (
+            <div className="border-t border-white/10 bg-black/95 backdrop-blur-md flex flex-col">
+                {/* Dynamic Quick Prompt Chips */}
+                <div className="px-3 pt-2.5 pb-1.5 overflow-x-auto flex items-center gap-1.5 no-scrollbar">
+                    <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider shrink-0 flex items-center gap-1">
+                        <Sparkles size={10} className="text-amber-400" />
+                        <span>Ideas:</span>
+                    </span>
+                    {chips.map((chip, cIdx) => (
+                        <button
+                            key={cIdx}
+                            onClick={() => handleUpdate(chip.prompt)}
+                            disabled={updateLoading}
+                            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-indigo-600/30 hover:border-indigo-500/50 text-[11px] font-medium text-zinc-300 hover:text-white border border-white/5 transition-all shrink-0 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                        >
+                            {chip.label}
+                        </button>
+                    ))}
+                </div>
 
-                <input
-                    type="text"
-                    placeholder="Describe changes..."
-                    className="flex-1 min-w-0 rounded-2xl px-4 py-3 bg-white/5 border border-white/10 text-sm text-white outline-none focus:border-indigo-500 transition"
-                    value={prompt}
-                    disabled={updateLoading}
-                    onChange={(e) =>
-                        setPrompt(e.target.value)
-                    }
-                    onKeyDown={(e) => {
-                        if (
-                            e.key === "Enter" &&
-                            !e.shiftKey
-                        ) {
-                            e.preventDefault();
-                            handleUpdate();
-                        }
-                    }}
-                />
+                {/* Input Console */}
+                <div className="p-3 pt-1.5">
+                    <div className="relative flex items-center rounded-2xl bg-zinc-900/90 border border-white/15 focus-within:border-indigo-500 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.25)] transition-all">
+                        <input
+                            type="text"
+                            placeholder="Message AI Co-Pilot... (e.g. 'Add a sticky glass navbar')"
+                            className="flex-1 min-w-0 rounded-2xl px-4 py-3 bg-transparent text-sm text-white placeholder:text-zinc-500 outline-none"
+                            value={prompt}
+                            disabled={updateLoading}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleUpdate();
+                                }
+                            }}
+                        />
 
-                <button
-                    className="shrink-0 px-4 py-3 rounded-2xl bg-white text-black hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={
-                        updateLoading ||
-                        !prompt.trim()
-                    }
-                    onClick={handleUpdate}
-                >
-                    <Send size={15} />
-                </button>
+                        {prompt && (
+                            <button
+                                onClick={() => setPrompt("")}
+                                className="p-1.5 text-zinc-400 hover:text-white transition mr-1"
+                                title="Clear input"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
 
+                        <button
+                            className="mr-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-md shadow-indigo-900/40 hover:shadow-indigo-700/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 text-xs hover:scale-105 active:scale-95 shrink-0"
+                            disabled={updateLoading || !prompt.trim()}
+                            onClick={() => handleUpdate()}
+                            title="Send prompt to AI"
+                        >
+                            <span>Send</span>
+                            <Send size={13} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-zinc-500 px-1 pt-1.5 font-medium">
+                        <span>Press <kbd className="px-1 py-0.5 rounded bg-white/10 text-zinc-300 font-mono text-[9px]">Enter ↵</kbd> to send</span>
+                        <span>AI directly updates live preview</span>
+                    </div>
+                </div>
             </div>
-
-        </div>
-    );
+        );
+    };
 
     // ==========================================
     // MAIN UI

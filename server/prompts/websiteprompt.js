@@ -15,8 +15,51 @@ CRITICAL INSTRUCTION: Examine the USER PROMPT carefully and adapt the layout, th
 DOMAIN ARCHITECTURE SELECTION:
 --------------------------------------------------
 
-### 🍷 IF RESTAURANT / BISTRO / CAFE / BAKERY / PIZZERIA / FOOD & DINING:
-Build a luxury, warm, ambient dining website:
+### 🛵 IF FOOD DELIVERY / FOOD ORDERING / SWIGGY / ZOMATO / UBEREATS PLATFORM:
+Build an ultra-modern, high-converting, Swiggy-grade food delivery platform with deep multi-cuisine catalogs and rich interactivity:
+- **Theme**: Luxury dark charcoal / obsidian theme (\`bg-[#0c0a09] text-stone-100\`) with appetizing electric orange & emerald accents (\`text-orange-400\`, \`bg-orange-500\`, \`bg-emerald-600\`, \`border-orange-500/20\`, \`bg-stone-900/90\`, \`border-stone-800\`).
+- **Required Swiggy Architecture & Complete Sections**:
+  1. **Top Promo Ticker & Sticky Header with Location Selector**:
+     - Promo ribbon: "⚡ SWIGGY ONE: 50% OFF up to $100 with code SWIGGY50 • Free Delivery in ~25 mins!".
+     - Brand Logo (e.g. "FeastDash / SavorDash" with utensils icon).
+     - Interactive Location Dropdown (\`onclick="openModal('locationModal')"\`) displaying "📍 Indiranagar, Bengaluru ▼" with delivery time.
+     - Offers Trigger (\`onclick="openModal('offersModal')"\`), Track Order shortcut, and Bag button with live counter badge.
+  2. **High-Impact Hero Section (#hero)**:
+     - Full-bleed hero banner with bold food photography, headline ("Craving greatness? Delivered hot & fresh."), delivery metrics ("Avg. 24 Mins • 4.9/5 Rating"), instant search input, and "Explore 72 Dishes" primary CTA button.
+  3. **"What's on your mind?" Swiggy Circular Cuisine Carousel (#categories)**:
+     - 9-12 circular cuisine photo shortcuts with smooth hover effects: Biryani, Pizza, Burgers, Indian, Chinese, South Indian, Desserts, Healthy, Drinks.
+     - Clicking any circle filters the menu to those 8 dishes and smooth-scrolls to \`#menu\`.
+  4. **Top Restaurant Chains in Your Area (#restaurants)**:
+     - 4-8 restaurant cards featuring: Cover photo, discount banner overlay (e.g. "50% OFF UP TO $100"), green rating pill ("★ 4.9"), cuisine specialties, distance ("2.1 km"), and "Explore 8 Dishes ➔" button.
+  5. **Full 72-Dish Gourmet Menu Catalog with Veg/Non-Veg Switch (#menu)**:
+     - Veg / Non-Veg Quick Filter Bar (\`🟢 Pure Veg Only\`, \`🔴 Non-Veg\`, \`✨ All 72 Dishes\`).
+     - 9 Cuisine Filter Tabs (\`🍛 Biryani (8)\`, \`🍕 Pizza (8)\`, \`🍔 Burgers (8)\`, \`🇮🇳 Indian (8)\`, \`🥡 Chinese (8)\`, \`🥞 South Indian (8)\`, \`🍰 Desserts (8)\`, \`🥗 Healthy (8)\`, \`🥤 Drinks (8)\`).
+     - Live search bar filtering dish titles, descriptions, and ingredients in real-time.
+     - Dish Grid (72 items total, 8 per category) with:
+       - 🟢 / 🔴 Veg/Non-Veg icon badge
+       - Title, Star rating, Price
+       - Appetizing description of ingredients & flavors
+       - Right-aligned high-res photo with Quick View modal trigger (\`openDishModal(id)\`)
+       - Signature Swiggy **\`ADD\`** button that dynamically turns into a working **\`- 1 +\` quantity stepper** when added!
+  6. **Live GPS Order Tracking Timeline (#tracking)**:
+     - Interactive order tracking widget with search input, simulated order #FD-8942, animated progress bar (0% ➔ 25% ➔ 65% ➔ 100%), delivery partner Ramesh Kumar (★ 4.9), and live status steps.
+  7. **Verified Diner Reviews (#reviews)**:
+     - 3-4 verified diner review cards with 5-star ratings, dates, verified badges, and "Share Feedback" button opening \`#reviewModal\`.
+  8. **Modern Functional Footer**:
+     - Brand story, 9 cuisine links, delivery locations, VIP newsletter subscription, and working Back-to-Top button.
+- **Required Modals & Floating Components**:
+  - \`#floatingBottomCart\` (Swiggy-style green floating pill that appears on scroll when items are in bag: "🟢 2 ITEMS | $38.50 • VIEW CART ➔").
+  - \`#cartDrawer\` (Slide-out delivery bag drawer with item list, \`- 1 +\` steppers, promo coupon input with \`SWIGGY50\` 50% discount support, subtotal, delivery fee, taxes, and grand total).
+  - \`#checkoutModal\` (Payment options for UPI, Card, and Cash on Delivery + delivery address input).
+  - \`#dishModal\` (Quick view modal with high-res photo, prep time, and Add to Bag button).
+  - \`#offersModal\` (Available discount coupons list with 1-click apply).
+  - \`#locationModal\` (Delivery zone selector with delivery time estimates).
+  - \`#reviewModal\` (Write a verified review modal with 1-5 star selector).
+
+--------------------------------------------------
+
+### 🍷 IF RESTAURANT / BISTRO / FINE DINING / CAFE / BAKERY:
+Build a luxury, warm, ambient dining website with table reservations, chef stories, wine pairings, and gourmet menus:
 - **Theme**: Warm espresso dark theme (\`bg-[#0c0a09] text-stone-100\`) with amber/gold/terracotta/emerald accents (\`text-amber-400\`, \`bg-amber-500\`, \`border-amber-500/20\`, \`bg-stone-900/90\`, \`border-stone-800\`).
 - **Required 8+ Complete Sections**:
   1. **Sticky Glass Navbar**: Brand Logo (e.g. "✦ Osteria Bella Vita" with wine/fork icon), Nav links (Story, Specialties, Menu, Ambiance, Reviews, Location), Call Us button, and primary glowing CTA button: \`<button onclick="openReservationModal()" class="px-5 py-2.5 rounded-xl bg-amber-500 text-black font-bold text-xs hover:opacity-95 shadow-lg shadow-amber-500/20 flex items-center gap-2"><i data-lucide="calendar"></i> Reserve a Table</button>\`.
@@ -27,18 +70,29 @@ Build a luxury, warm, ambient dining website:
      - Subtitle describing the dining experience, fresh seasonal ingredients, and master chef passion.
      - Dual CTAs: "Explore Food Menu" (scrolls to \`#menu\`) + "Book a Table" (\`onclick="openReservationModal()"\`).
      - Floating Social Proof Badges: "★ 4.9 (1,200+ Diners)", "45+ Curated Italian Wines", "Fresh Daily Pasta".
-  3. **Chef's Specialties & Signatures (#specialties)**:
-     - 3-4 featured signature dish cards (e.g. Truffle Tagliatelle, Bistecca alla Fiorentina, Burrata Caprese, Wood-fired Margherita).
-     - Each card features: Chef's Badge, appetizing photo, price, detailed description, wine pairing recommendation, and "Quick View" / "Add to Order" buttons.
-  4. **Interactive Food Menu with Category Filter Tabs (#menu)**:
-     - Category filter pills: All, Antipasti / Starters, Primi / Handmade Pasta, Secondi / Wood-Fired Mains, Pizza Napoletana, Dolci / Artisan Desserts, Fine Wines & Cocktails.
-     - Live search input: \`<input type="text" onkeyup="handleMenuSearch(this.value)" placeholder="Search pasta, pizza, wine...">\`.
-     - Dish Grid (8-10 items) with:
+  3. **Featured Master Kitchens & Multi-Cuisine Showcase (#restaurants)**:
+      - Highlight a diverse variety of cuisines & featured restaurant concepts across:
+        - 🍛 **Indian**: Rich royal curries, tandoori marinades, and garlic butter naans.
+        - 🍕 **Pizza**: Authentic Neapolitan wood-fired pizzas with San Marzano D.O.P. & buffalo mozzarella.
+        - 🍔 **Burgers**: Double smash A5 Wagyu patties, melted Vermont cheddar, and truffle aioli.
+        - 🍚 **Biryani**: Traditional earthen handi slow dum biryanis layered with saffron basmati.
+        - 🥢 **Chinese & Wok**: Steamed crystal dim sums, spicy Sichuan noodles, and Kung Pao chicken.
+        - 🥥 **South Indian**: Golden crispy ghee roast dosas, fluffy idlis, and coconut sambar tiffins.
+        - 🫓 **North Indian**: 24-hour charcoal-simmered Dal Makhani, Amritsari kulchas, and tandoor kebabs.
+        - 🍰 **Desserts**: Decadent Italian Tiramisu, saffron gulab jamun cheesecake, and molten lava cakes.
+        - 🥐 **Bakery**: Freshly laminated butter croissants, pain au chocolat, and rustic sourdough loaves.
+        - 🥗 **Healthy Food**: Sashimi salmon poké bowls, Mediterranean quinoa salads, and keto plates.
+        - 🍹 **Drinks**: Alphonso mango kesar lassis, nitro cold brew coffees, and spiced royal masala chai.
+        - 🌮 **Street Food**: 6-flavor pani puri shots, Mumbai butter pav bhaji, and Kolkata kathi wraps.
+  4. **Interactive Food Menu with 12 Category Filter Tabs & Instant Search (#menu)**:
+     - Category filter pills for the 12 cuisines (All, Indian, Pizza, Burgers, Biryani, Chinese, South Indian, North Indian, Desserts, Bakery, Healthy, Drinks, Street Food).
+     - Live search input: \`<input type="text" onkeyup="handleMenuSearch(this.value)" placeholder="Search biryani, pizza, dosa, butter chicken, dim sum...">\`.
+     - Dish Grid (12-36 items) with:
        - Dish photo with hover zoom
-       - Dietary badges (🌱 Vegan, 🌾 Gluten-Free, 🌶️ Spicy, ⭐ Chef Choice)
-       - Title, Price (e.g. "$24.00")
-       - Ingredients summary (e.g. "San Marzano D.O.P., Buffalo Mozzarella, Fresh Basil, Extra Virgin Olive Oil")
-       - Action buttons: "Quick View" (\`onclick="openDishModal('\${d.id}')"\`) and "Add to Order" (\`onclick="addToCart('\${d.id}')"\`).
+       - Dietary badges (🌱 Vegan, 🌾 Gluten-Free, 🌶️ Spicy, ⭐ Chef Choice, 🍛 Heritage)
+       - Title, Price (e.g. "$23.50")
+       - Ingredients & Flavor summary
+       - Action buttons: "Quick View" (\`onclick="openDishModal('\${d.id}')"\`) and "Add to Bag" (\`onclick="quickAdd('\${d.id}')"\`).
   5. **Chef's Story & Interior Ambiance (#story)**:
      - Split section: Left side master chef portrait & restaurant interior ambiance photos; Right side story of culinary heritage, generational recipes, organic Tuscan suppliers, and wood-fired oven philosophy.
   6. **Customer Testimonials & Critic Reviews (#reviews)**:

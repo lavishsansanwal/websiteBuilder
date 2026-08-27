@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+
+  <script>
+    /* __DEFENSIVE_HELPERS__ */
+    window.openModal = window.openModal || function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.style.display = 'flex'; }
+      if (window.lucide) lucide.createIcons();
+    };
+    window.closeModal = window.closeModal || function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.style.display = 'none'; }
+    };
+    window.toggleDrawer = window.toggleDrawer || function(id) {
+      var el = document.getElementById(id);
+      if (el) { el.classList.toggle('translate-x-full'); }
+      if (window.lucide) lucide.createIcons();
+    };
+    window.showToast = window.showToast || function(msg) {
+      var existing = document.getElementById('globalToast');
+      if (existing) existing.remove();
+      var toast = document.createElement('div');
+      toast.id = 'globalToast';
+      toast.className = 'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl bg-amber-500 text-black text-xs font-extrabold shadow-2xl transition-all duration-300 flex items-center gap-2';
+      toast.innerHTML = '<span>' + (msg || 'Action completed successfully!') + '</span>';
+      document.body.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 3000);
+    };
+    window.handleMenuSearch = window.handleMenuSearch || function(q) {
+      var query = (q || '').toLowerCase().trim();
+      var items = document.querySelectorAll('[data-name], .menu-item, .glass-card, [data-category]');
+      items.forEach(function(item) {
+        if (item.closest('header') || item.closest('footer') || item.closest('nav')) return;
+        var text = item.textContent.toLowerCase();
+        item.style.display = (!query || text.includes(query)) ? '' : 'none';
+      });
+    };
+    window.filterMenu = window.filterMenu || function(cat) {
+      var category = (cat || 'all').toLowerCase().trim();
+      var items = document.querySelectorAll('[data-category]');
+      items.forEach(function(item) {
+        var itemCat = (item.getAttribute('data-category') || '').toLowerCase();
+        item.style.display = (category === 'all' || itemCat.includes(category)) ? '' : 'none';
+      });
+    };
+    window.filterTable = window.filterTable || function(q) {
+      var query = (q || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#tableBody tr, tbody tr, .table-row, [data-row]');
+      rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        row.style.display = (!query || text.includes(query)) ? '' : 'none';
+      });
+    };
+    window.filterStatus = window.filterStatus || function(status) {
+      var s = (status || '').toLowerCase().trim();
+      var rows = document.querySelectorAll('#tableBody tr, tbody tr, .table-row, [data-row]');
+      rows.forEach(function(row) {
+        if (!s || s === 'all' || s === 'all types' || s === 'all status' || s === 'all categories') {
+          row.style.display = '';
+        } else {
+          var text = row.textContent.toLowerCase();
+          row.style.display = text.includes(s) ? '' : 'none';
+        }
+      });
+    };
+    window.filterType = window.filterType || window.filterStatus;
+    window.filterCategory = window.filterCategory || window.filterStatus;
+    window.filterData = window.filterData || window.filterStatus;
+
+    window.sortTable = window.sortTable || function(param) {
+      var table = document.querySelector('table');
+      if (!table) return;
+      var tbody = table.querySelector('tbody') || table;
+      var rows = Array.from(tbody.querySelectorAll('tr'));
+      if (rows.length < 2) return;
+
+      var isNumericParam = !isNaN(Number(param)) && param !== '' && typeof param !== 'boolean';
+      var colIndex = isNumericParam ? Number(param) : 0;
+      var sortDirection = 'asc';
+      var sortStr = String(param || '').toLowerCase();
+
+      if (sortStr.includes('desc') || sortStr.includes('high') || sortStr.includes('z-a')) {
+        sortDirection = 'desc';
+      }
+
+      if (!isNumericParam) {
+        var headers = Array.from(table.querySelectorAll('th'));
+        for (var h = 0; h < headers.length; h++) {
+          var thText = headers[h].textContent.toLowerCase().trim();
+          if (sortStr.includes(thText) || (thText.includes('download') && sortStr.includes('download')) || (thText.includes('comp') && sortStr.includes('comp')) || (thText.includes('rank') && sortStr.includes('rank')) || (thText.includes('volume') && sortStr.includes('volume')) || (thText.includes('search') && sortStr.includes('search'))) {
+            colIndex = h;
+            break;
+          }
+        }
+      }
+
+      rows.sort(function(a, b) {
+        var cellA = (a.children[colIndex] ? a.children[colIndex].textContent : '').trim();
+        var cellB = (b.children[colIndex] ? b.children[colIndex].textContent : '').trim();
+
+        var numA = parseFloat(cellA.split('').filter(function(c) { return (c >= '0' && c <= '9') || c === '.' || c === '-'; }).join(''));
+        var numB = parseFloat(cellB.split('').filter(function(c) { return (c >= '0' && c <= '9') || c === '.' || c === '-'; }).join(''));
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortDirection === 'desc' ? numB - numA : numA - numB;
+        }
+        return sortDirection === 'desc' ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
+      });
+
+      rows.forEach(function(row) { tbody.appendChild(row); });
+      if (window.showToast) window.showToast('Sorted table by ' + (param || 'column'));
+    };
+    window.handleSort = window.handleSort || window.sortTable;
+
+    window.exportToCSV = window.exportToCSV || function() {
+      var table = document.querySelector('table');
+      if (!table) {
+        if (window.showToast) window.showToast('No table records found to export.');
+        return;
+      }
+      var csv = [];
+      var rows = table.querySelectorAll('tr');
+      rows.forEach(function(row) {
+        if (row.style.display === 'none') return;
+        var cols = row.querySelectorAll('th, td');
+        var rowData = [];
+        cols.forEach(function(col) {
+          var text = (col.innerText || col.textContent || '').split(String.fromCharCode(10)).join(' ').replace(/"/g, '""').trim();
+          rowData.push('"' + text + '"');
+        });
+        if (rowData.length > 0) csv.push(rowData.join(','));
+      });
+
+      var csvString = csv.join(String.fromCharCode(10));
+      var blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', 'keyword_dataset_export_' + Date.now() + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      if (window.showToast) window.showToast('Dataset exported as CSV! 📥');
+    };
+    window.exportData = window.exportData || window.exportToCSV;
+    window.downloadCSV = window.downloadCSV || window.exportToCSV;
+    window.exportReport = window.exportReport || window.exportToCSV;
+    window.exportDataset = window.exportDataset || window.exportToCSV;
+
+    window.openLeadModal = window.openLeadModal || function() { (window.openModal && (window.openModal('leadModal') || window.openModal('contactModal'))) || window.showToast('Sign up form opened!'); };
+    window.closeLeadModal = window.closeLeadModal || function() { window.closeModal && (window.closeModal('leadModal') || window.closeModal('contactModal')); };
+    window.submitLeadForm = window.submitLeadForm || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var form = (e && e.target) || document.querySelector('#contact form') || document.querySelector('form');
+      var name = (form && (form.querySelector('input[name="name"]') || form.querySelector('input[type="text"]')) || {}).value || 'there';
+      window.showToast('Thank you, ' + name + '! We received your inquiry and will contact you shortly. 🚀');
+      if (form && form.reset) form.reset();
+    };
+    window.toggleFaq = window.toggleFaq || function(btn) {
+      if (!btn) return;
+      var content = btn.nextElementSibling || (btn.parentElement && btn.parentElement.querySelector('.faq-answer, .faq-content, p'));
+      if (content) content.classList.toggle('hidden');
+    };
+    window.togglePricing = window.togglePricing || function(isAnnual) {
+      var prices = document.querySelectorAll('.price-val, [data-monthly]');
+      prices.forEach(function(el) {
+        var m = el.getAttribute('data-monthly');
+        var a = el.getAttribute('data-annual');
+        if (m && a) el.textContent = isAnnual ? a : m;
+      });
+    };
+
+    window.submitReservation = window.submitReservation || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      window.showToast('Table reservation confirmed! Reference #RES-' + Math.floor(1000 + Math.random() * 9000));
+      window.closeModal('reservationModal');
+    };
+    window.submitReview = window.submitReview || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      window.showToast('Thank you! Your review has been submitted.');
+      window.closeModal('reviewModal');
+    };
+    window.addToCart = window.addToCart || function(id) {
+      window.showToast('Item added to order! 🛒');
+    };
+
+    function handleGlobalClick(event) {
+      var link = event.target.closest("a");
+      if (link) {
+        var href = (link.getAttribute("href") || "").trim();
+        if (!href || href === "#" || href === "/" || href.startsWith("javascript:")) {
+          event.preventDefault();
+          return;
+        }
+        if (href.startsWith("#")) {
+          event.preventDefault();
+          var targetId = decodeURIComponent(href.slice(1)).trim();
+          var target = document.getElementById(targetId) || document.querySelector(href);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+        if (href.startsWith("http://") || href.startsWith("https://")) {
+          event.preventDefault();
+          window.open(href, "_blank", "noopener,noreferrer");
+          return;
+        }
+        event.preventDefault();
+        var cleanId = (href.startsWith('/') ? href.slice(1) : href).trim();
+        var fallbackTarget = document.getElementById(cleanId) || document.querySelector('[data-section="' + cleanId + '"]');
+        if (fallbackTarget) fallbackTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    window.addEventListener("click", handleGlobalClick, true);
+    document.addEventListener("click", handleGlobalClick, true);
+  </script>
+
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FeastDash | Artisanal Gourmet Food Delivery</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            serif: ['"Playfair Display"', 'Georgia', 'serif']
+          },
+          colors: {
+            stoneDark: { 950: '#0c0a09', 900: '#140f0c', 800: '#1c1714', 700: '#29221d' },
+            brand: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#0c0a09] text-stone-100 font-sans min-h-screen flex flex-col selection:bg-amber-500 selection:text-black">
+
+  <!-- TOP ANNOUNCEMENT TICKER -->
+  <div class="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-stone-950 font-bold text-xs py-2 px-4 text-center tracking-wide flex items-center justify-center gap-2">
+    <i data-lucide="zap" class="w-3.5 h-3.5 fill-current"></i>
+    <span>⚡ FLASH OFFER: Get 20% OFF your first order with code <span class="underline font-extrabold">FEAST20</span> • Average delivery in 28 mins!</span>
+  </div>
+
+  <!-- STICKY GLASS NAVBAR -->
+  <header class="sticky top-0 z-40 w-full bg-[#0c0a09]/90 backdrop-blur-xl border-b border-stone-800/80 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- BRAND LOGO -->
+      <a href="#hero" class="flex items-center gap-2.5 group">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-stone-950 font-black text-xl shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+          <i data-lucide="utensils-crossed" class="w-5 h-5"></i>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-serif font-extrabold text-xl tracking-tight text-white group-hover:text-amber-400 transition">FeastDash</span>
+          <span class="text-[10px] text-amber-500/90 tracking-widest uppercase font-bold">Artisanal Delivery</span>
+        </div>
+      </a>
+
+      <!-- DESKTOP NAVIGATION -->
+      <nav class="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-stone-300">
+        <a href="#hero" class="hover:text-amber-400 transition py-1">Home</a>
+        <a href="#categories" class="hover:text-amber-400 transition py-1">Cuisines</a>
+        <a href="#menu" class="hover:text-amber-400 transition py-1">Menu</a>
+        <a href="#how-it-works" class="hover:text-amber-400 transition py-1">How It Works</a>
+        <a href="#reviews" class="hover:text-amber-400 transition py-1">Reviews</a>
+        <a href="#contact" class="hover:text-amber-400 transition py-1">Contact</a>
+      </nav>
+
+      <!-- HEADER ACTIONS -->
+      <div class="flex items-center gap-3">
+        <a href="#tracking" class="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-stone-900 border border-stone-800 text-xs font-medium text-stone-300 hover:text-white hover:border-amber-500/50 transition">
+          <i data-lucide="truck" class="w-4 h-4 text-amber-500"></i>
+          <span>Track Order</span>
+        </a>
+
+        <!-- CART DRAWER TRIGGER -->
+        <button type="button" onclick="toggleDrawer('cartDrawer')" class="relative p-2.5 rounded-xl bg-stone-900 border border-stone-800 hover:border-amber-500/50 text-stone-200 transition group flex items-center gap-2">
+          <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform"></i>
+          <span class="hidden xs:inline text-xs font-bold">Bag</span>
+          <span id="cartBadgeCount" class="bg-amber-500 text-stone-950 font-black text-[11px] w-5 h-5 rounded-full flex items-center justify-center shadow-md shadow-amber-500/30">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 w-full flex flex-col">
+    
+    <!-- HERO SECTION (#hero) -->
+    <section id="hero" class="relative pt-12 pb-20 md:py-28 overflow-hidden bg-gradient-to-b from-stone-950 via-[#0c0a09] to-stone-900/60">
+      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
+      
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <!-- LEFT HERO CONTENT -->
+          <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
+              <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+              <span>#1 Rated Gourmet Delivery Service • 4.9 ★★★★★</span>
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-extrabold text-white leading-[1.15] tracking-tight">
+              Chef-crafted <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-500 to-amber-200">Artisanal Dishes</span>, delivered hot to your doorstep.
+            </h1>
+
+            <p class="text-base sm:text-lg text-stone-400 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
+              Experience restaurant-grade cuisine prepared by top culinary masters. Fresh seasonal ingredients, zero compromise on speed or taste.
+            </p>
+
+            <!-- DELIVERY ADDRESS INPUT BAR -->
+            <div class="bg-stone-900/90 border border-stone-800 p-2 sm:p-2.5 rounded-2xl shadow-2xl max-w-xl mx-auto lg:mx-0 backdrop-blur-md">
+              <form onsubmit="event.preventDefault(); handleAddressSubmit()" class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1 flex items-center">
+                  <i data-lucide="map-pin" class="w-5 h-5 text-amber-500 absolute left-3.5 pointer-events-none"></i>
+                  <input id="heroAddressInput" type="text" placeholder="Enter your delivery address..." required class="w-full pl-11 pr-4 py-3 bg-stone-950/80 border border-stone-800 rounded-xl text-xs sm:text-sm font-medium text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition">
+                </div>
+                <button type="submit" class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 shrink-0">
+                  <span>Find Food</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+              </form>
+            </div>
+
+            <!-- METRICS & SOCIAL PROOF -->
+            <div class="pt-4 grid grid-cols-3 gap-4 border-t border-stone-800/80 max-w-xl mx-auto lg:mx-0 text-left">
+              <div>
+                <p class="text-2xl font-extrabold text-white font-serif">28 Mins</p>
+                <p class="text-xs text-stone-400 font-medium">Avg Delivery Time</p>
+              </div>
+              <div>
+                <p class="text-2xl font-extrabold text-white font-serif">50,000+</p>
+                <p class="text-xs text-stone-400 font-medium">Happy Diners</p>
+              </div>
+              <div>
+                <p class="text-2xl font-extrabold text-white font-serif">100% Fresh</p>
+                <p class="text-xs text-stone-400 font-medium">Organic Ingredients</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT HERO VISUAL -->
+          <div class="lg:col-span-5 relative">
+            <div class="relative mx-auto max-w-md lg:max-w-none">
+              <!-- AMBIENT GLOW -->
+              <div class="absolute -inset-4 bg-gradient-to-tr from-amber-500/20 to-amber-600/10 rounded-3xl blur-2xl"></div>
+              
+              <div class="relative rounded-3xl overflow-hidden border border-stone-800 bg-stone-900 shadow-2xl group">
+                <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1000&auto=format&fit=crop&q=80" alt="Gourmet Dining Setup" class="w-full h-[420px] object-cover group-hover:scale-105 transition duration-700">
+                <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/20 to-transparent"></div>
+                
+                <!-- FLOATING BADGE -->
+                <div class="absolute bottom-5 left-5 right-5 p-4 rounded-2xl bg-stone-950/90 border border-stone-800/90 backdrop-blur-md flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <i data-lucide="flame" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <p class="text-xs font-bold text-white">Chef Specialty Hot Order</p>
+                      <p class="text-[11px] text-stone-400">Truffle & Porcini Tagliatelle</p>
+                    </div>
+                  </div>
+                  <button type="button" onclick="quickAdd('d1')" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs transition">
+                    + Add $24.50
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CUISINE CATEGORIES STRIP (#categories) -->
+    <section id="categories" class="py-12 bg-stone-950 border-y border-stone-800/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-500">Explore Flavors</span>
+            <h2 class="text-2xl sm:text-3xl font-serif font-extrabold text-white mt-1">Popular Cuisines</h2>
+          </div>
+          <span class="text-xs text-stone-400 hidden sm:inline">Filter by category to explore options</span>
+        </div>
+
+        <!-- CATEGORY SLIDER STRIP -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          
+          <button type="button" onclick="filterCategory('all')" class="cat-pill active group p-4 rounded-2xl bg-stone-900 border border-amber-500/50 hover:border-amber-500 text-center transition flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 group-hover:scale-110 transition flex items-center justify-center">
+              <i data-lucide="utensils" class="w-6 h-6"></i>
+            </div>
+            <span class="text-xs font-bold text-white">All Menu</span>
+          </button>
+
+          <button type="button" onclick="filterCategory('pasta')" class="cat-pill group p-4 rounded-2xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/50 text-center transition flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-full bg-stone-800 text-amber-400 group-hover:scale-110 transition flex items-center justify-center">
+              <i data-lucide="wheat" class="w-6 h-6"></i>
+            </div>
+            <span class="text-xs font-bold text-white">Italian Pasta</span>
+          </button>
+
+          <button type="button" onclick="filterCategory('pizza')" class="cat-pill group p-4 rounded-2xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/50 text-center transition flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-full bg-stone-800 text-amber-400 group-hover:scale-110 transition flex items-center justify-center">
+              <i data-lucide="pizza" class="w-6 h-6"></i>
+            </div>
+            <span class="text-xs font-bold text-white">Wood-Fired Pizza</span>
+          </button>
+
+          <button type="button" onclick="filterCategory('burgers')" class="cat-pill group p-4 rounded-2xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/50 text-center transition flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-full bg-stone-800 text-amber-400 group-hover:scale-110 transition flex items-center justify-center">
+              <i data-lucide="sandwich" class="w-6 h-6"></i>
+            </div>
+            <span class="text-xs font-bold text-white">Wagyu Burgers</span>
+          </button>
+
+          <button type="button" onclick="filterCategory('bowls')" class="cat-pill group p-4 rounded-2xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/50 text-center transition flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-full bg-stone-800 text-amber-400 group-hover:scale-110 transition flex items-center justify-center">
+              <i data-lucide="soup" class="w-6 h-6"></i>
+            </div>
+            <span class="text-xs font-bold text-white">Fresh Bowls</span>
+          </button>
+
+          <button type="button" onclick="filterCategory('desserts')" class="cat-pill group p-4 rounded-2xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/50 text-center transition flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-full bg-stone-800 text-amber-400 group-hover:scale-110 transition flex items-center justify-center">
+              <i data-lucide="cake" class="w-6 h-6"></i>
+            </div>
+            <span class="text-xs font-bold text-white">Artisan Dolci</span>
+          </button>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE FOOD MENU CATALOG (#menu) -->
+    <section id="menu" class="py-20 bg-[#0c0a09]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-500">Freshly Cooked</span>
+            <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-white mt-1">Curated Gourmet Menu</h2>
+          </div>
+
+          <!-- SEARCH & DIETARY FILTERS -->
+          <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <div class="relative w-full sm:w-72">
+              <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              <input type="text" id="menuSearchInput" oninput="handleSearch(this.value)" placeholder="Search pasta, pizza, steak..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs font-medium text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 transition">
+            </div>
+          </div>
+        </div>
+
+        <!-- DISH GRID CONTAINER -->
+        <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Dynamic JavaScript rendering target -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS & TIMELINE (#how-it-works) -->
+    <section id="how-it-works" class="py-20 bg-stone-950 border-t border-stone-800/80 relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div class="text-center max-w-2xl mx-auto mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-amber-500">Seamless Experience</span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-white mt-1">How FeastDash Works</h2>
+          <p class="text-stone-400 text-xs sm:text-sm mt-2">From kitchen to your dining table in four seamless steps.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+          
+          <!-- STEP 1 -->
+          <div class="p-6 rounded-3xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/40 transition text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto flex items-center justify-center font-black text-xl">
+              1
+            </div>
+            <h3 class="font-serif font-bold text-lg text-white">Choose Dish</h3>
+            <p class="text-xs text-stone-400 leading-relaxed">Browse our Michelin-inspired artisanal catalog and select your cravings.</p>
+          </div>
+
+          <!-- STEP 2 -->
+          <div class="p-6 rounded-3xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/40 transition text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto flex items-center justify-center font-black text-xl">
+              2
+            </div>
+            <h3 class="font-serif font-bold text-lg text-white">Master Preparation</h3>
+            <p class="text-xs text-stone-400 leading-relaxed">Our executive chefs prepare your meal fresh to order using organic produce.</p>
+          </div>
+
+          <!-- STEP 3 -->
+          <div class="p-6 rounded-3xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/40 transition text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto flex items-center justify-center font-black text-xl">
+              3
+            </div>
+            <h3 class="font-serif font-bold text-lg text-white">Climate Express Delivery</h3>
+            <p class="text-xs text-stone-400 leading-relaxed">Insulated thermal dispatch ensures your food arrives piping hot & fresh.</p>
+          </div>
+
+          <!-- STEP 4 -->
+          <div class="p-6 rounded-3xl bg-stone-900/60 border border-stone-800 hover:border-amber-500/40 transition text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto flex items-center justify-center font-black text-xl">
+              4
+            </div>
+            <h3 class="font-serif font-bold text-lg text-white">Savor & Enjoy</h3>
+            <p class="text-xs text-stone-400 leading-relaxed">Unbox restaurant quality luxury dining in the comfort of your home.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE ORDER TRACKER WIDGET (#tracking) -->
+    <section id="tracking" class="py-20 bg-[#0c0a09] border-t border-stone-800/80">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="p-8 rounded-3xl bg-stone-900/80 border border-stone-800 backdrop-blur-xl shadow-2xl space-y-8">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-6">
+            <div>
+              <span class="text-xs font-bold text-amber-500 uppercase tracking-widest">Real-Time Fulfillment</span>
+              <h2 class="text-2xl font-serif font-extrabold text-white mt-0.5">Live Order Tracker</h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></div>
+              <span class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">System Active</span>
+            </div>
+          </div>
+
+          <!-- SEARCH ORDER FORM -->
+          <form onsubmit="event.preventDefault(); simulateOrderTracking()" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <i data-lucide="hash" class="w-4 h-4 text-amber-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+              <input id="trackingCodeInput" type="text" value="FD-8942" placeholder="Enter Order ID (e.g. FD-8942)..." class="w-full pl-10 pr-4 py-3 bg-stone-950 border border-stone-800 rounded-xl text-xs font-mono font-medium text-white focus:outline-none focus:border-amber-500 transition">
+            </div>
+            <button type="submit" class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2">
+              <i data-lucide="search" class="w-4 h-4"></i>
+              <span>Track Progress</span>
+            </button>
+          </form>
+
+          <!-- TRACKING STAGE TIMELINE -->
+          <div id="trackingTimeline" class="pt-4 space-y-6" style="display: none;">
+            <div class="flex items-center justify-between text-xs font-bold text-stone-400 mb-2">
+              <span>Order Code: <span id="displayOrderCode" class="text-amber-400 font-mono">#FD-8942</span></span>
+              <span>Estimated Arrival: <span class="text-white font-extrabold">22 mins</span></span>
+            </div>
+
+            <!-- TIMELINE PROGRESS BAR -->
+            <div class="w-full bg-stone-950 h-3 rounded-full overflow-hidden p-0.5 border border-stone-800">
+              <div id="progressBar" class="bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full transition-all duration-700 w-3/4"></div>
+            </div>
+
+            <!-- STEPS GRID -->
+            <div class="grid grid-cols-4 gap-2 text-center text-[11px] font-bold">
+              <div class="text-amber-400 flex flex-col items-center gap-1">
+                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                <span>Confirmed</span>
+              </div>
+              <div class="text-amber-400 flex flex-col items-center gap-1">
+                <i data-lucide="chef-hat" class="w-4 h-4"></i>
+                <span>Preparing</span>
+              </div>
+              <div class="text-amber-400 flex flex-col items-center gap-1">
+                <i data-lucide="bike" class="w-4 h-4"></i>
+                <span>On The Way</span>
+              </div>
+              <div class="text-stone-500 flex flex-col items-center gap-1">
+                <i data-lucide="home" class="w-4 h-4"></i>
+                <span>Delivered</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CUSTOMER REVIEWS & TESTIMONIALS (#reviews) -->
+    <section id="reviews" class="py-20 bg-stone-950 border-t border-stone-800/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-500">Verified Diners</span>
+            <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-white mt-1">What Foodies Say</h2>
+          </div>
+          <button type="button" onclick="openModal('reviewModal')" class="px-5 py-2.5 rounded-xl bg-stone-900 border border-amber-500/30 text-amber-400 hover:bg-amber-500 hover:text-stone-950 font-extrabold text-xs uppercase tracking-wider transition flex items-center gap-2 self-start md:self-auto">
+            <i data-lucide="pen-tool" class="w-4 h-4"></i>
+            <span>Write a Review</span>
+          </button>
+        </div>
+
+        <div id="reviewsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Dynamic Reviews injected via JavaScript -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- LEAD CAPTURE / CONTACT & PARTNER FORM (#contact) -->
+    <section id="contact" class="py-20 bg-[#0c0a09] border-t border-stone-800/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-5 space-y-6">
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-500">Get In Touch</span>
+            <h2 class="text-3xl sm:text-4xl font-serif font-extrabold text-white">Have Questions or Want to Partner?</h2>
+            <p class="text-stone-400 text-xs sm:text-sm leading-relaxed">
+              Whether you're a gourmet restaurant owner wanting to join our delivery network, a driver interested in joining our fleet, or a diner with feedback — we'd love to hear from you.
+            </p>
+
+            <div class="space-y-4 pt-4">
+              <div class="flex items-center gap-3 text-xs text-stone-300">
+                <div class="w-9 h-9 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center text-amber-500">
+                  <i data-lucide="mail" class="w-4 h-4"></i>
+                </div>
+                <span>concierge@feastdash.com</span>
+              </div>
+              <div class="flex items-center gap-3 text-xs text-stone-300">
+                <div class="w-9 h-9 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center text-amber-500">
+                  <i data-lucide="phone" class="w-4 h-4"></i>
+                </div>
+                <span>+1 (800) 555-FEAST</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORM CARD (CONTAINING NAME, EMAIL, PHONE) -->
+          <div class="lg:col-span-7 bg-stone-900/80 border border-stone-800 p-6 sm:p-8 rounded-3xl shadow-2xl backdrop-blur-xl">
+            <form onsubmit="event.preventDefault(); submitContactForm(event)" class="space-y-4">
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- FULL NAME -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-stone-300">Full Name</label>
+                  <div class="relative flex items-center">
+                    <i data-lucide="user" class="w-4 h-4 text-amber-500 absolute left-3.5 pointer-events-none"></i>
+                    <input type="text" name="name" required placeholder="e.g. Alex Morgan" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+                  </div>
+                </div>
+
+                <!-- EMAIL -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-stone-300">Work / Personal Email</label>
+                  <div class="relative flex items-center">
+                    <i data-lucide="mail" class="w-4 h-4 text-amber-500 absolute left-3.5 pointer-events-none"></i>
+                    <input type="email" name="email" required placeholder="alex@example.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+                  </div>
+                </div>
+              </div>
+
+              <!-- PHONE NUMBER -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-stone-300">Mobile Phone Number</label>
+                <div class="relative flex items-center">
+                  <i data-lucide="phone" class="w-4 h-4 text-amber-500 absolute left-3.5 pointer-events-none"></i>
+                  <input type="tel" name="phone" required placeholder="+1 (555) 000-0000" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+                </div>
+              </div>
+
+              <!-- INQUIRY TYPE -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-stone-300">Inquiry Type</label>
+                <select name="inquiryType" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-stone-200 focus:outline-none focus:border-amber-500 transition">
+                  <option value="Customer Support">Customer Support / Order Help</option>
+                  <option value="Restaurant Partner">Restaurant Partnership Inquiry</option>
+                  <option value="Courier Fleet">Become a Delivery Courier</option>
+                </select>
+              </div>
+
+              <!-- MESSAGE -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-stone-300">Message</label>
+                <textarea name="message" rows="3" placeholder="Tell us how we can help..." class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition resize-none"></textarea>
+              </div>
+
+              <button type="submit" class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                <span>Submit Inquiry</span>
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </button>
+
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER (STRICTLY FUNCTIONAL LINKS ONLY) -->
+  <footer class="bg-[#080605] border-t border-stone-800/80 pt-16 pb-12 text-stone-400 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-stone-800/80">
+        
+        <!-- COL 1: BRAND -->
+        <div class="space-y-4">
+          <a href="#hero" class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-stone-950 font-black text-base shadow-md shadow-amber-500/20">
+              <i data-lucide="utensils-crossed" class="w-4 h-4"></i>
+            </div>
+            <span class="font-serif font-extrabold text-lg text-white">FeastDash</span>
+          </a>
+          <p class="text-stone-400 text-xs leading-relaxed">
+            Delivering Michelin-starred quality dining experience straight to your home with lightning speed.
+          </p>
+          <p class="text-stone-500 text-[11px]">&copy; <span id="yearSpan"></span> FeastDash Inc. All rights reserved.</p>
+        </div>
+
+        <!-- COL 2: NAVIGATION ANCHORS -->
+        <div class="space-y-3">
+          <p class="font-bold text-white uppercase tracking-wider text-[11px]">Quick Navigation</p>
+          <ul class="space-y-2 font-medium">
+            <li><a href="#hero" class="hover:text-amber-400 transition">Home Overview</a></li>
+            <li><a href="#categories" class="hover:text-amber-400 transition">Cuisine Categories</a></li>
+            <li><a href="#menu" class="hover:text-amber-400 transition">Full Food Menu</a></li>
+            <li><a href="#how-it-works" class="hover:text-amber-400 transition">Delivery Process</a></li>
+            <li><a href="#reviews" class="hover:text-amber-400 transition">Diner Reviews</a></li>
+            <li><a href="#contact" class="hover:text-amber-400 transition">Contact & Support</a></li>
+          </ul>
+        </div>
+
+        <!-- COL 3: DIRECT CONTACT & ACTIONS -->
+        <div class="space-y-3">
+          <p class="font-bold text-white uppercase tracking-wider text-[11px]">Help & Services</p>
+          <ul class="space-y-2 font-medium">
+            <li><a href="#tracking" class="hover:text-amber-400 transition flex items-center gap-1.5"><i data-lucide="truck" class="w-3.5 h-3.5 text-amber-500"></i> Track Your Order</a></li>
+            <li><a href="mailto:concierge@feastdash.com" class="hover:text-amber-400 transition flex items-center gap-1.5"><i data-lucide="mail" class="w-3.5 h-3.5 text-amber-500"></i> Email Concierge</a></li>
+            <li><a href="tel:+18005553327" class="hover:text-amber-400 transition flex items-center gap-1.5"><i data-lucide="phone" class="w-3.5 h-3.5 text-amber-500"></i> Call Customer Line</a></li>
+            <li><button type="button" onclick="openModal('privacyModal')" class="hover:text-amber-400 transition text-left">Privacy & Delivery Terms</button></li>
+          </ul>
+        </div>
+
+        <!-- COL 4: NEWSLETTER & BACK TO TOP -->
+        <div class="space-y-4">
+          <p class="font-bold text-white uppercase tracking-wider text-[11px]">VIP Culinary Club</p>
+          <p class="text-stone-400 text-[11px]">Subscribe for secret menu items & weekend discount drops.</p>
+          <form onsubmit="event.preventDefault(); submitNewsletter(event)" class="space-y-2">
+            <div class="relative flex items-center">
+              <i data-lucide="mail" class="w-4 h-4 text-stone-500 absolute left-3 pointer-events-none"></i>
+              <input type="email" required placeholder="Enter your email..." class="w-full pl-9 pr-3 py-2 bg-stone-900 border border-stone-800 rounded-xl text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+            </div>
+            <button type="submit" class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs transition uppercase tracking-wider">
+              Subscribe
+            </button>
+          </form>
+          
+          <button type="button" onclick="window.scrollTo({top:0, behavior:'smooth'})" class="pt-2 flex items-center gap-1 text-xs text-amber-500 font-bold hover:underline">
+            <span>Back to top</span>
+            <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== MODALS & DRAWERS ==================== -->
+
+  <!-- SLIDE-OUT CART DRAWER (STARTS 100% EMPTY) -->
+  <div id="cartDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-stone-950 border-l border-stone-800 p-6 flex flex-col justify-between shadow-2xl translate-x-full transition-transform duration-300 ease-in-out">
+    
+    <div>
+      <!-- DRAWER HEADER -->
+      <div class="flex items-center justify-between pb-4 border-b border-stone-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="font-serif font-extrabold text-lg text-white">Your Delivery Bag</h3>
+        </div>
+        <button type="button" onclick="toggleDrawer('cartDrawer')" class="p-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- DYNAMIC CART ITEMS CONTAINER -->
+      <div id="cartItemsContainer" class="py-6 space-y-4 max-h-[60vh] overflow-y-auto pr-1 transition-transform duration-300 ease-in-out">
+        <!-- Dynamic Render State -->
+      </div>
+    </div>
+
+    <!-- DRAWER FOOTER / TOTAL -->
+    <div id="cartFooter" class="border-t border-stone-800 pt-4 space-y-4 transition-transform duration-300 ease-in-out">
+      <div class="space-y-1.5 text-xs text-stone-400">
+        <div class="flex justify-between">
+          <span>Subtotal</span>
+          <span id="cartSubtotalText" class="font-bold text-white">$0.00</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Estimated Express Delivery</span>
+          <span class="font-bold text-emerald-400">$3.99</span>
+        </div>
+        <div class="flex justify-between text-sm font-bold text-white pt-2 border-t border-stone-800/60">
+          <span>Total</span>
+          <span id="cartTotalText" class="text-amber-400 font-extrabold">$3.99</span>
+        </div>
+      </div>
+
+      <button type="button" id="checkoutBtn" onclick="openModal('checkoutModal')" disabled class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-stone-950 font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+        <span>Proceed to Checkout</span>
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div id="checkoutModal" style="display: none;" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-stone-900 border border-stone-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-stone-800 pb-4">
+        <h3 class="font-serif font-extrabold text-xl text-white flex items-center gap-2">
+          <i data-lucide="credit-card" class="w-5 h-5 text-amber-500"></i>
+          <span>Complete Your Order</span>
+        </h3>
+        <button type="button" onclick="closeModal('checkoutModal')" class="p-1.5 rounded-lg bg-stone-800 text-stone-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); processCheckout(event)" class="space-y-4">
+        <!-- CONTACT & DELIVERY INFO -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-stone-300">Full Name</label>
+          <input type="text" name="name" required placeholder="Alex Morgan" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-stone-300">Email Address</label>
+            <input type="email" name="email" required placeholder="alex@example.com" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+          </div>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-stone-300">Phone Number</label>
+            <input type="tel" name="phone" required placeholder="+1 (555) 000-0000" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-stone-300">Delivery Street Address</label>
+          <input type="text" name="address" required placeholder="742 Evergreen Terrace, Apt 4B" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs font-medium text-white focus:outline-none focus:border-amber-500 transition">
+        </div>
+
+        <!-- PAYMENT METHOD SELECTION -->
+        <div class="space-y-2 pt-2">
+          <label class="block text-xs font-bold text-stone-300">Payment Method</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="p-3 rounded-xl border border-amber-500 bg-amber-500/10 flex flex-col items-center justify-center gap-1 cursor-pointer text-center">
+              <input type="radio" name="payMethod" value="Card" checked class="hidden">
+              <i data-lucide="credit-card" class="w-4 h-4 text-amber-400"></i>
+              <span class="text-[11px] font-bold text-white">Credit Card</span>
+            </label>
+            <label class="p-3 rounded-xl border border-stone-800 bg-stone-950 flex flex-col items-center justify-center gap-1 cursor-pointer text-center hover:border-amber-500/50 transition">
+              <input type="radio" name="payMethod" value="ApplePay" class="hidden">
+              <i data-lucide="smartphone" class="w-4 h-4 text-stone-400"></i>
+              <span class="text-[11px] font-bold text-white">Apple Pay</span>
+            </label>
+            <label class="p-3 rounded-xl border border-stone-800 bg-stone-950 flex flex-col items-center justify-center gap-1 cursor-pointer text-center hover:border-amber-500/50 transition">
+              <input type="radio" name="payMethod" value="COD" class="hidden">
+              <i data-lucide="banknote" class="w-4 h-4 text-stone-400"></i>
+              <span class="text-[11px] font-bold text-white">Cash on Delivery</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 mt-4">
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+          <span>Place Order Now</span>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- DISH QUICK VIEW MODAL -->
+  <div id="dishModal" style="display: none;" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-stone-900 border border-stone-800 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative flex flex-col">
+      <div class="relative h-56 w-full">
+        <img id="modalDishImage" src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400&auto=format&fit=crop&q=80" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&auto=format&fit=crop&q=80'" alt="Dish Preview" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-black/40"></div>
+        <button type="button" onclick="closeModal('dishModal')" class="absolute top-4 right-4 p-2 rounded-full bg-stone-950/80 text-white hover:bg-stone-900 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      
+      <div class="p-6 space-y-4">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <span id="modalDishCategory" class="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">Italian</span>
+            <h3 id="modalDishTitle" class="font-serif font-extrabold text-2xl text-white">Dish Name</h3>
+          </div>
+          <span id="modalDishPrice" class="font-serif font-black text-xl text-amber-400">$0.00</span>
+        </div>
+
+        <p id="modalDishDesc" class="text-xs text-stone-400 leading-relaxed">Dish description text</p>
+
+        <div class="pt-2 border-t border-stone-800 flex items-center justify-between">
+          <div class="flex items-center gap-2 text-xs text-stone-300 font-medium">
+            <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
+            <span>Prep Time: 15-20 mins</span>
+          </div>
+          <button id="modalAddBtn" type="button" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs transition uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-amber-500/20">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            <span>Add to Bag</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WRITE A REVIEW MODAL -->
+  <div id="reviewModal" style="display: none;" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-stone-900 border border-stone-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3">
+        <h3 class="font-serif font-extrabold text-lg text-white">Share Your Dining Experience</h3>
+        <button type="button" onclick="closeModal('reviewModal')" class="p-1.5 rounded-lg bg-stone-800 text-stone-400 hover:text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); submitReview(event)" class="space-y-4">
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-stone-300">Your Name</label>
+          <input type="text" name="reviewerName" required placeholder="e.g. Sarah Jenkins" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs text-white focus:outline-none focus:border-amber-500 transition">
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-stone-300">Rating</label>
+          <select name="rating" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs text-stone-200 focus:outline-none focus:border-amber-500 transition">
+            <option value="5">★★★★★ (5/5) - Phenomenal!</option>
+            <option value="4">★★★★☆ (4/5) - Delicious</option>
+            <option value="3">★★★☆☆ (3/5) - Average</option>
+          </select>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-stone-300">Review</label>
+          <textarea name="reviewText" rows="3" required placeholder="How was the food quality and delivery speed?" class="w-full px-4 py-2.5 rounded-xl bg-stone-950 border border-stone-800 text-xs text-white focus:outline-none focus:border-amber-500 transition resize-none"></textarea>
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20">
+          Publish Review
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PRIVACY POLICY MODAL -->
+  <div id="privacyModal" style="display: none;" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-stone-900 border border-stone-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-4 shadow-2xl relative max-h-[80vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-stone-800 pb-3">
+        <h3 class="font-serif font-extrabold text-lg text-white">Privacy Policy & Terms</h3>
+        <button type="button" onclick="closeModal('privacyModal')" class="p-1.5 rounded-lg bg-stone-800 text-stone-400 hover:text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="text-xs text-stone-400 leading-relaxed space-y-3">
+        <p>At FeastDash, we value your privacy and security. When you place an order, we collect essential delivery details including your address, contact number, and payment preference to ensure prompt fulfillment.</p>
+        <p>All transactions are processed through end-to-end encrypted gateways. We never sell your personal information to third-party advertisers.</p>
+        <p>For questions regarding our food safety protocols or refund policies, please contact our concierge team at support@feastdash.com.</p>
+      </div>
+      <button type="button" onclick="closeModal('privacyModal')" class="w-full py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs transition">
+        I Understand
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT STATE ENGINE ==================== -->
+  <script>
+    // 1. DATA CATALOG STATE
+    const DISHES = [
+      {
+        id: 'd1',
+        title: 'Truffle & Porcini Tagliatelle',
+        category: 'pasta',
+        price: 24.50,
+        image: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800&auto=format&fit=crop&q=80',
+        badge: 'Chef Special',
+        desc: 'Handmade tagliatelle tossed in black truffle cream, wild porcini mushrooms, and 24-month aged Parmigiano Reggiano.',
+        dietary: 'Vegetarian'
+      },
+      {
+        id: 'd2',
+        title: 'Wood-Fired Margherita D.O.P.',
+        category: 'pizza',
+        price: 18.90,
+        image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&auto=format&fit=crop&q=80',
+        badge: 'Best Seller',
+        desc: 'San Marzano D.O.P. tomato sauce, fresh buffalo mozzarella, aromatic basil, and extra virgin Olive oil on 48h fermented dough.',
+        dietary: '🌱 Vegan Choice'
+      },
+      {
+        id: 'd3',
+        title: 'Wagyu Smash Burger Deluxe',
+        category: 'burgers',
+        price: 21.00,
+        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=80',
+        badge: 'Juicy Drop',
+        desc: 'Double A5 Wagyu beef patties, aged Vermont cheddar, caramelized shallots, house truffle aioli on toasted brioche.',
+        dietary: 'Prime Beef'
+      },
+      {
+        id: 'd4',
+        title: 'Dragon Salmon Poké Bowl',
+        category: 'bowls',
+        price: 22.50,
+        image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80',
+        badge: 'Fresh & Healthy',
+        desc: 'Sustainably sourced sashimi-grade Atlantic salmon, edamame, avocado, radish, ginger glaze over organic sushi rice.',
+        dietary: '🌾 Gluten-Free'
+      },
+      {
+        id: 'd5',
+        title: 'Florentine Roasted Ribeye Steak',
+        category: 'mains',
+        price: 34.00,
+        image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80',
+        badge: 'Signature Main',
+        desc: '14oz wood-grilled dry-aged ribeye served with roasted garlic rosemary butter and charred heirloom asparagus.',
+        dietary: 'High Protein'
+      },
+      {
+        id: 'd6',
+        title: 'Artisanal Burrata Caprese',
+        category: 'starters',
+        price: 16.50,
+        image: 'https://images.unsplash.com/photo-1580638149300-65f0b9e8fbff?w=800&auto=format&fit=crop&q=80',
+        badge: 'Fresh Starter',
+        desc: 'Creamy Puglia burrata, vine-ripened heirloom tomatoes, aged balsamic reduction, and crushed Sicilian pistachios.',
+        dietary: '🌱 Vegan Option'
+      },
+      {
+        id: 'd7',
+        title: 'Signature Tiramisu Al Caffè',
+        category: 'desserts',
+        price: 11.00,
+        image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&auto=format&fit=crop&q=80',
+        badge: 'Dolci',
+        desc: 'Traditional espresso-soaked ladyfingers layering whipped mascarpone cream and dusted Valrhona dark cocoa.',
+        dietary: 'Sweet Artisan'
+      },
+      {
+        id: 'd8',
+        title: 'Smoked Old Fashioned Cocktail',
+        category: 'drinks',
+        price: 14.00,
+        image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&auto=format&fit=crop&q=80',
+        badge: 'Craft Beverage',
+        desc: 'Bourbon infused with orange peel, aromatic bitters, and cold-infused oak smoke. Shipped sealed in ice glass.',
+        dietary: '21+ Alcohol'
+      }
+    ];
+
+    let REVIEWS = [
+      {
+        name: 'Elena Rostova',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: '2 hours ago',
+        comment: 'The Truffle & Porcini Tagliatelle arrived steaming hot in under 25 minutes! Taste was indistinguishable from a fine dining bistro in Rome.'
+      },
+      {
+        name: 'Marcus Vance',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: 'Yesterday',
+        comment: 'FeastDash is my go-to for client dinners at home. Packaging is incredible, thermal sealed, and the Wagyu smash burger is unparalleled.'
+      },
+      {
+        name: 'Sophia Chen',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+        stars: 5,
+        date: '3 days ago',
+        comment: 'Real-time order tracking accurate to the minute. The Salmon Poké Bowl was exceptionally fresh and clean.'
+      }
+    ];
+
+    // CART MUST START 100% EMPTY
+    let cart = [];
+    let activeCategory = 'all';
+    let searchQuery = '';
+
+    // INITIALIZATION
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('yearSpan').textContent = new Date().getFullYear();
+      renderMenu();
+      renderCart();
+      renderReviews();
+      if (window.lucide) lucide.createIcons();
+    });
+
+    // 2. RENDER FOOD MENU
+    function renderMenu() {
+      const container = document.getElementById('menuGrid');
+      if (!container) return;
+
+      const filtered = DISHES.filter(d => {
+        const matchesCat = activeCategory === 'all' || d.category === activeCategory;
+        const matchesSearch = d.title.toLowerCase().includes(searchQuery.toLowerCase()) || d.desc.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCat && matchesSearch;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-stone-500 text-sm">
+            <i data-lucide="utensils-crossed" class="w-8 h-8 mx-auto text-stone-600 mb-2"></i>
+            <p>No delicious items match your search filter.</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => `
+        <div class="group rounded-3xl bg-stone-900/80 border border-stone-800 hover:border-amber-500/40 transition-all duration-300 overflow-hidden flex flex-col justify-between shadow-xl hover:-translate-y-1">
+          <div>
+            <!-- IMAGE & BADGE -->
+            <div class="relative h-48 w-full overflow-hidden">
+              <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+              <div class="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent"></div>
+              <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-stone-950/80 border border-amber-500/30 text-amber-400 font-extrabold text-[10px] tracking-wider uppercase backdrop-blur-md">
+                ${item.badge}
+              </span>
+            </div>
+
+            <!-- CONTENT -->
+            <div class="p-5 space-y-2">
+              <div class="flex items-center justify-between text-[11px] text-stone-400 font-bold uppercase tracking-wider">
+                <span>${item.dietary}</span>
+                <span class="text-amber-400 font-serif font-extrabold text-base">$${item.price.toFixed(2)}</span>
+              </div>
+              <h3 class="font-serif font-extrabold text-lg text-white group-hover:text-amber-400 transition">${item.title}</h3>
+              <p class="text-xs text-stone-400 leading-relaxed line-clamp-2">${item.desc}</p>
+            </div>
+          </div>
+
+          <!-- ACTIONS -->
+          <div class="p-5 pt-0 flex items-center gap-2">
+            <button type="button" onclick="openDishModal('${item.id}')" class="p-2.5 rounded-xl bg-stone-950 border border-stone-800 text-stone-300 hover:text-white hover:border-stone-700 transition">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+            <button type="button" onclick="quickAdd('${item.id}')" class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs uppercase tracking-wider transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5">
+              <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+              <span>Add to Bag</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // 3. CART ACTIONS
+    function quickAdd(id) {
+      const dish = DISHES.find(d => d.id === id);
+      if (!dish) return;
+      
+      const existing = cart.find(c => c.id === id);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({ ...dish, qty: 1 });
+      }
+      renderCart();
+      showToast(`Added ${dish.title} to your bag! 🛵`);
+      
+      // Auto open drawer to show the added item
+      const drawer = document.getElementById('cartDrawer');
+      if (drawer && drawer.classList.contains('translate-x-full')) {
+        drawer.classList.remove('translate-x-full');
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    function updateQty(id, delta) {
+      const item = cart.find(c => c.id === id);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) {
+        cart = cart.filter(c => c.id !== id);
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cartItemsContainer');
+      const badgeCount = document.getElementById('cartBadgeCount');
+      const subtotalEl = document.getElementById('cartSubtotalText');
+      const totalEl = document.getElementById('cartTotalText');
+      const checkoutBtn = document.getElementById('checkoutBtn');
+
+      const totalItems = cart.reduce((acc, i) => acc + i.qty, 0);
+      const subtotal = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+      const deliveryFee = totalItems > 0 ? 3.99 : 0;
+      const grandTotal = subtotal + deliveryFee;
+
+      if (badgeCount) {
+        badgeCount.textContent = totalItems;
+        badgeCount.style.display = totalItems > 0 ? 'flex' : 'none';
+      }
+      if (subtotalEl) subtotalEl.textContent = `${subtotal.toFixed(2)}`;
+      if (totalEl) totalEl.textContent = `${grandTotal.toFixed(2)}`;
+      if (checkoutBtn) checkoutBtn.disabled = cart.length === 0;
+
+      if (!container) return;
+
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center space-y-4 text-stone-500">
+            <div class="w-14 h-14 rounded-2xl bg-stone-900 mx-auto flex items-center justify-center text-stone-600 border border-stone-800">
+              <i data-lucide="shopping-bag" class="w-7 h-7 text-amber-500/50"></i>
+            </div>
+            <div class="space-y-1">
+              <p class="text-sm font-bold text-stone-300">Your delivery bag is empty</p>
+              <p class="text-xs text-stone-500 max-w-xs mx-auto">Explore our gourmet artisanal menu and add dishes to your bag.</p>
+            </div>
+            <button type="button" onclick="toggleDrawer('cartDrawer'); document.getElementById('menu').scrollIntoView({behavior: 'smooth'})" class="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-xs font-bold text-amber-400 hover:text-amber-300 transition">
+              Browse Menu ➔
+            </button>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = cart.map(item => `
+        <div class="p-3.5 rounded-2xl bg-stone-900/90 border border-stone-800 hover:border-stone-700/80 transition flex items-center justify-between gap-3 shadow-lg">
+          <img src="${item.image}" alt="${item.title}" class="w-14 h-14 rounded-xl object-cover shrink-0 border border-stone-800">
+          <div class="flex-1 min-w-0">
+            <h4 class="text-xs font-serif font-bold text-white truncate">${item.title}</h4>
+            <p class="text-xs text-amber-400 font-extrabold mt-0.5">${(item.price * item.qty).toFixed(2)}</p>
+          </div>
+          <div class="flex items-center gap-1.5 bg-stone-950 px-2 py-1 rounded-xl border border-stone-800 shrink-0">
+            <button type="button" onclick="updateQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-white hover:bg-stone-900 rounded text-xs font-bold transition">-</button>
+            <span class="text-xs font-bold text-white min-w-[16px] text-center">${item.qty}</span>
+            <button type="button" onclick="updateQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-white hover:bg-stone-900 rounded text-xs font-bold transition">+</button>
+          </div>
+          <button type="button" onclick="removeFromCart('${item.id}')" class="p-1.5 text-stone-500 hover:text-rose-400 transition rounded-lg hover:bg-rose-500/10 shrink-0" title="Remove item">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function removeFromCart(id) {
+      cart = cart.filter(c => c.id !== id);
+      renderCart();
+      showToast('Item removed from your bag.');
+    }
+
+    // 4. CATEGORY & SEARCH FILTERING
+    function filterCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.classList.remove('bg-stone-900', 'border-amber-500/50');
+        btn.classList.add('bg-stone-900/60', 'border-stone-800');
+      });
+      renderMenu();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val;
+      renderMenu();
+    }
+
+    function handleAddressSubmit() {
+      const val = document.getElementById('heroAddressInput').value;
+      if (val) {
+        showToast(`Delivery area confirmed for: ${val} 📍`);
+        document.getElementById('menu').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // 5. MODAL DISH DETAIL
+    function openDishModal(id) {
+      const dish = DISHES.find(d => d.id === id);
+      if (!dish) return;
+      
+      document.getElementById('modalDishImage').src = dish.image;
+      document.getElementById('modalDishCategory').textContent = dish.category;
+      document.getElementById('modalDishTitle').textContent = dish.title;
+      document.getElementById('modalDishPrice').textContent = `$${dish.price.toFixed(2)}`;
+      document.getElementById('modalDishDesc').textContent = dish.desc;
+      
+      const btn = document.getElementById('modalAddBtn');
+      btn.onclick = () => {
+        quickAdd(dish.id);
+        closeModal('dishModal');
+      };
+
+      openModal('dishModal');
+    }
+
+    // 6. PROCESS CHECKOUT
+    function processCheckout(event) {
+      const form = event.target;
+      const name = form.name.value;
+      const phone = form.phone.value;
+      const address = form.address.value;
+      
+      const generatedOrderCode = 'FD-' + Math.floor(1000 + Math.random() * 9000);
+      cart = [];
+      renderCart();
+      closeModal('checkoutModal');
+      toggleDrawer('cartDrawer');
+      
+      // Update tracking component with generated code
+      document.getElementById('displayOrderCode').textContent = '#' + generatedOrderCode;
+      document.getElementById('trackingCodeInput').value = generatedOrderCode;
+      document.getElementById('tracking').scrollIntoView({ behavior: 'smooth' });
+      
+      showToast(`Order ${generatedOrderCode} confirmed! Preparing delivery to ${address}. 🚀`);
+      form.reset();
+    }
+
+    // 7. TRACKING SIMULATION
+    function simulateOrderTracking() {
+      const code = document.getElementById('trackingCodeInput').value || 'FD-8942';
+      document.getElementById('displayOrderCode').textContent = '#' + code;
+      const bar = document.getElementById('progressBar');
+      bar.style.width = '30%';
+      setTimeout(() => bar.style.width = '75%', 800);
+      showToast(`Tracking status updated for #${code}`);
+    }
+
+    // 8. REVIEWS SYSTEM
+    function renderReviews() {
+      const container = document.getElementById('reviewsContainer');
+      if (!container) return;
+
+      container.innerHTML = REVIEWS.map(r => `
+        <div class="p-6 rounded-3xl bg-stone-900/80 border border-stone-800 space-y-4 flex flex-col justify-between shadow-xl">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1 text-amber-400 text-xs font-bold">
+                ${'★'.repeat(r.stars)}
+              </div>
+              <span class="text-[11px] text-stone-500 font-medium">${r.date}</span>
+            </div>
+            <p class="text-xs text-stone-300 leading-relaxed font-normal">"${r.comment}"</p>
+          </div>
+          <div class="flex items-center gap-3 pt-3 border-t border-stone-800/60">
+            <img src="${r.avatar}" alt="${r.name}" class="w-9 h-9 rounded-full object-cover ring-2 ring-amber-500/30">
+            <div>
+              <p class="text-xs font-bold text-white">${r.name}</p>
+              <p class="text-[10px] text-emerald-400 font-semibold">✔ Verified Diner</p>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function submitReview(event) {
+      const form = event.target;
+      const name = form.reviewerName.value;
+      const stars = parseInt(form.rating.value);
+      const text = form.reviewText.value;
+
+      REVIEWS.unshift({
+        name,
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80',
+        stars,
+        date: 'Just now',
+        comment: text
+      });
+
+      renderReviews();
+      closeModal('reviewModal');
+      showToast('Thank you! Your review has been published.');
+      form.reset();
+    }
+
+    // 9. CONTACT FORM SUBMISSION
+    function submitContactForm(event) {
+      const form = event.target;
+      const name = form.name.value;
+      const phone = form.phone.value;
+      showToast(`Thank you ${name}! Our team will reach out to ${phone} shortly. 🚀`);
+      form.reset();
+    }
+
+    function submitNewsletter(event) {
+      showToast('Thank you for subscribing to VIP gourmet offers! 🍷');
+      event.target.reset();
+    }
+
+    // UTILITY ENGINE FOR MODALS & DRAWERS
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    }
+
+    function toggleDrawer(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('translate-x-full');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function showToast(msg) {
+      const existing = document.getElementById('globalToast');
+      if (existing) existing.remove();
+      
+      const toast = document.createElement('div');
+      toast.id = 'globalToast';
+      toast.className = 'fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl bg-amber-500 text-stone-950 text-xs font-extrabold shadow-2xl transition-all duration-300 flex items-center gap-2.5';
+      toast.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>' + msg + '</span>';
+      document.body.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+  </script>
+</body>
+</html>

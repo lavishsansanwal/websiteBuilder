@@ -133,7 +133,6 @@ export function normalizeHtml(html) {
       });
     };
     window.filterType = window.filterType || window.filterStatus;
-    window.filterCategory = window.filterCategory || window.filterStatus;
     window.filterData = window.filterData || window.filterStatus;
 
     window.sortTable = window.sortTable || function(param) {
@@ -238,19 +237,7 @@ export function normalizeHtml(html) {
       });
     };
 
-    window.submitReservation = window.submitReservation || function(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      window.showToast('Table reservation confirmed! Reference #RES-' + Math.floor(1000 + Math.random() * 9000));
-      window.closeModal('reservationModal');
-    };
-    window.submitReview = window.submitReview || function(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      window.showToast('Thank you! Your review has been submitted.');
-      window.closeModal('reviewModal');
-    };
-    window.addToCart = window.addToCart || function(id) {
-      window.showToast('Item added to order! 🛒');
-    };
+
 
     function handleGlobalClick(event) {
       var link = event.target.closest("a");
@@ -292,9 +279,27 @@ export function normalizeHtml(html) {
         return match;
     });
 
-    // 5. Ensure All Drawers (#cartDrawer, #wishlistDrawer, id="*drawer*") are tucked off-screen by default (translate-x-full)
-    normalized = normalized.replace(/<div([^>]*?id=["'](?:cartDrawer|cart_drawer|cart-drawer|cart|wishlistDrawer|wishlist_drawer|wishlist-drawer|wishlist|filterDrawer|drawer)[^"']*["'][^>]*?)>/gi, (match, attrs) => {
-        if (!attrs.includes("translate-x-full")) {
+    // 5. Ensure All Outer Drawers (#cartDrawer, #wishlistDrawer, #filterDrawer, id="*drawer*") are tucked off-screen by default (translate-x-full)
+    normalized = normalized.replace(/<div([^>]*?id=["']([^"']+)["'][^>]*?)>/gi, (match, attrs, idVal) => {
+        const idLower = idVal.toLowerCase();
+        // Skip child elements or non-drawer elements
+        const isChildOrNonDrawer = /item|container|footer|header|total|subtotal|count|badge|list|body|btn|button|price|summary|inner|content|title|text|input|form/i.test(idLower);
+        const isDrawer = !isChildOrNonDrawer && (
+            idLower.endsWith('drawer') || 
+            idLower.endsWith('sidebar') ||
+            idLower === 'cartdrawer' ||
+            idLower === 'cart-drawer' ||
+            idLower === 'cart_drawer' ||
+            idLower === 'wishlistdrawer' ||
+            idLower === 'wishlist-drawer' ||
+            idLower === 'filterdrawer' ||
+            idLower === 'menudrawer' ||
+            idLower === 'navdrawer' ||
+            idLower === 'mobiledrawer' ||
+            idLower === 'sidedrawer'
+        );
+
+        if (isDrawer && !attrs.includes("translate-x-full")) {
             if (attrs.includes("class=")) {
                 return match.replace(/class=["']([^"']*)["']/, 'class="$1 translate-x-full transition-transform duration-300 ease-in-out"');
             } else {
@@ -305,8 +310,25 @@ export function normalizeHtml(html) {
     });
 
     // 6. Ensure All Modals (#productModal, #quickViewModal, #checkoutModal, #trackingModal, #reviewModal, #reservationModal, id="*modal*") are HIDDEN by default on page load
-    normalized = normalized.replace(/<div([^>]*?id=["'][^"']*(?:modal|quickview|checkout|tracking|reservation)[^"']*["'][^>]*?)>/gi, (match, attrs) => {
-        if (!attrs.includes('style="display: none;"') && !attrs.includes("style='display: none;'") && !attrs.includes("display:none")) {
+    normalized = normalized.replace(/<div([^>]*?id=["']([^"']+)["'][^>]*?)>/gi, (match, attrs, idVal) => {
+        const idLower = idVal.toLowerCase();
+        // Skip non-modal elements like buttons, forms, sections, headers, cards
+        const isNonModal = /btn|button|trigger|toggle|form|input|text|title|header|footer|badge|count|section|container|wrapper|grid|table|row|card|summary/i.test(idLower);
+        const isModal = !isNonModal && (
+            idLower.endsWith('modal') ||
+            idLower.endsWith('dialog') ||
+            idLower.endsWith('popup') ||
+            idLower === 'quickview' ||
+            idLower === 'quick-view' ||
+            idLower === 'checkoutmodal' ||
+            idLower === 'trackingmodal' ||
+            idLower === 'reservationmodal' ||
+            idLower === 'leadmodal' ||
+            idLower === 'contactmodal' ||
+            idLower === 'reviewmodal'
+        );
+
+        if (isModal && !attrs.includes('style="display: none;"') && !attrs.includes("style='display: none;'") && !attrs.includes("display:none")) {
             if (attrs.includes("style=")) {
                 return match.replace(/style=["']([^"']*)["']/, 'style="display: none; $1"');
             } else {

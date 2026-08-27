@@ -13,6 +13,8 @@ import dashboardPrompt from "../prompts/dashBoardPrompt.js";
 import websitePrompt from "../prompts/websiteprompt.js";
 import reactDashboardPrompt from "../prompts/reactDashboardPrompt.js";
 import reactWebsitePrompt from "../prompts/reactWebsitePrompt.js";
+import { applyPatches } from "../utils/patchEngine.js";
+import { buildPatchPrompt } from "../prompts/patchPrompt.js";
 function normalizeGeneratedCode(code) {
     if (typeof code !== "string") return "";
 
@@ -52,33 +54,127 @@ export function generateContextualSuggestions(prompt = "", pageType = "website",
     const p = (prompt + " " + latestCode).toLowerCase();
     const phase = Math.min(4, Math.max(1, turnIndex));
 
-    // 1. E-Commerce / Streetwear / Sneaker Store
-    if (/\b(store|shop|e-commerce|ecommerce|sneaker|streetwear|shoe|clothing|fashion|retail|product|cart|bag|catalog|order)\b/i.test(p)) {
-        let card = {
-            question: "What high-impact feature should we add next to elevate this store?",
-            options: [
-                {
-                    icon: "⚡",
-                    label: "Add Flash Sale Countdown Banner",
-                    description: "Adds a 24-hour urgency timer with live stock bar and 20% discount coupon STREET20",
-                    prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20"
-                },
-                {
-                    icon: "⭐",
-                    label: "Verified Customer Photo Reviews",
-                    description: "Adds customer review grid with star breakdowns, customer lookbook photos, and review modal",
-                    prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal"
-                },
-                {
-                    icon: "📏",
-                    label: "Interactive Size & Fit Guide",
-                    description: "Adds size chart modal with US/UK/EU conversions for apparel and sneakers",
-                    prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear"
-                }
-            ]
-        };
+    let card = null;
+    let agentQuestions = [];
+    let suggestions = [];
 
-        if (phase === 3) {
+    // 1. Food Delivery / Restaurant / Cafe / Dining Platform (PRIORITIZED BEFORE GENERAL E-COMMERCE)
+    if (/\b(food|delivery|restaurant|bistro|cafe|bakery|dining|menu|pizza|pasta|dish|biryani|burger|dosa|cuisine|meal|takeaway|swiggy|zomato|doordash|eats|grub|kitchen|tiffin|snack|beverage|dessert)\b/i.test(p)) {
+        if (phase === 1 || phase === 2) {
+            card = {
+                question: "What high-impact feature should we add next to elevate this food delivery platform?",
+                options: [
+                    {
+                        icon: "🛵",
+                        label: "Live GPS Delivery Tracking",
+                        description: "Animated live delivery scooter simulation with real-time status timeline and partner ETA",
+                        prompt: "Add a live GPS delivery partner tracking widget with animated progress bar and driver status"
+                    },
+                    {
+                        icon: "🟢",
+                        label: "Veg / Non-Veg Toggle Filter",
+                        description: "Instant Swiggy-style switch to filter Pure Veg Only vs Non-Veg gourmet dishes",
+                        prompt: "Add a prominent Veg / Non-Veg toggle switch to instantly filter Pure Veg and Non-Veg dishes"
+                    },
+                    {
+                        icon: "🏷️",
+                        label: "50% OFF Swiggy Coupon Banner",
+                        description: "Interactive promotional banner with 1-click coupon apply (SWIGGY50 / FEAST20)",
+                        prompt: "Add a 50% OFF promo coupon banner with 1-click code SWIGGY50 auto-applied to the bag"
+                    }
+                ]
+            };
+        } else if (phase === 3) {
+            card = {
+                question: "What visual vibe and color palette best fits your food brand?",
+                options: [
+                    {
+                        icon: "🍊",
+                        label: "Swiggy Vibrant Amber & Emerald",
+                        description: "High-contrast dark theme with appetizing electric orange buttons and emerald veg badges",
+                        prompt: "Switch the theme to Swiggy Vibrant Amber & Emerald with glowing action buttons"
+                    },
+                    {
+                        icon: "🕯️",
+                        label: "Candlelit Fine Dining Warmth",
+                        description: "Deep espresso, warm gold highlights, and classic serif luxury typography",
+                        prompt: "Upgrade visual theme to Candlelit Luxury Dining with warm gold accents and elegant typography"
+                    },
+                    {
+                        icon: "🌿",
+                        label: "Clean Botanical Organic",
+                        description: "Fresh sage green, stone textures, clean sans-serif typography, and farm-to-table natural vibes",
+                        prompt: "Switch to Clean Botanical Organic theme with sage green tones and organic styling"
+                    }
+                ]
+            };
+        } else {
+            card = {
+                question: "Which conversion and checkout features should we activate?",
+                options: [
+                    {
+                        icon: "🛍️",
+                        label: "Floating Sticky Bottom Cart Bar",
+                        description: "Dynamic green cart bar on scroll showing item count, total price, and 1-click checkout",
+                        prompt: "Add a floating sticky bottom cart bar that pops up on scroll when dishes are added"
+                    },
+                    {
+                        icon: "📍",
+                        label: "Location Area Selector Dropdown",
+                        description: "Interactive area switcher (Indiranagar, Koramangala, Whitefield) with instant delivery times",
+                        prompt: "Add an interactive location selector in the header with multiple delivery zones and live ETAs"
+                    },
+                    {
+                        icon: "⭐",
+                        label: "Verified Diner Reviews & Ratings",
+                        description: "5-star customer review cards with verified diner badges and write review modal",
+                        prompt: "Add a verified diner reviews section with star breakdowns and interactive review modal"
+                    }
+                ]
+            };
+        }
+
+        agentQuestions = [
+            "Would you like to add a live GPS delivery partner tracking simulation?",
+            "Should we add a Pure Veg / Non-Veg toggle switch across the 72 dishes?",
+            "Do you want to add 1-click discount coupon codes like SWIGGY50 to the cart drawer?"
+        ];
+
+        suggestions = [
+            { label: "+ Live GPS Scooter Tracker", prompt: "Add an animated live GPS delivery partner tracking widget with real-time ETA" },
+            { label: "+ Veg / Non-Veg Switch", prompt: "Add a quick toggle to switch between All Dishes, Pure Veg Only, and Non-Veg" },
+            { label: "+ Floating Quick Cart Bar", prompt: "Add a floating sticky bottom cart bar showing total items and instant checkout" },
+            { label: "+ Location Area Selector", prompt: "Add a location area picker in the navbar with 20-min delivery time badges" },
+            { label: "+ 50% OFF Coupon Modal", prompt: "Add an interactive Swiggy coupon modal with discount codes like SWIGGY50" }
+        ];
+
+    // 2. E-Commerce / Streetwear / Sneaker / Retail Store
+    } else if (/\b(store|shop|e-commerce|ecommerce|sneaker|streetwear|shoe|clothing|fashion|retail|product|apparel)\b/i.test(p)) {
+        if (phase === 1 || phase === 2) {
+            card = {
+                question: "What high-impact feature should we add next to elevate this store?",
+                options: [
+                    {
+                        icon: "⚡",
+                        label: "Add Flash Sale Countdown Banner",
+                        description: "Adds a 24-hour urgency timer with live stock bar and 20% discount coupon STREET20",
+                        prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20"
+                    },
+                    {
+                        icon: "⭐",
+                        label: "Verified Customer Photo Reviews",
+                        description: "Adds customer review grid with star breakdowns, customer lookbook photos, and review modal",
+                        prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal"
+                    },
+                    {
+                        icon: "📏",
+                        label: "Interactive Size & Fit Guide",
+                        description: "Adds size chart modal with US/UK/EU conversions for apparel and sneakers",
+                        prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear"
+                    }
+                ]
+            };
+        } else if (phase === 3) {
             card = {
                 question: "Which visual vibe and color palette fits your brand vision?",
                 options: [
@@ -102,193 +198,335 @@ export function generateContextualSuggestions(prompt = "", pageType = "website",
                     }
                 ]
             };
+        } else {
+            card = {
+                question: "How should we maximize launch conversions and customer checkout?",
+                options: [
+                    {
+                        icon: "💳",
+                        label: "1-Click Sticky Buy Bar",
+                        description: "Adds a persistent floating bottom bar with Quick Buy & Size selector on scroll",
+                        prompt: "Add a floating sticky bottom Quick Buy bar that appears when scrolling with instant size selector and checkout button"
+                    },
+                    {
+                        icon: "🎁",
+                        label: "Wheel of Fortune Promo Popup",
+                        description: "Adds an exit-intent gamified discount spinner offering up to 30% off",
+                        prompt: "Add an exit-intent gamified discount spinner modal offering up to 30% off discount codes"
+                    },
+                    {
+                        icon: "📦",
+                        label: "Free Shipping Threshold Bar",
+                        description: "Dynamic cart progress bar showing 'Add $15 more for FREE Express Shipping'",
+                        prompt: "Add a dynamic Free Shipping threshold progress bar banner in the header and cart drawer"
+                    }
+                ]
+            };
         }
 
-        return {
-            phase,
-            interactiveCard: card,
-            agentQuestions: [
-                "Would you like to add a Flash Sale countdown timer with a 20% discount coupon code?",
-                "Should we add verified customer reviews with photo galleries and star ratings?",
-                "Do you want to add size guide measurement charts and color swatches on product cards?"
-            ],
-            suggestions: [
-                { label: "+ Add Flash Sale Timer", prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20" },
-                { label: "+ Customer Photo Reviews", prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal" },
-                { label: "+ Neon Cyberpunk Theme", prompt: "Switch the color scheme to high-energy Neon Cyberpunk with electric cyan and violet glow accents" },
-                { label: "+ Size Guide Modal", prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear" }
-            ]
-        };
-    }
+        agentQuestions = [
+            "Would you like to add a Flash Sale countdown timer with a 20% discount coupon code?",
+            "Should we add verified customer reviews with photo galleries and star ratings?",
+            "Do you want to add size guide measurement charts and color swatches on product cards?"
+        ];
 
-    // 2. Restaurant / Cafe / Bakery / Dining / Food Delivery
-    if (/\b(restaurant|bistro|cafe|bakery|dining|food|menu|pizza|pasta|dish|chef|cuisine|table|reservation)\b/i.test(p)) {
-        let card = {
-            question: "How should dining guests interact with your restaurant online?",
-            options: [
-                {
-                    icon: "📅",
-                    label: "Table Reservation Booking Modal",
-                    description: "Interactive reservation form with date/time pickers, party size, and confirmed table ticket",
-                    prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking"
-                },
-                {
-                    icon: "🥗",
-                    label: "Dietary Badges & Search Filter",
-                    description: "Instant menu search with Vegan, Gluten-Free, and Chef Choice filter pills",
-                    prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu"
-                },
-                {
-                    icon: "🍷",
-                    label: "Sommelier Wine Pairing Notes",
-                    description: "Curated wine pairing recommendations and flavor profiles under each signature dish",
-                    prompt: "Add sommelier wine pairing notes and flavor profiles to each signature dish card on the menu"
-                }
-            ]
-        };
-
-        return {
-            phase,
-            interactiveCard: card,
-            agentQuestions: [
-                "Would you like to add an online Table Reservation modal with date picker and party size?",
-                "Should we add dietary badges (🌱 Vegan, 🌾 Gluten-Free, ⭐ Chef's Special) to the menu?",
-                "Do you want an interactive Wine Pairing recommendation on signature dishes?"
-            ],
-            suggestions: [
-                { label: "+ Table Booking Modal", prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking" },
-                { label: "+ Add Dietary Badges", prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu" },
-                { label: "+ Chef Story & Ambiance", prompt: "Add a master chef story section and ambient restaurant interior photo gallery" },
-                { label: "+ Online Takeaway Drawer", prompt: "Add a slide-out online takeaway order drawer with tipping selector and checkout" }
-            ]
-        };
-    }
+        // 100% Unique Quick Toggles (Styling / Micro-features / Fast Utilities)
+        suggestions = [
+            { label: "+ Sticky Frosted Navbar", prompt: "Make the main navigation bar a floating frosted glass sticky header with backdrop blur" },
+            { label: "+ Trust Badges & Guarantee", prompt: "Add an authentic trust badges row with 30-day money-back guarantee, free returns, and SSL secure checkout" },
+            { label: "+ Currency Selector (USD/EUR/INR)", prompt: "Add an interactive currency switcher dropdown (USD, EUR, GBP, INR) in the top bar" },
+            { label: "+ Floating WhatsApp Support", prompt: "Add a floating WhatsApp live chat support button in the bottom right corner with online status pill" },
+            { label: "+ Instagram Lookbook Grid", prompt: "Add an Instagram shoppable community lookbook grid section with hover overlays" }
+        ];
 
     // 3. Analytics Dashboard / CRM / Admin Panel / KPI
-    if (pageType === "dashboard" || /\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(p)) {
-        let card = {
-            question: "What analytical actions should users be able to take on this dashboard?",
-            options: [
-                {
-                    icon: "📥",
-                    label: "Export to CSV & PDF Reports",
-                    description: "Instant data table export buttons with simulated progress toast and download",
-                    prompt: "Add working Export to CSV and Export to PDF action buttons above the data table"
-                },
-                {
-                    icon: "📅",
-                    label: "Interactive Date Range Filters",
-                    description: "Pills for Last 7 Days, 30 Days, and Yearly data filtering that update charts",
-                    prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data"
-                },
-                {
-                    icon: "📈",
-                    label: "AI Revenue Forecasting Graph",
-                    description: "Predictive revenue curve with 95% confidence bands and KPI projection metrics",
-                    prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands"
-                }
-            ]
-        };
+    } else if (pageType === "dashboard" || /\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(p)) {
+        if (phase === 1 || phase === 2) {
+            card = {
+                question: "What analytical actions should users be able to take on this dashboard?",
+                options: [
+                    {
+                        icon: "📥",
+                        label: "Export to CSV & PDF Reports",
+                        description: "Instant data table export buttons with simulated progress toast and download",
+                        prompt: "Add working Export to CSV and Export to PDF action buttons above the data table"
+                    },
+                    {
+                        icon: "📅",
+                        label: "Interactive Date Range Filters",
+                        description: "Pills for Last 7 Days, 30 Days, and Yearly data filtering that update charts",
+                        prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data"
+                    },
+                    {
+                        icon: "📈",
+                        label: "AI Revenue Forecasting Graph",
+                        description: "Predictive revenue curve with 95% confidence bands and KPI projection metrics",
+                        prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands"
+                    }
+                ]
+            };
+        } else if (phase === 3) {
+            card = {
+                question: "Which dashboard layout and visual theme do you prefer?",
+                options: [
+                    {
+                        icon: "🌑",
+                        label: "Midnight OLED Dark Mode",
+                        description: "Sleek obsidian background with vibrant electric neon metric cards and glowing sparks",
+                        prompt: "Upgrade to Midnight OLED Dark Mode with sleek obsidian background and vibrant glowing charts"
+                    },
+                    {
+                        icon: "💎",
+                        label: "Clean Enterprise FinTech Light",
+                        description: "Crisp white cards, subtle borders, slate blue charts, and high-density tables",
+                        prompt: "Apply Clean Enterprise FinTech Light theme with crisp white cards and refined slate blue accents"
+                    },
+                    {
+                        icon: "📊",
+                        label: "Multi-Panel Dense Grid",
+                        description: "Compact multi-panel layout with real-time ticker strip and tight metric grids",
+                        prompt: "Reorganize dashboard into a high-density multi-panel grid with compact ticker strips"
+                    }
+                ]
+            };
+        } else {
+            card = {
+                question: "What real-time monitoring tools should we enable?",
+                options: [
+                    {
+                        icon: "🔔",
+                        label: "Threshold Alert Trigger Modal",
+                        description: "Configure automated KPI threshold alert rules with email/Slack preview",
+                        prompt: "Add an interactive threshold alert trigger modal with target value sliders and notification previews"
+                    },
+                    {
+                        icon: "⚡",
+                        label: "Live Activity Stream Feed",
+                        description: "Real-time scrolling event feed with user avatars, actions, and timestamp pulses",
+                        prompt: "Add a real-time live activity stream feed panel with user avatars and timestamped event badges"
+                    },
+                    {
+                        icon: "👥",
+                        label: "Team Permission Manager",
+                        description: "Interactive team members access matrix with Admin, Editor, Viewer toggles",
+                        prompt: "Add a team members permission management modal with role toggle switches (Admin, Editor, Viewer)"
+                    }
+                ]
+            };
+        }
 
-        return {
-            phase,
-            interactiveCard: card,
-            agentQuestions: [
-                "Would you like an 'Export to CSV / PDF' button on the transactions table?",
-                "Should we add date range filter pickers (Last 7 Days, Last 30 Days) for the charts?",
-                "Do you want live threshold alert pills and status filters for the table?"
-            ],
-            suggestions: [
-                { label: "+ Export CSV / PDF", prompt: "Add working Export to CSV and Export to PDF action buttons above the data table" },
-                { label: "+ Date Range Filters", prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data" },
-                { label: "+ Revenue Forecasting", prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands" },
-                { label: "+ Status Filter Dropdown", prompt: "Add status filter pills (Completed, Pending, Failed) that filter table rows in real time" }
-            ]
-        };
-    }
+        agentQuestions = [
+            "Would you like an 'Export to CSV / PDF' button on the transactions table?",
+            "Should we add date range filter pickers (Last 7 Days, Last 30 Days) for the charts?",
+            "Do you want live threshold alert pills and status filters for the table?"
+        ];
+
+        // 100% Unique Quick Toggles
+        suggestions = [
+            { label: "+ Dark / Light Theme Toggle", prompt: "Add an interactive instant Dark Mode and Light Mode theme toggle switch in the dashboard top header" },
+            { label: "+ Table Search & Filter Bar", prompt: "Add a real-time search input bar and status dropdown filter (Completed, Pending, Failed) above the main table" },
+            { label: "+ Metric Target Progress Rings", prompt: "Add circular percentage progress rings to the top KPI cards showing monthly goal completion" },
+            { label: "+ Collapsible Left Sidebar", prompt: "Make the left navigation sidebar smoothly collapsible with icon-only compact mode toggle" },
+            { label: "+ Real-Time Polling Indicator", prompt: "Add a live pulsing green 'Live Data Syncing (every 5s)' indicator with manual Refresh Data button" }
+        ];
 
     // 4. SaaS Landing Page / Lead Funnel / Waitlist
-    if (pageType === "landing" || /\b(saas|landing|waitlist|lead|conversion|startup|software|app|pricing|b2b)\b/i.test(p)) {
-        let card = {
-            question: "What primary conversion goal should we optimize this page for?",
-            options: [
-                {
-                    icon: "💳",
-                    label: "3-Tier Pricing Table with Annual Switch",
-                    description: "Tier cards (Starter, Pro, Enterprise) with monthly/annual 20% discount toggle",
-                    prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge"
-                },
-                {
-                    icon: "🎬",
-                    label: "Interactive Video Demo Modal",
-                    description: "Video trigger button in hero section with floating feature badges and modal player",
-                    prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights"
-                },
-                {
-                    icon: "📧",
-                    label: "Frictionless Email-Only Lead Capture",
-                    description: "Streamlines all sign-in and lead forms to collect only email without phone number",
-                    prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number"
-                }
-            ]
-        };
+    } else if (pageType === "landing" || /\b(saas|landing|waitlist|lead|conversion|startup|software|app|pricing|b2b)\b/i.test(p)) {
+        if (phase === 1 || phase === 2) {
+            card = {
+                question: "What primary conversion goal should we optimize this page for?",
+                options: [
+                    {
+                        icon: "💳",
+                        label: "3-Tier Pricing Table with Annual Switch",
+                        description: "Tier cards (Starter, Pro, Enterprise) with monthly/annual 20% discount toggle",
+                        prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge"
+                    },
+                    {
+                        icon: "🎬",
+                        label: "Interactive Video Demo Modal",
+                        description: "Video trigger button in hero section with floating feature badges and modal player",
+                        prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights"
+                    },
+                    {
+                        icon: "📧",
+                        label: "Frictionless Email-Only Lead Capture",
+                        description: "Streamlines all sign-in and lead forms to collect only email without phone number",
+                        prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number"
+                    }
+                ]
+            };
+        } else if (phase === 3) {
+            card = {
+                question: "Which visual vibe and brand personality should this landing page project?",
+                options: [
+                    {
+                        icon: "✨",
+                        label: "Linear / Vercel Modern Dark",
+                        description: "Deep black backdrop, subtle glowing gradients, thin borders, and crisp sans typography",
+                        prompt: "Style page with Linear/Vercel modern dark aesthetic with subtle mesh glow and crisp borders"
+                    },
+                    {
+                        icon: "🚀",
+                        label: "Hyper-Growth Vibrant Gradient",
+                        description: "Electric indigo-to-purple mesh background with bold animated CTA buttons",
+                        prompt: "Switch to Hyper-Growth Vibrant Gradient theme with rich purple/indigo accents and bold animated buttons"
+                    },
+                    {
+                        icon: "🛡️",
+                        label: "Enterprise B2B Trust Slate",
+                        description: "Deep slate navy, sharp high-contrast typography, and bank-grade security badges",
+                        prompt: "Apply Enterprise B2B Trust Slate theme with deep navy background and high-contrast badges"
+                    }
+                ]
+            };
+        } else {
+            card = {
+                question: "How should we handle objections and build maximum buyer trust?",
+                options: [
+                    {
+                        icon: "❓",
+                        label: "Expandable FAQ Accordion",
+                        description: "Interactive FAQ accordion answering top 6 buyer objections with smooth animated collapses",
+                        prompt: "Add an interactive expandable FAQ accordion section with smooth toggle animations"
+                    },
+                    {
+                        icon: "🏆",
+                        label: "Wall of Love Testimonial Grid",
+                        description: "Bento grid of authentic customer tweets, quotes, star ratings, and company logos",
+                        prompt: "Add a Wall of Love Bento grid with customer testimonial quotes, star ratings, and company badges"
+                    },
+                    {
+                        icon: "⚔️",
+                        label: "Competitor Comparison Matrix",
+                        description: "Feature comparison table showing your product vs Old Way vs Competitors with green checkmarks",
+                        prompt: "Add a competitor comparison matrix table highlighting your unique advantages with checkmark icons"
+                    }
+                ]
+            };
+        }
 
-        return {
-            phase,
-            interactiveCard: card,
-            agentQuestions: [
-                "Would you like to add a 3-tier Pricing Table with Monthly vs Annual (Save 20%) billing switch?",
-                "Should we add a customer video demo modal or client logos marquee for social proof?",
-                "Do you want the Lead Capture form to ask only for Email, or also Phone & Company Size?"
-            ],
-            suggestions: [
-                { label: "+ Add Pricing Toggle", prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge" },
-                { label: "+ Add Video Demo Modal", prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights" },
-                { label: "+ Only Ask for Email", prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number" },
-                { label: "+ Expandable FAQ Accordion", prompt: "Add an interactive expandable FAQ accordion section with smooth toggle animations" }
-            ]
-        };
-    }
+        agentQuestions = [
+            "Would you like to add a 3-tier Pricing Table with Monthly vs Annual (Save 20%) billing switch?",
+            "Should we add a customer video demo modal or client logos marquee for social proof?",
+            "Do you want the Lead Capture form to ask only for Email, or also Phone & Company Size?"
+        ];
+
+        // 100% Unique Quick Toggles
+        suggestions = [
+            { label: "+ Client Logos Marquee Strip", prompt: "Add an infinite scrolling animated logos marquee of Fortune 500 companies trusted by your product" },
+            { label: "+ Live ROI Calculator Widget", prompt: "Add an interactive ROI savings slider widget where users drag their team size to see estimated annual savings" },
+            { label: "+ Trustpilot 4.9★ Badge", prompt: "Add a floating Trustpilot 4.9/5 stars rated social proof badge under the main hero CTA button" },
+            { label: "+ Exit-Intent Special Offer Modal", prompt: "Add an exit-intent discount popup offering 14 days free trial with instant activation" },
+            { label: "+ Sticky Floating CTA Bar", prompt: "Add a subtle sticky top announcement bar with '🎉 Launch Special: Get 50% off first 3 months - Claim Now'" }
+        ];
 
     // 5. Default General / Agency / Portfolio
-    let card = {
-        question: "How should prospective clients and visitors engage with your work?",
-        options: [
-            {
-                icon: "🎨",
-                label: "Interactive Case Studies Filter Grid",
-                description: "Filterable work portfolio tabs with client metrics and project details",
-                prompt: "Add interactive portfolio case studies with category filter tabs and live client metrics"
-            },
-            {
-                icon: "📅",
-                label: "1-on-1 Consultation Booking Modal",
-                description: "Interactive consultation booking modal with date and project scope selector",
-                prompt: "Add an interactive consultation booking modal with date and project scope selector"
-            },
-            {
-                icon: "🌌",
-                label: "Ultra-Sleek Dark Glassmorphic Theme",
-                description: "Modern dark aesthetic with animated mesh gradients and glowing border cards",
-                prompt: "Upgrade the UI to a modern ultra-sleek dark glassmorphic theme with animated subtle mesh gradients"
-            }
-        ]
-    };
+    } else {
+        if (phase === 1 || phase === 2) {
+            card = {
+                question: "How should prospective clients and visitors engage with your work?",
+                options: [
+                    {
+                        icon: "🎨",
+                        label: "Interactive Case Studies Filter Grid",
+                        description: "Filterable work portfolio tabs with client metrics, tech badges, and modal preview",
+                        prompt: "Add interactive portfolio case studies with category filter tabs and live client metrics"
+                    },
+                    {
+                        icon: "📅",
+                        label: "1-on-1 Consultation Booking Modal",
+                        description: "Interactive consultation booking modal with date and project scope selector",
+                        prompt: "Add an interactive consultation booking modal with date and project scope selector"
+                    },
+                    {
+                        icon: "🏆",
+                        label: "Client Results & Impact Metrics",
+                        description: "Animated count-up stats: $12M+ Revenue Generated, 99.8% CSAT, 45+ Projects Delivered",
+                        prompt: "Add an animated key metrics and results section showcasing client growth stats and ROI"
+                    }
+                ]
+            };
+        } else if (phase === 3) {
+            card = {
+                question: "Which creative aesthetic best showcases your craft?",
+                options: [
+                    {
+                        icon: "🌌",
+                        label: "Ultra-Sleek Dark Glassmorphic",
+                        description: "Modern dark aesthetic with animated mesh gradients and glowing border cards",
+                        prompt: "Upgrade the UI to a modern ultra-sleek dark glassmorphic theme with animated subtle mesh gradients"
+                    },
+                    {
+                        icon: "⚡",
+                        label: "Editorial Brutalist Modern",
+                        description: "Bold oversized typography, stark monochrome contrast, and high-impact layout",
+                        prompt: "Switch to an Editorial Brutalist theme with bold oversized typography and high-contrast styling"
+                    },
+                    {
+                        icon: "🌈",
+                        label: "Pastel Neo-Studio Clean",
+                        description: "Soft cream background, warm pastel accent badges, and rounded playful cards",
+                        prompt: "Apply a Pastel Neo-Studio Clean aesthetic with refined cream backdrop and warm accent cards"
+                    }
+                ]
+            };
+        } else {
+            card = {
+                question: "What final conversion touchpoints should we add for clients?",
+                options: [
+                    {
+                        icon: "💬",
+                        label: "Verified Testimonial Slider",
+                        description: "Interactive testimonial slider with client quotes, verified badges, and company roles",
+                        prompt: "Add an interactive client testimonial carousel with 5-star ratings and company avatar badges"
+                    },
+                    {
+                        icon: "📄",
+                        label: "Download Pitch Deck / Resume",
+                        description: "Instant download button for PDF portfolio & interactive viewer modal",
+                        prompt: "Add a 'Download Pitch Deck / Resume' action button with interactive preview modal"
+                    },
+                    {
+                        icon: "💸",
+                        label: "Project Scope & Budget Estimator",
+                        description: "Step-by-step interactive project budget & scope calculator with instant quote summary",
+                        prompt: "Add an interactive project price and timeline estimator calculator widget"
+                    }
+                ]
+            };
+        }
+
+        agentQuestions = [
+            "Would you like to add an interactive Project Case Studies filter by category?",
+            "Should we add a Contact Consultation booking calendar with instant confirmation?",
+            "Do you want to switch the visual theme to Dark Glassmorphism or Light Minimalist?"
+        ];
+
+        // 100% Unique Quick Toggles
+        suggestions = [
+            { label: "+ Skills & Tech Stack Grid", prompt: "Add an interactive Skills & Tech Stack grid with animated proficiency bars and tool icons" },
+            { label: "+ Experience Timeline Roadmap", prompt: "Add a vertical career and milestone experience timeline with company logos and key achievements" },
+            { label: "+ Floating Let's Talk Button", prompt: "Add a floating quick contact button in the bottom corner with direct email/calendar trigger" },
+            { label: "+ Client Logo Wall & Badges", prompt: "Add a featured client logos grid showing prestigious brands worked with" },
+            { label: "+ Back to Top Smooth Scroll", prompt: "Add a floating Back to Top button that appears when scrolling down and smoothly scrolls to top" }
+        ];
+    }
+
+    // Dynamic Deduplication Safety: filter out any suggestion whose label overlaps with the active card's options
+    if (card && Array.isArray(card.options)) {
+        const cardOptionKeys = card.options.map(o => (o.label || "").toLowerCase().replace(/[^a-z0-9]/g, ""));
+        suggestions = suggestions.filter(s => {
+            const sKey = (s.label || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            return !cardOptionKeys.some(cKey => cKey.includes(sKey) || sKey.includes(cKey));
+        });
+    }
 
     return {
         phase,
         interactiveCard: card,
-        agentQuestions: [
-            "Would you like to add an interactive Project Case Studies filter by category?",
-            "Should we add a Contact Consultation booking calendar with instant confirmation?",
-            "Do you want to switch the visual theme to Dark Glassmorphism or Light Minimalist?"
-        ],
-        suggestions: [
-            { label: "+ Add Case Studies Filter", prompt: "Add interactive portfolio case studies with category filter tabs and live client metrics" },
-            { label: "+ Book Consultation Modal", prompt: "Add an interactive consultation booking modal with date and project scope selector" },
-            { label: "+ Dark Glassmorphic Theme", prompt: "Upgrade the UI to a modern ultra-sleek dark glassmorphic theme with animated subtle mesh gradients" },
-            { label: "+ Verified Testimonial Wall", prompt: "Add a verified customer testimonials section with 5-star rating cards and client avatar badges" }
-        ]
+        agentQuestions,
+        suggestions
     };
 }
 
@@ -508,7 +746,7 @@ export const changes = async (req, res) => {
             });
         }
 
-        // Case 2: AI Revision via Prompt
+        // Case 2: AI Revision via Prompt (INCREMENTAL PATCH ENGINE FIRST)
         if (prompt && typeof prompt === "string" && prompt.trim().length > 0) {
             const userPromptText = prompt.trim();
             const isReact = website.framework === "react" ||
@@ -520,7 +758,46 @@ export const changes = async (req, res) => {
                 .map(c => `${c.role.toUpperCase()}: ${c.content}`)
                 .join("\n");
 
-            const updateAiPrompt = `
+            let updatedCode = null;
+            let changeMessage = null;
+            let patchSuccess = false;
+
+            // Check if user requested a complete total overhaul
+            const isTotalRebuild = /\b(rebuild|start over|from scratch|completely change into|replace entire website|delete everything)\b/i.test(userPromptText);
+
+            // ==========================================
+            // TIER 1: FAST INCREMENTAL PATCH ENGINE (0% TRUNCATION RISK)
+            // ==========================================
+            if (!isTotalRebuild && website.latestCode && website.latestCode.length > 200) {
+                try {
+                    console.log(`[PATCH ENGINE] Generating targeted diff for: "${userPromptText.slice(0, 60)}..."`);
+                    const patchAiPrompt = buildPatchPrompt(website.latestCode, userPromptText, conversationHistory);
+                    const patchRaw = await generateResponse(patchAiPrompt);
+                    const patchParsed = extractJson(patchRaw);
+
+                    if (patchParsed && Array.isArray(patchParsed.patches) && patchParsed.patches.length > 0) {
+                        const patchResult = applyPatches(website.latestCode, patchParsed.patches);
+
+                        if (patchResult.success && patchResult.updatedCode) {
+                            console.log(`[PATCH ENGINE SUCCESS] Successfully applied ${patchResult.appliedCount} search-and-replace patches in ~1s!`);
+                            updatedCode = isReact ? patchResult.updatedCode : normalizeHtml(patchResult.updatedCode);
+                            changeMessage = patchParsed.message?.trim() || `Applied your requested changes: "${userPromptText}".`;
+                            patchSuccess = true;
+                        } else {
+                            console.warn(`[PATCH ENGINE MISMATCH] Patches could not be applied cleanly (${patchResult.error}). Falling back to full synthesis...`);
+                        }
+                    }
+                } catch (patchErr) {
+                    console.warn(`[PATCH ENGINE ERROR]`, patchErr?.message || patchErr);
+                }
+            }
+
+            // ==========================================
+            // TIER 2: FULL REGENERATION FALLBACK (WITH DATASET PRESERVATION)
+            // ==========================================
+            if (!patchSuccess) {
+                console.log(`[FULL SYNTHESIS] Generating updated code for: "${userPromptText.slice(0, 60)}..."`);
+                const updateAiPrompt = `
 You are an expert Principal Frontend Architect and UI/UX Designer updating an existing ${isReact ? 'React (JSX) application' : 'website'}.
 
 ${conversationHistory ? `PREVIOUS USER INSTRUCTIONS & ACTIVE CUSTOMIZATIONS:\n${conversationHistory}\n` : ''}
@@ -531,37 +808,13 @@ USER'S NEW REQUESTED CHANGES:
 ${userPromptText}
 
 INSTRUCTIONS:
-1. Carefully and thoroughly apply the user's requested changes directly to the ${isReact ? 'React JSX component' : 'HTML code'}.
-2. CRITICAL CONTINUITY & CUSTOMIZATION PRESERVATION:
-   - Always preserve and build upon all previously applied customizations (e.g. if the user previously removed phone numbers, kept only email/name, customized colors, or modified copy, DO NOT revert or undo those changes unless explicitly told to do so).
-   - NEVER revert forms to generic default templates. Keep customized field sets intact.
-3. DYNAMIC FORM & FIELD RECONFIGURATIONS:
-   - If the user asks to modify, add, or remove form/sign-in fields (e.g. "remove phone number", "only ask for email", "take only name and email", "add company size"):
-     a) Thoroughly update all relevant on-page forms, modals (e.g., sign-in modals, lead modals, waitlist cards), and live preview inputs to reflect the exact requested field configuration with icons and labels.
-     b) Maintain 100% dynamic interactivity: Submit buttons must show active loading spinners ('⚡ Submitting...'), morph dynamically into the tailored VIP confirmation screen, and show toast notifications.
-     c) In the confirmation breakdown and JavaScript handlers, display ONLY the active fields (e.g., if phone was removed, omit the phone row from the confirmation card).
-4. MANDATORY FORM SUBMIT BUTTON:
-   - Every <form> tag MUST contain a clearly styled <button type="submit"> with gradient background and hover effects. Never output a form without its submit button.
-5. FULL INTERACTION & SCRIPT PRESERVATION:
-   - Preserve all working interactive JavaScript functions in <script>: tab switchers (switchDemoStep), volume pills (selectVolumePill), billing switches (toggleBilling), accordion toggles (toggleFaq), sign-in/lead modal triggers (openSignInModal, openLeadModal, closeModal), and Lucide icons initialization (lucide.createIcons()). NEVER leave dead buttons or placeholder functions.
-6. Return the COMPLETE, updated, fully working standalone ${isReact ? 'React (JSX) component (export default function App() { ... })' : 'HTML document'} preserving all state, hooks, Tailwind CSS classes, and interactivity without truncating.
-7. In the "message" field of your JSON response, write a specific, conversational 1-2 sentence description explaining EXACTLY what modifications, components, styling, or icons were added/changed based on the user's request. NEVER return generic phrases like 'Website generated successfully' or 'Updated'.
-8. NEVER include or retain an AI chat sidebar, conversation bubbles, "Describe changes..." prompt bar, or editor UI inside the code. Output ONLY the pure standalone end-user application or dashboard.
-9. CRITICAL: Ensure all links in the navbar, body, and footer are 100% FUNCTIONAL. In the footer, ONLY include real working links (on-page smooth scroll anchors to existing sections, working modal buttons for Privacy/Terms/Contact, working newsletter submission with toast, and Back to Top). NEVER output dead/dummy links like /careers, /blog, /press, etc.
+1. Carefully apply the user's requested changes directly to the ${isReact ? 'React JSX component' : 'HTML code'}.
+2. CRITICAL PRESERVATION: NEVER delete or truncate datasets (e.g. DISHES array), working JavaScript functions, modals, or styles.
+3. Every <form> tag MUST contain a clearly styled <button type="submit">.
+4. Return the COMPLETE, updated, fully working standalone ${isReact ? 'React (JSX) component' : 'HTML document'} without truncating.
 
 RETURN FORMAT:
-Return ONLY one valid JSON object without markdown or code fences.
-
-The "code" field must contain the COMPLETE updated source code.
-
-IMPORTANT:
-- Do not stringify the source code twice.
-- Do not return literal backslash-n characters like \\n.
-- Do not double-escape quotes or line breaks.
-- The code must be valid after the JSON response is parsed with JSON.parse().
-
-JSON structure:
-
+Return ONLY one valid JSON object without markdown or code fences:
 {
   "code": "COMPLETE UPDATED SOURCE CODE",
   "message": "Specific conversational summary of what was changed or added",
@@ -569,41 +822,50 @@ JSON structure:
 }
 `;
 
-            let raw = await generateResponse(updateAiPrompt);
-            let parsed = extractJson(raw);
+                let raw = await generateResponse(updateAiPrompt);
+                let parsed = extractJson(raw);
 
-            if (!parsed || !parsed.code) {
-                // Fallback attempt
-                raw = await generateResponse(`${updateAiPrompt}\n\nIMPORTANT: Return ONLY valid JSON.`);
-                parsed = extractJson(raw);
+                if (!parsed || !parsed.code) {
+                    raw = await generateResponse(`${updateAiPrompt}\n\nIMPORTANT: Return ONLY valid JSON.`);
+                    parsed = extractJson(raw);
+                }
+
+                if (!parsed || !parsed.code) {
+                    return res.status(500).json({
+                        message: "AI failed to apply the requested updates. Please try rephrasing your request."
+                    });
+                }
+
+                const rawNormalized = normalizeGeneratedCode(parsed.code);
+
+                if (isReact) {
+                    updatedCode = rawNormalized;
+                } else {
+                    const updatedHtml = await injectRealImages(
+                        rawNormalized,
+                        parsed.imageQueries || [],
+                        userPromptText
+                    );
+
+                    // Defensive recovery: If full synthesis accidentally truncated the DISHES dataset or core scripts, restore them
+                    let finalHtml = updatedHtml;
+                    if (website.latestCode.includes('const DISHES =') && !finalHtml.includes('const DISHES =')) {
+                        const previousDishesMatch = website.latestCode.match(/\/\/ ==+[\s\S]*?const DISHES =[\s\S]*?<\/script>/i);
+                        if (previousDishesMatch) {
+                            finalHtml = finalHtml.replace(/<\/body>/i, `<script>\n${previousDishesMatch[0]}\n</body>`);
+                        }
+                    }
+
+                    updatedCode = normalizeHtml(finalHtml);
+                }
+
+                changeMessage = parsed.message?.trim() || `Applied your requested changes: "${userPromptText}".`;
             }
 
-            if (!parsed || !parsed.code) {
-                return res.status(500).json({
-                    message: "AI failed to apply the requested updates. Please try rephrasing your request."
-                });
-            }
+            // Save updated code to database
+            website.latestCode = updatedCode;
 
-            // If React code, store pure code; if HTML, normalize
-            const updatedCode = normalizeGeneratedCode(parsed.code);
-
-            const isUpdatedReact =
-                /export\s+default/i.test(updatedCode) ||
-                /import\s+React/i.test(updatedCode) ||
-                /function\s+App/i.test(updatedCode);
-            if (isUpdatedReact) {
-                website.latestCode = updatedCode;
-            } else {
-                const updatedHtml = await injectRealImages(
-                    updatedCode,
-                    parsed.imageQueries || [],
-                    userPromptText
-                );
-
-                website.latestCode = normalizeHtml(updatedHtml);
-            }
             // Ensure a clear, specific change description for the chat
-            let changeMessage = parsed.message?.trim();
             if (!changeMessage || /website generated successfully/i.test(changeMessage)) {
                 changeMessage = `Applied your requested changes: "${userPromptText}".`;
             }
@@ -615,8 +877,8 @@ JSON structure:
                 userPromptText,
                 pageType,
                 website.latestCode,
-                parsed.agentQuestions,
-                parsed.suggestions,
+                null,
+                null,
                 currentTurns
             );
 
