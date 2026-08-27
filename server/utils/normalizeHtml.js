@@ -237,6 +237,94 @@ export function normalizeHtml(html) {
       });
     };
 
+    /* Universal Food Delivery & E-Commerce Fallbacks */
+    window.quickAdd = window.quickAdd || window.addToCart || function(id) {
+      var badge = document.getElementById('cartBadgeCount') || document.getElementById('cartCountBadge');
+      if (badge) {
+        var current = parseInt(badge.textContent) || 0;
+        badge.textContent = current + 1;
+        badge.style.display = 'inline-flex';
+      }
+      var floatBar = document.getElementById('floatingBottomCart');
+      if (floatBar) {
+        floatBar.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
+        floatBar.classList.add('opacity-100', 'scale-100');
+      }
+      if (window.showToast) window.showToast('Added item to delivery bag! 🛒');
+    };
+    window.addToCart = window.addToCart || window.quickAdd;
+    window.updateQty = window.updateQty || function(id, delta) {
+      var badge = document.getElementById('cartBadgeCount') || document.getElementById('cartCountBadge');
+      if (badge) {
+        var current = Math.max(0, (parseInt(badge.textContent) || 0) + delta);
+        badge.textContent = current;
+      }
+    };
+    window.removeFromCart = window.removeFromCart || function(id) {
+      if (window.showToast) window.showToast('Removed item from bag.');
+    };
+    window.filterCategory = window.filterCategory || window.filterMenu || function(cat) {
+      var category = (cat || 'all').toLowerCase().trim();
+      var items = document.querySelectorAll('[data-category], .dish-card, .menu-item, [data-cuisine]');
+      items.forEach(function(item) {
+        var itemCat = (item.getAttribute('data-category') || item.getAttribute('data-cuisine') || item.textContent).toLowerCase();
+        item.style.display = (category === 'all' || itemCat.includes(category)) ? '' : 'none';
+      });
+      if (window.showToast) window.showToast('Filtered by ' + (category === 'all' ? 'All Cuisines' : category));
+    };
+    window.setDietaryFilter = window.setDietaryFilter || function(diet) {
+      if (window.showToast) window.showToast('Dietary filter applied: ' + diet);
+    };
+    window.handleSearch = window.handleSearch || window.handleMenuSearch || function(q) {
+      var query = (q || '').toLowerCase().trim();
+      var items = document.querySelectorAll('[data-name], .menu-item, .dish-card, .glass-card, [data-category]');
+      items.forEach(function(item) {
+        var text = item.textContent.toLowerCase();
+        item.style.display = (!query || text.includes(query)) ? '' : 'none';
+      });
+    };
+    window.resetFilters = window.resetFilters || function() {
+      if (window.filterCategory) window.filterCategory('all');
+    };
+    window.openDishModal = window.openDishModal || function(id) {
+      if (window.openModal) window.openModal('dishModal');
+    };
+    window.applyPromoCode = window.applyPromoCode || function(code) {
+      if (window.showToast) window.showToast('Promo code ' + (code || 'applied') + ' activated! 🎉');
+    };
+    window.applyEnteredCoupon = window.applyEnteredCoupon || function() {
+      var input = document.getElementById('couponInput');
+      if (input && input.value && window.applyPromoCode) window.applyPromoCode(input.value.trim());
+    };
+    window.selectLocation = window.selectLocation || function(city, area) {
+      var cityEl = document.getElementById('currentCityText');
+      var areaEl = document.getElementById('currentAreaText');
+      if (cityEl) cityEl.textContent = city;
+      if (areaEl) areaEl.textContent = area;
+      if (window.closeModal) window.closeModal('locationModal');
+      if (window.showToast) window.showToast('Location set to ' + city + ' 📍');
+    };
+    window.submitReview = window.submitReview || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      if (window.closeModal) window.closeModal('reviewModal');
+      if (window.showToast) window.showToast('Thank you! Your verified review has been published.');
+    };
+    window.submitNewsletter = window.submitNewsletter || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      if (window.showToast) window.showToast('Subscribed to VIP Gourmet alerts! 🍷');
+    };
+    window.processCheckout = window.processCheckout || function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      if (window.closeModal) window.closeModal('checkoutModal');
+      if (window.toggleDrawer) window.toggleDrawer('cartDrawer');
+      if (window.showToast) window.showToast('Order #FD-8942 placed successfully! 🎉');
+      var trackSec = document.getElementById('tracking');
+      if (trackSec) trackSec.scrollIntoView({ behavior: 'smooth' });
+    };
+    window.simulateOrderTracking = window.simulateOrderTracking || function() {
+      if (window.showToast) window.showToast('Order #FD-8942 status: On the way 🛵 (Ramesh Kumar ★ 4.9)');
+    };
+
 
 
     function handleGlobalClick(event) {
