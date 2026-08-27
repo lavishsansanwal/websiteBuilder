@@ -7,12 +7,18 @@ import {
     Code2,
     Copy,
     Check,
+    CheckCircle2,
+    Compass,
     Download,
+    Flame,
+    Layers,
     MessageSquare,
     Monitor,
     Rocket,
     Send,
-    X
+    Sparkles,
+    X,
+    Zap
 } from "lucide-react";
 
 import {
@@ -1300,10 +1306,12 @@ function WebsiteEditor() {
     // UPDATE WEBSITE
     // ==========================================
 
-    const handleUpdate = async () => {
-        if (!prompt.trim()) return;
+    const handleUpdate = async (customPrompt = null) => {
+        const text = typeof customPrompt === "string" && customPrompt.trim()
+            ? customPrompt.trim()
+            : prompt.trim();
 
-        const text = prompt.trim();
+        if (!text) return;
 
         setPrompt("");
         setUpdateLoading(true);
@@ -1340,9 +1348,13 @@ function WebsiteEditor() {
 
                 setWebsite((previousWebsite) => ({
                     ...previousWebsite,
-                    latestCode: cleanUpdated
+                    latestCode: cleanUpdated,
+                    conversation: result.data?.website?.conversation || previousWebsite?.conversation
                 }));
             }
+
+            const updatedConv = result.data?.website?.conversation;
+            const latestAiMessage = Array.isArray(updatedConv) ? updatedConv[updatedConv.length - 1] : null;
 
             setMessages((previousMessages) => [
                 ...(Array.isArray(previousMessages)
@@ -1352,7 +1364,9 @@ function WebsiteEditor() {
                     role: "ai",
                     content:
                         result.data?.message ||
-                        "Website updated successfully."
+                        "Website updated successfully.",
+                    agentQuestions: latestAiMessage?.agentQuestions || [],
+                    suggestions: latestAiMessage?.suggestions || []
                 }
             ]);
 
@@ -1450,50 +1464,425 @@ function WebsiteEditor() {
     }
 
     // ==========================================
+    // CONTEXTUAL SUGGESTIONS HELPER (FALLBACK)
+    // ==========================================
+
+    const getDomainSuggestions = (title = "", code = "", turns = 1) => {
+        const text = (title + " " + code).toLowerCase();
+        const phase = Math.min(4, Math.max(1, turns));
+
+        // 1. E-Commerce
+        if (/\b(store|shop|e-commerce|ecommerce|sneaker|streetwear|shoe|clothing|fashion|retail|product|cart|bag|catalog|order)\b/i.test(text)) {
+            let card = {
+                question: "What high-impact feature should we add next to elevate this store?",
+                options: [
+                    {
+                        icon: "⚡",
+                        label: "Add Flash Sale Countdown Banner",
+                        description: "Adds a 24-hour urgency timer with live stock bar and 20% discount coupon STREET20",
+                        prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20"
+                    },
+                    {
+                        icon: "⭐",
+                        label: "Verified Customer Photo Reviews",
+                        description: "Adds customer review grid with star breakdowns, customer lookbook photos, and review modal",
+                        prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal"
+                    },
+                    {
+                        icon: "📏",
+                        label: "Interactive Size & Fit Guide",
+                        description: "Adds size chart modal with US/UK/EU conversions for apparel and sneakers",
+                        prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear"
+                    }
+                ]
+            };
+
+            if (phase === 3) {
+                card = {
+                    question: "Which visual vibe and color palette fits your brand vision?",
+                    options: [
+                        {
+                            icon: "🌌",
+                            label: "Neon Cyberpunk Glow",
+                            description: "High-contrast dark theme with electric cyan, magenta neon glows, and dark glass cards",
+                            prompt: "Switch the color scheme to high-energy Neon Cyberpunk with electric cyan and violet glow accents"
+                        },
+                        {
+                            icon: "🖤",
+                            label: "Luxury Minimalist Monochrome",
+                            description: "Ultra-clean black & off-white aesthetic with editorial serif typography",
+                            prompt: "Switch the visual theme to Luxury Minimalist Monochrome with clean typography and high-fashion editorial styling"
+                        },
+                        {
+                            icon: "🔥",
+                            label: "Street Flame Amber Accent",
+                            description: "Vibrant volcanic orange and golden amber highlights with bold athletic badges",
+                            prompt: "Switch accent colors to vibrant volcanic amber and orange flame highlights with bold streetwear badges"
+                        }
+                    ]
+                };
+            }
+
+            return {
+                phase,
+                interactiveCard: card,
+                agentQuestions: [
+                    "Would you like to add a Flash Sale countdown timer with a 20% discount coupon code?",
+                    "Should we add verified customer reviews with photo galleries and star ratings?",
+                    "Do you want to add size guide measurement charts and color swatches on product cards?"
+                ],
+                suggestions: [
+                    { label: "+ Add Flash Sale Timer", prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20" },
+                    { label: "+ Customer Photo Reviews", prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal" },
+                    { label: "+ Neon Cyberpunk Theme", prompt: "Switch the color scheme to high-energy Neon Cyberpunk with electric cyan and violet glow accents" },
+                    { label: "+ Size Guide Modal", prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear" }
+                ]
+            };
+        }
+
+        // 2. Restaurant
+        if (/\b(restaurant|bistro|cafe|bakery|dining|food|menu|pizza|pasta|dish|chef|cuisine|table|reservation)\b/i.test(text)) {
+            let card = {
+                question: "How should dining guests interact with your restaurant online?",
+                options: [
+                    {
+                        icon: "📅",
+                        label: "Table Reservation Booking Modal",
+                        description: "Interactive reservation form with date/time pickers, party size, and confirmed table ticket",
+                        prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking"
+                    },
+                    {
+                        icon: "🥗",
+                        label: "Dietary Badges & Search Filter",
+                        description: "Instant menu search with Vegan, Gluten-Free, and Chef Choice filter pills",
+                        prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu"
+                    },
+                    {
+                        icon: "🍷",
+                        label: "Sommelier Wine Pairing Notes",
+                        description: "Curated wine pairing recommendations and flavor profiles under each signature dish",
+                        prompt: "Add sommelier wine pairing notes and flavor profiles to each signature dish card on the menu"
+                    }
+                ]
+            };
+
+            return {
+                phase,
+                interactiveCard: card,
+                agentQuestions: [
+                    "Would you like to add an online Table Reservation modal with date picker and party size?",
+                    "Should we add dietary badges (🌱 Vegan, 🌾 Gluten-Free, ⭐ Chef's Special) to the menu?",
+                    "Do you want an interactive Wine Pairing recommendation on signature dishes?"
+                ],
+                suggestions: [
+                    { label: "+ Table Booking Modal", prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking" },
+                    { label: "+ Add Dietary Badges", prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu" },
+                    { label: "+ Chef Story & Ambiance", prompt: "Add a master chef story section and ambient restaurant interior photo gallery" }
+                ]
+            };
+        }
+
+        // 3. Dashboard
+        if (/\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(text)) {
+            let card = {
+                question: "What analytical actions should users be able to take on this dashboard?",
+                options: [
+                    {
+                        icon: "📥",
+                        label: "Export to CSV & PDF Reports",
+                        description: "Instant data table export buttons with simulated progress toast and download",
+                        prompt: "Add working Export to CSV and Export to PDF action buttons above the data table"
+                    },
+                    {
+                        icon: "📅",
+                        label: "Interactive Date Range Filters",
+                        description: "Pills for Last 7 Days, 30 Days, and Yearly data filtering that update charts",
+                        prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data"
+                    },
+                    {
+                        icon: "📈",
+                        label: "AI Revenue Forecasting Graph",
+                        description: "Predictive revenue curve with 95% confidence bands and KPI projection metrics",
+                        prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands"
+                    }
+                ]
+            };
+
+            return {
+                phase,
+                interactiveCard: card,
+                agentQuestions: [
+                    "Would you like an 'Export to CSV / PDF' button on the transactions table?",
+                    "Should we add date range filter pickers (Last 7 Days, Last 30 Days) for the charts?",
+                    "Do you want live threshold alert pills and status filters for the table?"
+                ],
+                suggestions: [
+                    { label: "+ Export CSV / PDF", prompt: "Add working Export to CSV and Export to PDF action buttons above the data table" },
+                    { label: "+ Date Range Filters", prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data" },
+                    { label: "+ Revenue Forecasting", prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands" }
+                ]
+            };
+        }
+
+        // 4. SaaS / Landing Page Default
+        let card = {
+            question: "What primary conversion goal should we optimize this page for?",
+            options: [
+                {
+                    icon: "💳",
+                    label: "3-Tier Pricing Table with Annual Switch",
+                    description: "Tier cards (Starter, Pro, Enterprise) with monthly/annual 20% discount toggle",
+                    prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge"
+                },
+                {
+                    icon: "🎬",
+                    label: "Interactive Video Demo Modal",
+                    description: "Video trigger button in hero section with floating feature badges and modal player",
+                    prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights"
+                },
+                {
+                    icon: "📧",
+                    label: "Frictionless Email-Only Lead Capture",
+                    description: "Streamlines all sign-in and lead forms to collect only email without phone number",
+                    prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number"
+                }
+            ]
+        };
+
+        return {
+            phase,
+            interactiveCard: card,
+            agentQuestions: [
+                "Would you like to add a 3-tier Pricing Table with Monthly vs Annual (Save 20%) billing switch?",
+                "Should we add a customer video demo modal or client logos marquee for social proof?",
+                "Do you want the Lead Capture form to ask only for Email, or also Phone & Company Size?"
+            ],
+            suggestions: [
+                { label: "+ Add Pricing Toggle", prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge" },
+                { label: "+ Add Video Demo Modal", prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights" },
+                { label: "+ Only Ask for Email", prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number" },
+                { label: "+ Expandable FAQ Accordion", prompt: "Add an interactive expandable FAQ accordion section with smooth toggle animations" }
+            ]
+        };
+    };
+
+    // ==========================================
     // CHAT MESSAGES RENDERER
     // ==========================================
 
-    const renderChatMessages = () => (
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+    const renderChatMessages = () => {
+        const currentTurnCount = Math.floor(safeMessages.length / 2) + 1;
+        const currentDomainData = getDomainSuggestions(website?.title, code, currentTurnCount);
+        const currentPhase = Math.min(4, Math.max(1, currentTurnCount));
 
-            {safeMessages.length === 0 &&
-                !updateLoading && (
-                    <div className="text-center text-sm text-zinc-500 mt-10">
-                        Ask AI to make changes to your website.
+        const phaseSteps = [
+            { step: 1, title: "Layout" },
+            { step: 2, title: "Features" },
+            { step: 3, title: "Styling" },
+            { step: 4, title: "Launch" }
+        ];
+
+        return (
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+
+                {/* Design Phase Roadmap Tracker */}
+                <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/10 shadow-lg space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400">
+                        <span className="flex items-center gap-1.5 text-indigo-400 uppercase tracking-wider">
+                            <Compass size={13} className="text-indigo-400" />
+                            <span>Design Evolution Roadmap</span>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono">
+                            Phase {currentPhase} of 4
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5 pt-1">
+                        {phaseSteps.map((s) => {
+                            const isDone = s.step < currentPhase;
+                            const isActive = s.step === currentPhase;
+                            return (
+                                <div
+                                    key={s.step}
+                                    className={`py-1 px-1.5 rounded-lg text-center text-[10px] font-bold transition-all ${
+                                        isActive
+                                            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-900/40 ring-1 ring-white/30"
+                                            : isDone
+                                            ? "bg-emerald-950/60 border border-emerald-500/30 text-emerald-400"
+                                            : "bg-white/5 text-zinc-500"
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        {isDone ? (
+                                            <CheckCircle2 size={10} className="text-emerald-400" />
+                                        ) : isActive ? (
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                                        ) : null}
+                                        <span>{s.title}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Kickstarter State (If 0 messages) */}
+                {safeMessages.length === 0 && !updateLoading && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/50 via-purple-950/30 to-black border border-indigo-500/30 text-left space-y-3.5 shadow-2xl animate-fadeIn">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                                <Sparkles size={16} />
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-black text-white uppercase tracking-wider">AI Design Co-Pilot Ready</h4>
+                                <p className="text-[11px] text-zinc-400">Select a high-impact direction to start:</p>
+                            </div>
+                        </div>
+
+                        {currentDomainData?.interactiveCard && (
+                            <div className="space-y-2 pt-1">
+                                <p className="text-xs font-semibold text-zinc-200">
+                                    {currentDomainData.interactiveCard.question}
+                                </p>
+                                <div className="space-y-2">
+                                    {currentDomainData.interactiveCard.options.map((opt, oIdx) => (
+                                        <button
+                                            key={oIdx}
+                                            onClick={() => handleUpdate(opt.prompt)}
+                                            disabled={updateLoading}
+                                            className="w-full p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/50 text-left transition-all group flex items-start gap-2.5 cursor-pointer shadow-sm hover:scale-[1.01]"
+                                        >
+                                            <span className="text-base shrink-0 pt-0.5">{opt.icon}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-bold text-white group-hover:text-indigo-300 flex items-center justify-between">
+                                                    <span>{opt.label}</span>
+                                                    <span className="text-[11px] text-zinc-500 group-hover:text-indigo-400 transition-transform group-hover:translate-x-1">➔</span>
+                                                </div>
+                                                <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">{opt.description}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
-            {safeMessages.map((message, index) => (
-                <div
-                    key={index}
-                    className={`max-w-[85%] ${
-                        message.role === "user"
-                            ? "ml-auto"
-                            : "mr-auto"
-                    }`}
-                >
-                    <div
-                        className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                            message.role === "user"
-                                ? "bg-white text-black"
-                                : "bg-white/5 border border-white/10 text-zinc-200"
-                        }`}
-                    >
-                        {message.content}
-                    </div>
-                </div>
-            ))}
+                {/* Conversation Turns */}
+                {safeMessages.map((message, index) => {
+                    const isLatestAi = message.role === "ai" && index === safeMessages.length - 1;
+                    const fallback = isLatestAi ? getDomainSuggestions(website?.title, code, currentTurnCount) : null;
 
-            {updateLoading && (
-                <div className="max-w-[85%] mr-auto">
-                    <div className="px-4 py-2.5 rounded-2xl text-xs bg-white/5 border border-white/10 text-zinc-400 italic">
-                        {thinkingSteps[thinkingIndex]}
-                    </div>
-                </div>
-            )}
+                    const card = message.interactiveCard || fallback?.interactiveCard;
+                    const questions = (Array.isArray(message.agentQuestions) && message.agentQuestions.length > 0)
+                        ? message.agentQuestions
+                        : (fallback ? fallback.agentQuestions : []);
 
-        </div>
-    );
+                    const suggestions = (Array.isArray(message.suggestions) && message.suggestions.length > 0)
+                        ? message.suggestions
+                        : (fallback ? fallback.suggestions : []);
+
+                    return (
+                        <div
+                            key={index}
+                            className={`space-y-2.5 ${
+                                message.role === "user"
+                                    ? "max-w-[85%] ml-auto"
+                                    : "max-w-[98%] mr-auto"
+                            }`}
+                        >
+                            {/* Message Bubble */}
+                            <div
+                                className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                                    message.role === "user"
+                                        ? "bg-white text-black font-medium shadow-md"
+                                        : "bg-zinc-900/90 border border-white/10 text-zinc-200 shadow-lg"
+                                }`}
+                            >
+                                {message.content}
+                            </div>
+
+                            {/* Interactive AI Co-Pilot Question Card & Options */}
+                            {message.role === "ai" && (
+                                <div className="space-y-3 pt-1">
+                                    
+                                    {/* 1. Multi-Choice Interactive Question Card */}
+                                    {card && Array.isArray(card.options) && card.options.length > 0 && (
+                                        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-black border border-indigo-500/30 text-left space-y-2.5 shadow-xl animate-fadeIn">
+                                            <div className="flex items-center gap-1.5 text-indigo-400 font-extrabold text-[11px] uppercase tracking-wider">
+                                                <Compass size={13} className="text-amber-400" />
+                                                <span>AI Co-Pilot Inquires:</span>
+                                            </div>
+                                            <p className="text-xs font-bold text-white leading-snug">
+                                                {card.question}
+                                            </p>
+                                            <div className="space-y-2 pt-1">
+                                                {card.options.map((opt, oIdx) => (
+                                                    <button
+                                                        key={oIdx}
+                                                        onClick={() => handleUpdate(opt.prompt)}
+                                                        disabled={updateLoading}
+                                                        className="w-full p-2.5 rounded-xl bg-white/5 hover:bg-gradient-to-r hover:from-indigo-900/50 hover:to-purple-900/40 border border-white/10 hover:border-indigo-400/50 text-left transition-all group flex items-start gap-2.5 cursor-pointer shadow-sm hover:scale-[1.01] active:scale-95 disabled:opacity-50"
+                                                    >
+                                                        <span className="text-base shrink-0 pt-0.5">{opt.icon || "⚡"}</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-xs font-extrabold text-white group-hover:text-indigo-300 flex items-center justify-between">
+                                                                <span>{opt.label}</span>
+                                                                <span className="text-[11px] text-zinc-500 group-hover:text-indigo-400 transition-transform group-hover:translate-x-1">➔</span>
+                                                            </div>
+                                                            {opt.description && (
+                                                                <p className="text-[10px] text-zinc-400 leading-tight mt-0.5 font-normal">
+                                                                    {opt.description}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 2. Secondary Quick Action Pills */}
+                                    {suggestions.length > 0 && (
+                                        <div className="space-y-1.5 text-left">
+                                            <span className="text-[10px] uppercase font-extrabold text-zinc-400 tracking-wider flex items-center gap-1.5">
+                                                <Zap size={11} className="text-amber-400" />
+                                                <span>Quick Toggles:</span>
+                                            </span>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {suggestions.map((s, sIdx) => (
+                                                    <button
+                                                        key={sIdx}
+                                                        onClick={() => handleUpdate(s.prompt || s.label)}
+                                                        disabled={updateLoading}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 text-white font-semibold text-xs border border-white/10 hover:border-transparent transition-all shadow-md hover:scale-[1.02] active:scale-95 disabled:opacity-50 text-left cursor-pointer flex items-center gap-1.5 group"
+                                                    >
+                                                        <span>{s.label}</span>
+                                                        <span className="text-[10px] opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform">➔</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+
+                {updateLoading && (
+                    <div className="max-w-[85%] mr-auto">
+                        <div className="px-4 py-3 rounded-2xl text-xs bg-zinc-900 border border-white/10 text-indigo-400 flex items-center gap-2 shadow-lg animate-pulse">
+                            <Sparkles size={14} className="text-amber-400 animate-spin" />
+                            <span>{thinkingSteps[thinkingIndex]}</span>
+                        </div>
+                    </div>
+                )}
+
+            </div>
+        );
+    };
 
     // ==========================================
     // HEADER RENDERER

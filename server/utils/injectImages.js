@@ -2,6 +2,19 @@ import { getWebsiteImages } from "../config/imageSearch.js";
 
 // Comprehensive verified high-resolution photos categorized by exact domain (ALL TESTED [200 OK])
 export const DOMAIN_IMAGE_COLLECTIONS = {
+    ecommerce_audio_tech: {
+        hero: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1200&auto=format&fit=crop&q=80",
+        headphones_flagship: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+        headphones_overear: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80",
+        earbuds_pro: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80",
+        earphones_sport: "https://images.unsplash.com/photo-1572536147248-ac59a8abfa4b?w=800&auto=format&fit=crop&q=80",
+        smartwatch_wrist: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=800&auto=format&fit=crop&q=80",
+        smartwatch_black: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80",
+        speakers_studio: "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&auto=format&fit=crop&q=80",
+        speaker_portable: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&auto=format&fit=crop&q=80",
+        laptop: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&auto=format&fit=crop&q=80",
+        smartphone: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80"
+    },
     streetwear_fashion: {
         hero: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1400&auto=format&fit=crop&q=80",
         urban_hero: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1400&auto=format&fit=crop&q=80",
@@ -94,27 +107,39 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
         }
     }
 
-    // 2. Holistic domain detection from both userPrompt AND the full HTML context
-    const combinedContext = ((userPrompt || "") + " " + (htmlCode || "")).toLowerCase();
-    const isRestaurant = /restaurant|bistro|italian|food|pasta|pizza|cafe|coffee|diner|kitchen|bakery|menu|chef|dish|wine|bar|dining|burrata|prosciutto|tasting|osteria|trattoria|antipasti/i.test(combinedContext);
-    const isFashion = /streetwear|fashion|kicks|sneaker|shoes|apparel|clothing|hoodie|jacket|jeans|cloth|wear|dress|tshirt|tee|denim/i.test(combinedContext);
-    const isFitness = /gym|fitness|workout|trainer|crossfit|yoga|sports/i.test(combinedContext);
+    // 2. Accurate domain detection - prioritize prompt intent with word boundaries
+    const promptText = (userPrompt || "").toLowerCase();
+    const contentText = (htmlCode || "").toLowerCase();
+
+    const isAudioTech = /\b(audio|headphone|headphones|earbud|earbuds|earphone|earphones|speaker|speakers|soundbar|smartwatch|watch|gadget|gadgets|tech|electronics|hardware|gear|acoustics|bluetooth|anc)\b/i.test(promptText) ||
+        (/\b(audio|headphones|earbuds|speakers|smartwatch)\b/i.test(contentText) && !/\b(pizza|pasta|restaurant|menu items)\b/i.test(promptText));
+
+    const isFashion = !isAudioTech && (/\b(streetwear|fashion|kicks|sneaker|sneakers|shoe|shoes|apparel|clothing|hoodie|hoodies|jacket|jeans|cloth|cloths|wear|dress|tshirt|tee|denim|boutique)\b/i.test(promptText));
+
+    const isRestaurant = !isAudioTech && !isFashion && (
+        /\b(restaurant|bistro|italian|pizzeria|pizza|pasta|cafe|coffee shop|diner|bakery|chef|dish|wine bar|dining|burrata|prosciutto|tasting menu|osteria|trattoria|food delivery)\b/i.test(promptText) ||
+        /\b(pizza|pasta|ristorante|trattoria|antipasti)\b/i.test(contentText)
+    );
+
+    const isFitness = !isAudioTech && !isFashion && !isRestaurant && /\b(gym|fitness|workout|trainer|crossfit|yoga|sports|bodybuilding)\b/i.test(promptText);
 
     // Pick appropriate domain pool
     let domainPool;
-    if (isRestaurant) {
+    if (isAudioTech) {
+        domainPool = Object.values(DOMAIN_IMAGE_COLLECTIONS.ecommerce_audio_tech);
+    } else if (isRestaurant) {
         domainPool = Object.values(DOMAIN_IMAGE_COLLECTIONS.restaurant_italian);
     } else if (isFashion) {
         domainPool = Object.values(DOMAIN_IMAGE_COLLECTIONS.streetwear_fashion);
     } else if (isFitness) {
         domainPool = Object.values(DOMAIN_IMAGE_COLLECTIONS.fitness_gym);
-    } else if (/saas|agency|consult|startup|software|crm/i.test(combinedContext)) {
+    } else if (/\b(saas|agency|consult|startup|software|crm)\b/i.test(promptText)) {
         domainPool = Object.values(DOMAIN_IMAGE_COLLECTIONS.saas_agency);
     } else {
-        domainPool = Object.values(DOMAIN_IMAGE_COLLECTIONS.ecommerce_tech);
+        domainPool = Object.values(DOMAIN_IMAGE_COLLECTIONS.ecommerce_audio_tech);
     }
 
-    // 3. If Restaurant or Fashion, sweep and replace any tech gadget image URLs across the ENTIRE document (including inside JS arrays)
+    // 3. Only replace tech images with food if strictly in a verified restaurant context
     if (isRestaurant) {
         const foodRotation = Object.values(DOMAIN_IMAGE_COLLECTIONS.restaurant_italian);
         let foodIdx = 0;
@@ -144,6 +169,9 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
     let poolIdx = 0;
     let avatarIdx = 0;
     let sneakerIdx = 0;
+    let watchIdx = 0;
+    let speakerIdx = 0;
+    let headphoneIdx = 0;
 
     const SNEAKER_ROTATION = [
         DOMAIN_IMAGE_COLLECTIONS.streetwear_fashion.nike_sneaker,
@@ -151,6 +179,26 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
         DOMAIN_IMAGE_COLLECTIONS.streetwear_fashion.hightop_sneaker,
         DOMAIN_IMAGE_COLLECTIONS.streetwear_fashion.retro_sneaker,
         DOMAIN_IMAGE_COLLECTIONS.streetwear_fashion.sport_shoe
+    ];
+
+    const WATCH_ROTATION = [
+        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80", // Minimalist black watch
+        "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=800&auto=format&fit=crop&q=80", // Active fitness smartwatch on wrist
+        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800&auto=format&fit=crop&q=80", // Modern digital smartwatch
+        "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=800&auto=format&fit=crop&q=80"  // Sport digital tracker
+    ];
+
+    const SPEAKER_ROTATION = [
+        "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&auto=format&fit=crop&q=80", // Studio bookshelf speakers
+        "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&auto=format&fit=crop&q=80", // JBL portable speaker
+        "https://images.unsplash.com/photo-1543512214-318c7553f230?w=800&auto=format&fit=crop&q=80"  // Home acoustic smart speaker
+    ];
+
+    const HEADPHONE_ROTATION = [
+        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80", // Flagship black ANC headphones
+        "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80", // Over-ear studio headphones
+        "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80", // Wireless earbuds pro
+        "https://images.unsplash.com/photo-1572536147248-ac59a8abfa4b?w=800&auto=format&fit=crop&q=80"  // Sport isolation earphones
     ];
 
     // 4. Process all <img> tags
@@ -168,7 +216,10 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
         const isBroken404 = /1621996346565-e3d5d6281691/i.test(srcValue);
         const isValidHttpsImage = /^https:\/\/(images\.unsplash\.com|cdn\.|assets\.|via\.placeholder\.com|images\.pexels\.com)/i.test(srcValue.trim());
 
-        if (isValidHttpsImage && !srcValue.includes("placeholder") && !srcValue.includes("example.com") && !isMismatchedTechInFoodOrFashion && !isBroken404) {
+        // Check if image is a food image mistakenly placed in audio tech store
+        const isFoodInAudioTech = isAudioTech && /1565299624946|1513104890138|1580638149300|1551183053|1546549032|1544025162|1572695157|1510812431|1577219491|1571877227|1555396273|1504674900/i.test(srcValue);
+
+        if (isValidHttpsImage && !srcValue.includes("placeholder") && !srcValue.includes("example.com") && !isMismatchedTechInFoodOrFashion && !isBroken404 && !isFoodInAudioTech) {
             return fullMatch; // Keep valid domain-matched image
         }
 
@@ -178,6 +229,24 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
             if (altText.includes(q) || q.includes(altText)) {
                 matchedUrl = imgUrl;
                 break;
+            }
+        }
+
+        // Smart match for Audio & Gadgets with dedicated rotations for zero duplicates
+        if (!matchedUrl && isAudioTech) {
+            if (/smartwatch|watch|chrono|pulse|fitness watch|wrist/i.test(altText)) {
+                matchedUrl = WATCH_ROTATION[watchIdx % WATCH_ROTATION.length];
+                watchIdx++;
+            } else if (/earbud|airbud|air buds|tws|buds|pro 2/i.test(altText)) {
+                matchedUrl = DOMAIN_IMAGE_COLLECTIONS.ecommerce_audio_tech.earbuds_pro;
+            } else if (/sport|earphone|isolation|in-ear|hook/i.test(altText)) {
+                matchedUrl = DOMAIN_IMAGE_COLLECTIONS.ecommerce_audio_tech.earphones_sport;
+            } else if (/speaker|soundbar|bookshelf|subwoofer|tube|cannon|acoustic/i.test(altText)) {
+                matchedUrl = SPEAKER_ROTATION[speakerIdx % SPEAKER_ROTATION.length];
+                speakerIdx++;
+            } else if (/headphone|over-ear|studio|anc|planar/i.test(altText)) {
+                matchedUrl = HEADPHONE_ROTATION[headphoneIdx % HEADPHONE_ROTATION.length];
+                headphoneIdx++;
             }
         }
 
@@ -243,7 +312,7 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
             ? DOMAIN_IMAGE_COLLECTIONS.streetwear_fashion.nike_sneaker
             : isRestaurant
             ? DOMAIN_IMAGE_COLLECTIONS.restaurant_italian.pizza
-            : DOMAIN_IMAGE_COLLECTIONS.ecommerce_tech.headphones;
+            : DOMAIN_IMAGE_COLLECTIONS.ecommerce_audio_tech.headphones_flagship;
 
         return `<img ${beforeSrc}src="${matchedUrl}" onerror="this.onerror=null;this.src='${fallbackUrl}'"${afterSrc}>`;
     });
@@ -251,7 +320,8 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
     // 5. Replace background-image placeholders or mismatched tech images
     processedCode = processedCode.replace(/url\(\s*["']?([^"')]+)["']?\s*\)/gi, (fullMatch, bgUrl) => {
         const isMismatched = (isRestaurant || isFashion) && TECH_IMAGE_PATTERNS.some(pat => pat.test(bgUrl));
-        if (/^https:\/\/(images\.unsplash\.com|cdn\.)/i.test(bgUrl.trim()) && !isMismatched) {
+        const isFoodInAudioTech = isAudioTech && /1565299624946|1513104890138|1517248135467/i.test(bgUrl);
+        if (/^https:\/\/(images\.unsplash\.com|cdn\.)/i.test(bgUrl.trim()) && !isMismatched && !isFoodInAudioTech) {
             return fullMatch;
         }
 
@@ -259,6 +329,8 @@ export async function injectRealImages(htmlCode, imageQueries = [], userPrompt =
             ? DOMAIN_IMAGE_COLLECTIONS.streetwear_fashion.hero
             : isRestaurant
             ? DOMAIN_IMAGE_COLLECTIONS.restaurant_italian.hero
+            : isAudioTech
+            ? DOMAIN_IMAGE_COLLECTIONS.ecommerce_audio_tech.hero
             : domainPool[0];
 
         return `url('${heroImg}')`;

@@ -1,16 +1,40 @@
 import mongoose from "mongoose";
 
-const messageSchema=new mongoose.Schema({
-    role:{
-        type:String,
-        enum:["ai","user"],
-        required:true
+const messageSchema = new mongoose.Schema({
+    role: {
+        type: String,
+        enum: ["ai", "user"],
+        required: true
     },
-    content:{
-        type:String,
-        required:true
-    }
-},{timestamps:true})
+    content: {
+        type: String,
+        required: true
+    },
+    phase: {
+        type: Number,
+        default: 1
+    },
+    interactiveCard: {
+        question: { type: String },
+        options: [
+            {
+                label: { type: String },
+                prompt: { type: String },
+                icon: { type: String },
+                description: { type: String }
+            }
+        ]
+    },
+    agentQuestions: [{
+        type: String
+    }],
+    suggestions: [
+        {
+            label: { type: String },
+            prompt: { type: String }
+        }
+    ]
+}, { timestamps: true });
 
 
 const websiteSchema=new mongoose.Schema({

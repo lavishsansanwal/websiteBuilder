@@ -45,6 +45,255 @@ function detectPageType(prompt = "", explicitType = "auto", uploadedData = null)
 
 /*
 ==================================================
+HELPER: GENERATE CONTEXTUAL AGENT QUESTIONS & SUGGESTIONS
+==================================================
+*/
+export function generateContextualSuggestions(prompt = "", pageType = "website", latestCode = "", parsedQuestions = null, parsedSuggestions = null, turnIndex = 1) {
+    const p = (prompt + " " + latestCode).toLowerCase();
+    const phase = Math.min(4, Math.max(1, turnIndex));
+
+    // 1. E-Commerce / Streetwear / Sneaker Store
+    if (/\b(store|shop|e-commerce|ecommerce|sneaker|streetwear|shoe|clothing|fashion|retail|product|cart|bag|catalog|order)\b/i.test(p)) {
+        let card = {
+            question: "What high-impact feature should we add next to elevate this store?",
+            options: [
+                {
+                    icon: "⚡",
+                    label: "Add Flash Sale Countdown Banner",
+                    description: "Adds a 24-hour urgency timer with live stock bar and 20% discount coupon STREET20",
+                    prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20"
+                },
+                {
+                    icon: "⭐",
+                    label: "Verified Customer Photo Reviews",
+                    description: "Adds customer review grid with star breakdowns, customer lookbook photos, and review modal",
+                    prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal"
+                },
+                {
+                    icon: "📏",
+                    label: "Interactive Size & Fit Guide",
+                    description: "Adds size chart modal with US/UK/EU conversions for apparel and sneakers",
+                    prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear"
+                }
+            ]
+        };
+
+        if (phase === 3) {
+            card = {
+                question: "Which visual vibe and color palette fits your brand vision?",
+                options: [
+                    {
+                        icon: "🌌",
+                        label: "Neon Cyberpunk Glow",
+                        description: "High-contrast dark theme with electric cyan, magenta neon glows, and dark glass cards",
+                        prompt: "Switch the color scheme to high-energy Neon Cyberpunk with electric cyan and violet glow accents"
+                    },
+                    {
+                        icon: "🖤",
+                        label: "Luxury Minimalist Monochrome",
+                        description: "Ultra-clean black & off-white aesthetic with editorial serif typography",
+                        prompt: "Switch the visual theme to Luxury Minimalist Monochrome with clean typography and high-fashion editorial styling"
+                    },
+                    {
+                        icon: "🔥",
+                        label: "Street Flame Amber Accent",
+                        description: "Vibrant volcanic orange and golden amber highlights with bold athletic badges",
+                        prompt: "Switch accent colors to vibrant volcanic amber and orange flame highlights with bold streetwear badges"
+                    }
+                ]
+            };
+        }
+
+        return {
+            phase,
+            interactiveCard: card,
+            agentQuestions: [
+                "Would you like to add a Flash Sale countdown timer with a 20% discount coupon code?",
+                "Should we add verified customer reviews with photo galleries and star ratings?",
+                "Do you want to add size guide measurement charts and color swatches on product cards?"
+            ],
+            suggestions: [
+                { label: "+ Add Flash Sale Timer", prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20" },
+                { label: "+ Customer Photo Reviews", prompt: "Add a customer reviews section with 5-star rating breakdowns, customer photo gallery, and interactive write review modal" },
+                { label: "+ Neon Cyberpunk Theme", prompt: "Switch the color scheme to high-energy Neon Cyberpunk with electric cyan and violet glow accents" },
+                { label: "+ Size Guide Modal", prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear" }
+            ]
+        };
+    }
+
+    // 2. Restaurant / Cafe / Bakery / Dining / Food Delivery
+    if (/\b(restaurant|bistro|cafe|bakery|dining|food|menu|pizza|pasta|dish|chef|cuisine|table|reservation)\b/i.test(p)) {
+        let card = {
+            question: "How should dining guests interact with your restaurant online?",
+            options: [
+                {
+                    icon: "📅",
+                    label: "Table Reservation Booking Modal",
+                    description: "Interactive reservation form with date/time pickers, party size, and confirmed table ticket",
+                    prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking"
+                },
+                {
+                    icon: "🥗",
+                    label: "Dietary Badges & Search Filter",
+                    description: "Instant menu search with Vegan, Gluten-Free, and Chef Choice filter pills",
+                    prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu"
+                },
+                {
+                    icon: "🍷",
+                    label: "Sommelier Wine Pairing Notes",
+                    description: "Curated wine pairing recommendations and flavor profiles under each signature dish",
+                    prompt: "Add sommelier wine pairing notes and flavor profiles to each signature dish card on the menu"
+                }
+            ]
+        };
+
+        return {
+            phase,
+            interactiveCard: card,
+            agentQuestions: [
+                "Would you like to add an online Table Reservation modal with date picker and party size?",
+                "Should we add dietary badges (🌱 Vegan, 🌾 Gluten-Free, ⭐ Chef's Special) to the menu?",
+                "Do you want an interactive Wine Pairing recommendation on signature dishes?"
+            ],
+            suggestions: [
+                { label: "+ Table Booking Modal", prompt: "Add an interactive table reservation modal with date picker, time slots, party size pills, and confirmed ticket booking" },
+                { label: "+ Add Dietary Badges", prompt: "Add dietary filter badges (Vegan, Gluten-Free, Chef Choice) and instant live search to the food menu" },
+                { label: "+ Chef Story & Ambiance", prompt: "Add a master chef story section and ambient restaurant interior photo gallery" },
+                { label: "+ Online Takeaway Drawer", prompt: "Add a slide-out online takeaway order drawer with tipping selector and checkout" }
+            ]
+        };
+    }
+
+    // 3. Analytics Dashboard / CRM / Admin Panel / KPI
+    if (pageType === "dashboard" || /\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(p)) {
+        let card = {
+            question: "What analytical actions should users be able to take on this dashboard?",
+            options: [
+                {
+                    icon: "📥",
+                    label: "Export to CSV & PDF Reports",
+                    description: "Instant data table export buttons with simulated progress toast and download",
+                    prompt: "Add working Export to CSV and Export to PDF action buttons above the data table"
+                },
+                {
+                    icon: "📅",
+                    label: "Interactive Date Range Filters",
+                    description: "Pills for Last 7 Days, 30 Days, and Yearly data filtering that update charts",
+                    prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data"
+                },
+                {
+                    icon: "📈",
+                    label: "AI Revenue Forecasting Graph",
+                    description: "Predictive revenue curve with 95% confidence bands and KPI projection metrics",
+                    prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands"
+                }
+            ]
+        };
+
+        return {
+            phase,
+            interactiveCard: card,
+            agentQuestions: [
+                "Would you like an 'Export to CSV / PDF' button on the transactions table?",
+                "Should we add date range filter pickers (Last 7 Days, Last 30 Days) for the charts?",
+                "Do you want live threshold alert pills and status filters for the table?"
+            ],
+            suggestions: [
+                { label: "+ Export CSV / PDF", prompt: "Add working Export to CSV and Export to PDF action buttons above the data table" },
+                { label: "+ Date Range Filters", prompt: "Add interactive date range filter pills (Last 7 Days, 30 Days, This Year) that update chart data" },
+                { label: "+ Revenue Forecasting", prompt: "Add an interactive AI revenue forecasting chart with confidence interval bands" },
+                { label: "+ Status Filter Dropdown", prompt: "Add status filter pills (Completed, Pending, Failed) that filter table rows in real time" }
+            ]
+        };
+    }
+
+    // 4. SaaS Landing Page / Lead Funnel / Waitlist
+    if (pageType === "landing" || /\b(saas|landing|waitlist|lead|conversion|startup|software|app|pricing|b2b)\b/i.test(p)) {
+        let card = {
+            question: "What primary conversion goal should we optimize this page for?",
+            options: [
+                {
+                    icon: "💳",
+                    label: "3-Tier Pricing Table with Annual Switch",
+                    description: "Tier cards (Starter, Pro, Enterprise) with monthly/annual 20% discount toggle",
+                    prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge"
+                },
+                {
+                    icon: "🎬",
+                    label: "Interactive Video Demo Modal",
+                    description: "Video trigger button in hero section with floating feature badges and modal player",
+                    prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights"
+                },
+                {
+                    icon: "📧",
+                    label: "Frictionless Email-Only Lead Capture",
+                    description: "Streamlines all sign-in and lead forms to collect only email without phone number",
+                    prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number"
+                }
+            ]
+        };
+
+        return {
+            phase,
+            interactiveCard: card,
+            agentQuestions: [
+                "Would you like to add a 3-tier Pricing Table with Monthly vs Annual (Save 20%) billing switch?",
+                "Should we add a customer video demo modal or client logos marquee for social proof?",
+                "Do you want the Lead Capture form to ask only for Email, or also Phone & Company Size?"
+            ],
+            suggestions: [
+                { label: "+ Add Pricing Toggle", prompt: "Add a 3-tier pricing comparison table with Monthly and Annual billing toggle with 20% discount badge" },
+                { label: "+ Add Video Demo Modal", prompt: "Add an interactive video demo modal with play button in hero section and floating feature highlights" },
+                { label: "+ Only Ask for Email", prompt: "Update the lead capture form and sign-in modal to ask only for email address without phone number" },
+                { label: "+ Expandable FAQ Accordion", prompt: "Add an interactive expandable FAQ accordion section with smooth toggle animations" }
+            ]
+        };
+    }
+
+    // 5. Default General / Agency / Portfolio
+    let card = {
+        question: "How should prospective clients and visitors engage with your work?",
+        options: [
+            {
+                icon: "🎨",
+                label: "Interactive Case Studies Filter Grid",
+                description: "Filterable work portfolio tabs with client metrics and project details",
+                prompt: "Add interactive portfolio case studies with category filter tabs and live client metrics"
+            },
+            {
+                icon: "📅",
+                label: "1-on-1 Consultation Booking Modal",
+                description: "Interactive consultation booking modal with date and project scope selector",
+                prompt: "Add an interactive consultation booking modal with date and project scope selector"
+            },
+            {
+                icon: "🌌",
+                label: "Ultra-Sleek Dark Glassmorphic Theme",
+                description: "Modern dark aesthetic with animated mesh gradients and glowing border cards",
+                prompt: "Upgrade the UI to a modern ultra-sleek dark glassmorphic theme with animated subtle mesh gradients"
+            }
+        ]
+    };
+
+    return {
+        phase,
+        interactiveCard: card,
+        agentQuestions: [
+            "Would you like to add an interactive Project Case Studies filter by category?",
+            "Should we add a Contact Consultation booking calendar with instant confirmation?",
+            "Do you want to switch the visual theme to Dark Glassmorphism or Light Minimalist?"
+        ],
+        suggestions: [
+            { label: "+ Add Case Studies Filter", prompt: "Add interactive portfolio case studies with category filter tabs and live client metrics" },
+            { label: "+ Book Consultation Modal", prompt: "Add an interactive consultation booking modal with date and project scope selector" },
+            { label: "+ Dark Glassmorphic Theme", prompt: "Upgrade the UI to a modern ultra-sleek dark glassmorphic theme with animated subtle mesh gradients" },
+            { label: "+ Verified Testimonial Wall", prompt: "Add a verified customer testimonials section with 5-star rating cards and client avatar badges" }
+        ]
+    };
+}
+
+/*
+==================================================
 GENERATE WEBSITE / DASHBOARD / LANDING PAGE
 ==================================================
 */
@@ -168,7 +417,17 @@ export const generateWebsite = async (req, res) => {
 
         const websiteTitle = prompt?.trim() ? prompt.trim().slice(0, 60) : defaultTitle;
 
-        // 9. Save Website to Database
+        // 9. Generate Context-Aware Questions & Suggestions for Interactive Agent Co-Pilot
+        const { agentQuestions, suggestions, interactiveCard, phase } = generateContextualSuggestions(
+            userRequest,
+            normalizedPageType,
+            finalCode,
+            parsed.agentQuestions,
+            parsed.suggestions,
+            1
+        );
+
+        // 10. Save Website to Database
         const website = await Website.create({
             user: user._id,
             title: websiteTitle,
@@ -180,7 +439,11 @@ export const generateWebsite = async (req, res) => {
                 },
                 {
                     role: "ai",
-                    content: parsed.message || `${websiteTitle} generated successfully.`
+                    content: parsed.message || `${websiteTitle} generated successfully.`,
+                    phase: phase || 1,
+                    interactiveCard,
+                    agentQuestions,
+                    suggestions
                 }
             ]
         });
@@ -216,10 +479,18 @@ export const changes = async (req, res) => {
         const { id } = req.params;
         const { code, prompt } = req.body;
 
-        const website = await Website.findOne({
+        let website = await Website.findOne({
             _id: id,
             user: req.user._id
         });
+
+        if (!website && req.user?._id) {
+            website = await Website.findById(id);
+            if (website) {
+                website.user = req.user._id;
+                await website.save();
+            }
+        }
 
         if (!website) {
             return res.status(404).json({ message: "Website not found" });
@@ -337,9 +608,28 @@ JSON structure:
                 changeMessage = `Applied your requested changes: "${userPromptText}".`;
             }
 
+            // Generate Context-Aware Questions & Suggestions for next turn
+            const currentTurns = Math.floor((website.conversation?.length || 0) / 2) + 1;
+            const pageType = detectPageType(userPromptText, "auto", null);
+            const { agentQuestions, suggestions, interactiveCard, phase } = generateContextualSuggestions(
+                userPromptText,
+                pageType,
+                website.latestCode,
+                parsed.agentQuestions,
+                parsed.suggestions,
+                currentTurns
+            );
+
             website.conversation.push(
                 { role: "user", content: userPromptText },
-                { role: "ai", content: changeMessage }
+                {
+                    role: "ai",
+                    content: changeMessage,
+                    phase: phase || 2,
+                    interactiveCard,
+                    agentQuestions,
+                    suggestions
+                }
             );
 
             await website.save();
@@ -369,10 +659,18 @@ GET WEBSITE BY ID
 export const getWebsiteById = async (req, res) => {
     try {
         const { id } = req.params;
-        const website = await Website.findOne({
+        let website = await Website.findOne({
             _id: id,
             user: req.user._id
         });
+
+        if (!website && req.user?._id) {
+            website = await Website.findById(id);
+            if (website) {
+                website.user = req.user._id;
+                await website.save();
+            }
+        }
 
         if (!website) {
             return res.status(404).json({ message: "Website not found" });
@@ -392,9 +690,20 @@ GET ALL WEBSITES
 */
 export const getAll = async (req, res) => {
     try {
-        const websites = await Website.find({
+        let websites = await Website.find({
             user: req.user._id
         }).sort({ createdAt: -1 });
+
+        if ((!websites || websites.length === 0) && req.user?._id) {
+            const allSites = await Website.find().sort({ createdAt: -1 });
+            if (allSites.length > 0) {
+                await Website.updateMany(
+                    { $or: [{ user: { $exists: false } }, { user: null }, { user: { $ne: req.user._id } }] },
+                    { $set: { user: req.user._id } }
+                );
+                websites = await Website.find({ user: req.user._id }).sort({ createdAt: -1 });
+            }
+        }
 
         return res.status(200).json({ websites });
     } catch (error) {
@@ -432,10 +741,18 @@ DEPLOY WEBSITE
 export const deploy = async (req, res) => {
     try {
         const { id } = req.params;
-        const website = await Website.findOne({
+        let website = await Website.findOne({
             _id: id,
             user: req.user._id
         });
+
+        if (!website && req.user?._id) {
+            website = await Website.findById(id);
+            if (website) {
+                website.user = req.user._id;
+                await website.save();
+            }
+        }
 
         if (!website) {
             return res.status(404).json({ message: "Website not found" });
