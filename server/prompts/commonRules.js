@@ -93,9 +93,8 @@ DESIGN & AESTHETIC STANDARDS
   - **BARE AMPERSANDS IN JSX TEXT**: In JSX text, write \`&amp;\` or \`{"&"}\` or \`"Understand & Agree"\` instead of bare unescaped \`&\` characters.
   - NEVER use unescaped single quotes inside single-quoted strings! (e.g. \`showToast('Welcome to l\\'Elixir...')\` causes a fatal JavaScript/Babel syntax error).
   - If a string contains apostrophes or single quotes (e.g. l'Elixir, what's, don't, it's, team's), **ALWAYS use double quotes \`"..."\` or template literals** or escape the single quote (\`\\'\`).
-  - Example: \`showToast("Welcome to l'Elixir Private Reserve Club! ☕")\`.
-  - **NO STRAY DASHES OR PLACEHOLDERS**: NEVER output markdown dashes, dividers, or comments like \`---\` or \`--\` inside JSX expressions or template strings (e.g. \\\`\\\${--- formData...}\\\` is a fatal syntax error). All JSX expressions \\\`\\\${...}\\\` must contain strictly valid JavaScript.
-  - **JSX COMMENTS SYNTAX**: Inside JSX, comments MUST ALWAYS be written as \`{/* comment */}\` with both opening \`{\` and closing \`}\` braces. NEVER omit the closing brace (e.g. \`{/* comment */\` without \`}\` is a fatal syntax error). NEVER use HTML \`<!-- ... -->\` comments in React JSX.
+  - **MULTI-LINE STRINGS MUST USE TEMPLATE LITERALS**: When building dynamic HTML inside JavaScript (e.g. \`card.innerHTML = ...\` or \`grid.innerHTML = ...\`), ALWAYS use backtick template literals (\` \`...\` \`) or \`.map().join('')\`. NEVER use single quotes \`'...'` across multiple lines, as unescaped newlines inside single quotes cause a fatal \`SyntaxError: Unexpected string\` that crashes the entire script!
+  - **ALWAYS EXPOSE EVENT HANDLERS GLOBALLY ON WINDOW**: All functions referenced by inline HTML \`onclick="..."\`, \`onkeyup="..."\`, \`onsubmit="..."\` (e.g. \`window.quickAdd = quickAdd\`, \`window.filterCuisine = filterCuisine\`, \`window.filterCategory = filterCuisine\`, \`window.updateQty = updateQty\`, \`window.openModal = openModal\`, \`window.closeModal = closeModal\`, \`window.toggleDrawer = toggleDrawer\`, \`window.showToast = showToast\`) MUST be explicitly attached to \`window\`!
 
 - **STRICT FOOTER & FUNCTIONAL LINKING RULES (MANDATORY)**:
   - In the footer, **ONLY REAL, 100% WORKING LINKS AND ACTIONS MUST APPEAR**.
