@@ -643,16 +643,18 @@ Build the document following this exact clean architecture:
 \`\`\`
 
 ==================================================
-STRICT DATA BINDING REQUIREMENTS:
+STRICT DATA BINDING & INTERACTIVITY REQUIREMENTS:
 ==================================================
-1. DATA TABLE HEADERS (<th>): Dynamically generate <th> elements matching EVERY column in {UPLOADED_DATA}.
-2. DATA TABLE ROWS (<tr>): Dynamically generate <tr> table rows containing the EXACT rows from exactDataRows in {UPLOADED_DATA}.
-3. 3 CHARTS WITH REAL DATA:
+1. DATA TABLE ROWS (<tr>) PRE-RENDERING: In the initial HTML, PRE-RENDER all initial <tr> rows directly inside `<tbody id="tableBody">` using exactDataRows from {UPLOADED_DATA}. Each <tr> MUST have `onclick="openRecordDrawer(i)"` so rows are never empty even before JS execution.
+2. CHIP BUTTONS: Every category chip in `#filterChipsContainer` MUST have `onclick="filterCategory('CategoryName')"` and class `chip-btn`.
+3. SEARCH & SORT: The search input MUST have `id="tableSearch" oninput="filterTable(this.value)"`. The sort select MUST have `id="sortSelect" onchange="sortTable(this.value)"`.
+4. EXPORT & ACTIONS: The export buttons in header MUST have `onclick="exportToCSV()"`, `onclick="exportToJSON()"`, and `onclick="window.print()"`.
+5. ALL FUNCTIONS BOUND TO WINDOW: All handler functions (`renderTable`, `filterCategory`, `filterTable`, `sortTable`, `openRecordDrawer`, `closeRecordDrawer`, `exportToCSV`, `exportToJSON`, `prevPage`, `nextPage`) MUST be attached to `window`.
+6. 3 CHARTS WITH REAL DATA:
    - Render Chart 1: Bar/Line distribution.
    - Render Chart 2: Donut composition.
    - Render Chart 3: 2x2 Opportunity Quadrant Scatter Bubble Chart with X and Y values from the dataset.
-4. METRIC STRIP: Display REAL calculated values from columnProfiles in {UPLOADED_DATA}.
-5. SAFE JAVASCRIPT: Ensure exportToCSV() uses safe Blob with \\n linebreaks.
+7. METRIC STRIP: Display REAL calculated values from columnProfiles in {UPLOADED_DATA}.
 
 Return ONLY the single raw JSON object without markdown code fences:
 {
