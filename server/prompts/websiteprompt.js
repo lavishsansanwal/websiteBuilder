@@ -291,22 +291,30 @@ Inside \`<script>\`, ALWAYS implement a complete, self-contained JavaScript engi
    };
    window.handleProductSearch = window.handleSearch;
    window.handleMenuSearch = window.handleSearch;
-   \`\`\`
+   ```
 3. **Cart & Wishlist Handlers**:
-   \`\`\`javascript
-   window.cart = [];
-   window.wishlist = [];
-   window.addToCart = function(id, name, price, img) {
-     var existing = window.cart.find(function(item) { return item.id === id; });
-     if (existing) {
-       existing.qty += 1;
-     } else {
-       window.cart.push({ id: id, name: name || 'Product Item', price: parseFloat(price) || 99, img: img || '', qty: 1 });
-     }
-     window.updateCartUI();
-     window.showToast((name || 'Item') + ' added to Bag! 🛒');
-   };
-   window.quickAdd = window.addToCart;
+   ```javascript
+    window.cart = [];
+    window.wishlist = [];
+    window.addToCart = function(id, name, price, img) {
+      var allItems = (typeof products !== 'undefined' && Array.isArray(products)) ? products :
+                     (typeof dishes !== 'undefined' && Array.isArray(dishes)) ? dishes :
+                     (typeof menuItems !== 'undefined' && Array.isArray(menuItems)) ? menuItems : [];
+      var found = allItems.find(function(i) { return i.id === id; });
+      var itemName = name || (found ? found.name : 'Item');
+      var itemPrice = (price !== undefined && price !== null) ? parseFloat(price) : (found ? parseFloat(found.price) : 49);
+      var itemImg = img || (found ? found.img : '');
+
+      var existing = window.cart.find(function(item) { return item.id === id; });
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        window.cart.push({ id: id, name: itemName, price: itemPrice, img: itemImg, qty: 1 });
+      }
+      window.updateCartUI();
+      window.showToast(itemName + ' added to Bag! 🛒');
+    };
+    window.quickAdd = window.addToCart;
    window.updateCartQty = function(id, delta) {
      var item = window.cart.find(function(i) { return i.id === id; });
      if (item) {
