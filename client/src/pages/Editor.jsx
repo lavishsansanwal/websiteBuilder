@@ -462,21 +462,92 @@ const getPreviewCode = (rawCode) => {
     window.updateCartUI = function() {
         var totalCount = window.cart.reduce(function(sum, i) { return sum + (i.qty || 1); }, 0);
         var subtotal = window.cart.reduce(function(sum, i) { return sum + ((i.price || 0) * (i.qty || 1)); }, 0);
+        var discountVal = subtotal * (window.appliedDiscount || 0);
+        var grandTotal = Math.max(0, subtotal - discountVal);
         
-        var badges = document.querySelectorAll('.cart-count-badge, #cartCountBadge, [data-cart-count], .cart-badge');
+        // 1. Update ALL possible badge counters
+        var badges = document.querySelectorAll('.cart-count-badge, #cartCountBadge, #cartBadgeCount, [data-cart-count], .cart-badge');
         badges.forEach(function(b) {
             b.textContent = totalCount;
             b.style.display = totalCount > 0 ? 'inline-flex' : 'none';
         });
 
-        var floatCart = document.getElementById('floatingBottomCart') || document.querySelector('.floating-cart');
+        // 2. Update floating cart bars (Swiggy / E-commerce style)
+        var floatCart = document.getElementById('floatingCart') || document.getElementById('floatingBottomCart') || document.querySelector('.floating-cart');
         if (floatCart) {
-            floatCart.style.display = totalCount > 0 ? 'flex' : 'none';
-            var floatTxt = floatCart.querySelector('.float-cart-text, span');
-            if (floatTxt && totalCount > 0) {
-                floatTxt.textContent = totalCount + ' ITEMS | $' + subtotal.toFixed(2) + ' • VIEW CART ➔';
+            if (totalCount > 0) {
+                floatCart.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+                floatCart.style.display = 'flex';
+                var floatCnt = floatCart.querySelector('#floatingCartCount, .float-cart-count');
+                if (floatCnt) floatCnt.textContent = totalCount + (totalCount === 1 ? ' ITEM' : ' ITEMS');
+                var floatTot = floatCart.querySelector('#floatingCartTotal, .float-cart-total');
+                if (floatTot) floatTot.textContent = '$' + grandTotal.toFixed(2);
+                var floatTxt = floatCart.querySelector('.float-cart-text, span');
+                if (floatTxt && !floatCnt && !floatTot) {
+                    floatTxt.textContent = totalCount + ' ITEMS | $' + grandTotal.toFixed(2) + ' • VIEW CART ➔';
+                }
+            } else {
+                floatCart.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+                floatCart.style.display = 'none';
             }
         }
+
+        // 3. Update ALL Subtotal elements across all known ID and class patterns
+        var subtotalEls = document.querySelectorAll('#cartSubtotal, #cartSubtotalText, #cartSubtotalVal, #subtotalText, .cart-subtotal, [data-cart-subtotal]');
+        subtotalEls.forEach(function(el) {
+            el.textContent = '$' + subtotal.toFixed(2);
+        });
+
+        // 4. Update ALL Grand Total elements across all known ID and class patterns
+        var totalEls = document.querySelectorAll('#cartTotal, #cartGrandTotal, #cartGrandTotalText, #cartTotalText, #grandTotalText, .cart-grand-total, .cart-total, [data-cart-total]');
+        totalEls.forEach(function(el) {
+            el.textContent = '$' + grandTotal.toFixed(2);
+        });
+
+        // 5. Update Discount elements if present
+        var discountEls = document.querySelectorAll('#cartDiscount, #cartDiscountText, .cart-discount');
+        discountEls.forEach(function(el) {
+            el.textContent = '-$' + discountVal.toFixed(2);
+        });
+
+        // 6. Intelligent label-based fallback for custom templates
+        var allSpans = document.querySelectorAll('span, div, p');
+        allSpans.forEach(function(lbl) {
+            var txt = (lbl.textContent || '').trim().toLowerCase();
+            if (txt === 'subtotal' && lbl.nextElementSibling) {
+                lbl.nextElementSibling.textContent = '$' + subtotal.toFixed(2);
+            } else if ((txt === 'grand total' || txt === 'total' || txt === 'order total') && lbl.nextElementSibling) {
+                lbl.nextElementSibling.textContent = '$' + grandTotal.toFixed(2);
+            }
+        });
+
+        // 7. Update Drawer items if drawer container exists
+        var drawerContainer = document.getElementById('cartDrawerItems') || document.querySelector('.cart-drawer-items');
+        if (drawerContainer) {
+            if (window.cart.length === 0) {
+                drawerContainer.innerHTML = '<div class="py-16 text-center space-y-3"><i data-lucide="shopping-bag" class="w-12 h-12 mx-auto text-stone-700"></i><p class="text-stone-400 font-bold text-xs">Your bag is empty.<br>Add some delicious dishes!</p></div>';
+            } else {
+                drawerContainer.innerHTML = window.cart.map(function(item) {
+                    var itemImg = item.img ? ('<img src="' + item.img + '" class="w-12 h-12 rounded-xl object-cover">') : '';
+                    return '<div class="flex items-center justify-between p-3 rounded-2xl bg-stone-900 border border-stone-800">' +
+                        '<div class="flex items-center gap-3">' +
+                            itemImg +
+                            '<div>' +
+                                '<div class="text-xs font-black text-white">' + item.name + '</div>' +
+                                '<div class="text-[11px] font-bold text-orange-400">$' + ((item.price || 0) * (item.qty || 1)).toFixed(2) + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 bg-stone-800 px-2 py-1 rounded-xl text-xs font-black text-white">' +
+                            '<button onclick="window.updateCartQty(\\'' + item.id + '\\', -1)" class="w-5 h-5 flex items-center justify-center hover:text-orange-400 cursor-pointer">-</button>' +
+                            '<span>' + item.qty + '</span>' +
+                            '<button onclick="window.updateCartQty(\\'' + item.id + '\\', 1)" class="w-5 h-5 flex items-center justify-center hover:text-orange-400 cursor-pointer">+</button>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
+        }
+
+        initLucideIcons();
     };
 
     window.addToCart = function(id, name, price, img) {

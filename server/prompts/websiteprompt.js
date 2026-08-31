@@ -313,16 +313,28 @@ Inside \`<script>\`, ALWAYS implement a complete, self-contained JavaScript engi
      window.updateCartUI();
      window.showToast('Item removed from Bag');
    };
-   window.updateCartUI = function() {
-     var totalCount = window.cart.reduce(function(sum, i) { return sum + i.qty; }, 0);
-     var subtotal = window.cart.reduce(function(sum, i) { return sum + (i.price * i.qty); }, 0);
-     var badges = document.querySelectorAll('.cart-count-badge, #cartCountBadge, [data-cart-count]');
-     badges.forEach(function(b) {
-       b.textContent = totalCount;
-       b.style.display = totalCount > 0 ? 'flex' : 'none';
-     });
-     if (typeof renderCartDrawer === 'function') renderCartDrawer();
-   };
+    window.updateCartUI = function() {
+      var totalCount = window.cart.reduce(function(sum, i) { return sum + i.qty; }, 0);
+      var subtotal = window.cart.reduce(function(sum, i) { return sum + (i.price * i.qty); }, 0);
+      var discountVal = subtotal * (window.appliedDiscount || 0);
+      var grandTotal = Math.max(0, subtotal - discountVal);
+
+      // Badges
+      var badges = document.querySelectorAll('.cart-count-badge, #cartCountBadge, #cartBadgeCount, [data-cart-count]');
+      badges.forEach(function(b) {
+        b.textContent = totalCount;
+        b.style.display = totalCount > 0 ? 'inline-flex' : 'none';
+      });
+
+      // Subtotals & Grand Totals across all common selector patterns
+      var subtotalEls = document.querySelectorAll('#cartSubtotal, #cartSubtotalText, #cartSubtotalVal, #subtotalText, .cart-subtotal');
+      subtotalEls.forEach(function(el) { el.textContent = '$' + subtotal.toFixed(2); });
+
+      var totalEls = document.querySelectorAll('#cartTotal, #cartGrandTotal, #cartGrandTotalText, #cartTotalText, #grandTotalText, #floatingCartTotal, .cart-total');
+      totalEls.forEach(function(el) { el.textContent = '$' + grandTotal.toFixed(2); });
+
+      if (typeof renderCartDrawer === 'function') renderCartDrawer();
+    };
    window.toggleWishlist = function(btn, id) {
      var idx = window.wishlist.indexOf(id);
      var icon = btn ? btn.querySelector('svg, i') : null;
