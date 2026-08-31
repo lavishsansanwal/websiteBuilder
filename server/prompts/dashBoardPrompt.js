@@ -478,11 +478,20 @@ Build the document following this exact clean architecture:
       if (window.lucide) lucide.createIcons();
 
       setTimeout(() => { toast.classList.remove('translate-y-4', 'opacity-0'); }, 10);
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 300);
-      }, 3500);
-    }
+    // ATTACH TO WINDOW SCOPE (MANDATORY)
+    window.renderTable = renderTable;
+    window.filterTable = filterTable;
+    window.filterCategory = filterCategory;
+    window.filterStatus = filterCategory;
+    window.sortTable = sortTable;
+    window.setPage = setPage;
+    window.toggleTheme = toggleTheme;
+    window.exportToCSV = exportToCSV;
+    window.exportToJSON = exportToJSON;
+    window.openRecordDrawer = openRecordDrawer;
+    window.closeRecordDrawer = closeRecordDrawer;
+    window.copyDrawerRecord = copyDrawerRecord;
+    window.showToast = showToast;
   </script>
 </body>
 </html>

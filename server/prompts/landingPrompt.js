@@ -151,9 +151,27 @@ Inside \`<script>\`, implement:
     });
     btn.classList.add('active-pill', 'bg-brand-600/30', 'border-brand-500', 'text-white');
     btn.classList.remove('border-slate-800', 'bg-slate-900/80', 'text-slate-400');
-  }
+- **GLOBAL WINDOW ATTACHMENTS (MANDATORY)**:
+  \`\`\`javascript
+  window.submitLeadForm = submitLeadForm;
+  window.togglePricing = togglePricing;
+  window.toggleFaq = toggleFaq;
+  window.switchDemoStep = switchDemoStep;
+  window.selectVolumePill = selectVolumePill;
+  window.openModal = function(id) { var el = document.getElementById(id); if (el) { el.style.display = 'flex'; el.classList.remove('hidden'); } if (window.lucide) lucide.createIcons(); };
+  window.closeModal = function(id) { var el = document.getElementById(id); if (el) { el.style.display = 'none'; el.classList.add('hidden'); } };
+  window.showToast = function(msg) {
+    var existing = document.getElementById('globalToast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.id = 'globalToast';
+    toast.className = 'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl bg-indigo-600 text-white text-xs font-bold shadow-2xl transition-all duration-300 flex items-center gap-2';
+    toast.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>' + msg + '</span>';
+    document.body.appendChild(toast);
+    if (window.lucide) lucide.createIcons();
+    setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 3000);
+  };
   \`\`\`
-- \`showToast(message)\` helper with icon and animation.
 - \`lucide.createIcons();\` on DOMContentLoaded.
 
 ==================================================

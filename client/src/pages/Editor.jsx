@@ -421,7 +421,7 @@ const getPreviewCode = (rawCode) => {
     // Auto-initialize Lucide Icons on load & updates
     function initLucideIcons() {
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
+            try { window.lucide.createIcons(); } catch(e) {}
         }
     }
     if (document.readyState === 'loading') {
@@ -434,443 +434,163 @@ const getPreviewCode = (rawCode) => {
     setTimeout(initLucideIcons, 500);
     setTimeout(initLucideIcons, 1200);
 
-    // Defensive global helpers
-    window.openModal = window.openModal || function(id) {
-        var el = document.getElementById(id);
-        if (el) { el.style.display = 'flex'; }
-        initLucideIcons();
-    };
-    window.closeModal = window.closeModal || function(id) {
-        var el = document.getElementById(id);
-        if (el) { el.style.display = 'none'; }
-    };
-    window.toggleDrawer = window.toggleDrawer || function(id) {
-        var el = document.getElementById(id);
-        if (el) { el.classList.toggle('translate-x-full'); }
-        initLucideIcons();
-    };
+    // ========================================================
+    // UNIVERSAL TOAST NOTIFICATION ENGINE
+    // ========================================================
     window.showToast = function(msg) {
         var existing = document.getElementById('globalToast');
         if (existing) existing.remove();
         var toast = document.createElement('div');
         toast.id = 'globalToast';
-        toast.className = 'fixed bottom-6 right-6 z-[99999] px-5 py-3.5 rounded-2xl bg-emerald-500 text-black text-xs font-extrabold shadow-2xl transition-all duration-300 flex items-center gap-2 border border-emerald-300 pointer-events-none animate-bounce';
+        toast.className = 'fixed bottom-6 right-6 z-[999999] px-5 py-3.5 rounded-2xl bg-amber-500 text-black text-xs font-extrabold shadow-2xl transition-all duration-300 flex items-center gap-2 border border-amber-300 pointer-events-auto shadow-amber-500/30';
         toast.innerHTML = '<span class="text-sm">⚡</span><span>' + (msg || 'Action completed successfully!') + '</span>';
         document.body.appendChild(toast);
-        setTimeout(function() { toast.remove(); }, 3500);
-    };
-
-    // Universal Interactive Lead & Pre-Order Submission Engine
-    window.originalModalHtmlMap = window.originalModalHtmlMap || {};
-    window.originalFormHtmlMap = window.originalFormHtmlMap || {};
-
-    window.submitLeadForm = function(e) {
-        if (e && e.preventDefault) e.preventDefault();
-        var form = (e && e.target && e.target.tagName === 'FORM') ? e.target : (e && e.target && e.target.closest ? e.target.closest('form') : (document.querySelector('#leadModal form') || document.querySelector('#heroFormContainer form') || document.querySelector('form')));
-        if (!form) return;
-
-        var nameInput = form.querySelector('input[name="name"], input[placeholder*="Name"], input[placeholder*="Morgan"], input[placeholder*="John"], input[type="text"]');
-        var emailInput = form.querySelector('input[name="email"], input[placeholder*="email"], input[placeholder*="@"], input[type="email"]');
-        var phoneInput = form.querySelector('input[name="phone"], input[placeholder*="Phone"], input[placeholder*="0000"], input[type="tel"]');
-
-        var hasNameField = !!nameInput;
-        var hasPhoneField = !!phoneInput;
-
-        var name = (nameInput && nameInput.value && nameInput.value.trim()) ? nameInput.value.trim() : (hasNameField ? 'Lavish Chaudhary' : 'Member');
-        var email = (emailInput && emailInput.value && emailInput.value.trim()) ? emailInput.value.trim() : 'alex@enterprise.com';
-        var phone = (phoneInput && phoneInput.value && phoneInput.value.trim()) ? phoneInput.value.trim() : '';
-
-        var submitBtn = form.querySelector('button[type="submit"], button:not([type="button"])') || form.querySelector('button');
-        var modalContainer = form.closest('#leadModal, [id*="modal"], [id*="Modal"], .fixed.inset-0');
-        var modalCard = modalContainer ? (modalContainer.querySelector('#leadModalCard, .glass-panel, .glass-card, [class*="rounded-"]') || modalContainer.firstElementChild) : null;
-        var heroContainer = form.closest('#heroFormContainer, .glass-card, section, div');
-
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⚡</span> Processing Request...';
-        }
-
+        initLucideIcons();
         setTimeout(function() {
-            var refId = Math.floor(10000 + Math.random() * 90000);
-
-            try {
-                localStorage.setItem('aether_preorder_lead', JSON.stringify({
-                    name: name,
-                    email: email,
-                    phone: phone,
-                    refId: 'REF-' + refId,
-                    status: 'Active Request Confirmed',
-                    timestamp: new Date().toLocaleString()
-                }));
-            } catch (err) {}
-
-            var phoneRowHtml = (hasPhoneField && phone) ? '<div class="flex items-center justify-between border-t border-slate-800/80 pt-2"><span class="text-slate-400">Mobile Updates:</span><span class="text-white font-mono font-bold">' + phone + '</span></div>' : '';
-            var nameHeading = hasNameField ? 'Request Confirmed for ' + name + '!' : 'Request Confirmed!';
-
-            if (modalCard) {
-                modalCard.innerHTML = '<div class="text-center space-y-4 py-2 animate-fadeIn text-left sm:text-center">' +
-                    '<button onclick="closeModal(\\'leadModal\\'); if(this.closest(\\'.fixed\\')) this.closest(\\'.fixed\\').style.display=\\'none\\';" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1 rounded-full hover:bg-slate-800">' +
-                        '<i data-lucide="x" class="w-5 h-5"></i>' +
-                    '</button>' +
-                    '<div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-3xl shadow-lg shadow-emerald-500/20">✓</div>' +
-                    '<div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono">' +
-                        '<span>CONFIRMATION ID:</span> <strong>#REF-' + refId + '</strong>' +
-                    '</div>' +
-                    '<h3 class="text-2xl font-extrabold text-white">' + nameHeading + '</h3>' +
-                    '<p class="text-slate-300 text-xs leading-relaxed max-w-md mx-auto">' +
-                        'We received your details successfully. Complete access and verification link sent to <strong class="text-emerald-300">' + email + '</strong>.' +
-                    '</p>' +
-                    '<div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-left space-y-2.5 text-xs">' +
-                        '<div class="flex items-center justify-between"><span class="text-slate-400">Email Address:</span><span class="text-emerald-400 font-bold">' + email + '</span></div>' +
-                        '<div class="flex items-center justify-between"><span class="text-slate-400">Status:</span><span class="text-emerald-300 font-bold">Priority Processing Active</span></div>' +
-                        phoneRowHtml +
-                    '</div>' +
-                    '<button onclick="closeModal(\\'leadModal\\'); if(this.closest(\\'.fixed\\')) this.closest(\\'.fixed\\').style.display=\\'none\\';" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-extrabold text-xs hover:opacity-95 transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">' +
-                        '<span>Done • Return to Site</span>' +
-                    '</button>' +
-                '</div>';
-                initLucideIcons();
-            } else if (heroContainer) {
-                heroContainer.innerHTML = '<div class="text-center space-y-4 py-2 animate-fadeIn">' +
-                    '<div class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-lg shadow-emerald-500/20">✓</div>' +
-                    '<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono">' +
-                        '<span>CONFIRMATION ID:</span> <strong>#REF-' + refId + '</strong>' +
-                    '</div>' +
-                    '<h3 class="text-2xl font-extrabold text-white">' + nameHeading + '</h3>' +
-                    '<p class="text-slate-300 text-xs leading-relaxed max-w-md mx-auto">' +
-                        'We received your submission. Complete access materials and layout have been prepared for <strong class="text-emerald-300">' + email + '</strong>.' +
-                    '</p>' +
-                    '<div class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-left space-y-2 text-xs">' +
-                        '<div class="flex justify-between"><span class="text-slate-400">Email:</span><span class="text-white font-bold">' + email + '</span></div>' +
-                        '<div class="flex justify-between"><span class="text-slate-400">Status:</span><span class="text-emerald-400 font-bold">Fast-Track Active</span></div>' +
-                        phoneRowHtml +
-                    '</div>' +
-                '</div>';
-                initLucideIcons();
-            }
-
-            window.showToast('🎉 Request submitted successfully! Confirmation sent to ' + email);
-        }, 600);
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 3200);
     };
 
-    // Auto-delegate any form submit in iframe to submitLeadForm
-    document.addEventListener("submit", function(e) {
-        e.preventDefault();
-        window.submitLeadForm(e);
-    }, true);
-    window.handleMenuSearch = window.handleMenuSearch || function(q) {
-        var query = (q || '').toLowerCase().trim();
-        var items = document.querySelectorAll('[data-name], .menu-item, .glass-card, [data-category]');
-        items.forEach(function(item) {
-            if (item.closest('header') || item.closest('footer') || item.closest('nav')) return;
-            var text = item.textContent.toLowerCase();
-            item.style.display = (!query || text.includes(query)) ? '' : 'none';
-        });
-    };
-    window.filterMenu = window.filterMenu || function(cat) {
-        var category = (cat || 'all').toLowerCase().trim();
-        var items = document.querySelectorAll('[data-category]');
-        items.forEach(function(item) {
-            var itemCat = (item.getAttribute('data-category') || '').toLowerCase();
-            item.style.display = (category === 'all' || itemCat.includes(category)) ? '' : 'none';
-        });
-    };
-    // Table & Dataset Filters
-    window.filterTable = window.filterTable || function(q) {
-        var query = (q || '').toLowerCase().trim();
-        var rows = document.querySelectorAll('#tableBody tr, tbody tr, .table-row, [data-row]');
-        rows.forEach(function(row) {
-            var text = row.textContent.toLowerCase();
-            row.style.display = (!query || text.includes(query)) ? '' : 'none';
-        });
-    };
-    window.filterStatus = window.filterStatus || function(status) {
-        var s = (status || '').toLowerCase().trim();
-        var rows = document.querySelectorAll('#tableBody tr, tbody tr, .table-row, [data-row]');
-        rows.forEach(function(row) {
-            if (!s || s === 'all' || s === 'all types' || s === 'all status' || s === 'all categories') {
-                row.style.display = '';
-            } else {
-                var text = row.textContent.toLowerCase();
-                row.style.display = text.includes(s) ? '' : 'none';
-            }
-        });
-    };
-    window.filterType = window.filterType || window.filterStatus;
-    window.filterCategory = window.filterCategory || window.filterStatus;
-    window.filterData = window.filterData || window.filterStatus;
+    // ========================================================
+    // UNIVERSAL SHOPPING BAG & WISHLIST ENGINE
+    // ========================================================
+    window.cart = window.cart || [];
+    window.wishlist = window.wishlist || [];
 
-    // Table Sorting Engine
-    window.sortTable = window.sortTable || function(param) {
-        var table = document.querySelector('table');
-        if (!table) return;
-        var tbody = table.querySelector('tbody') || table;
-        var rows = Array.from(tbody.querySelectorAll('tr'));
-        if (rows.length < 2) return;
-
-        var isNumericParam = !isNaN(Number(param)) && param !== '' && typeof param !== 'boolean';
-        var colIndex = isNumericParam ? Number(param) : 0;
-        var sortDirection = 'asc';
-        var sortStr = String(param || '').toLowerCase();
-
-        if (sortStr.includes('desc') || sortStr.includes('high') || sortStr.includes('z-a')) {
-            sortDirection = 'desc';
-        }
-
-        if (!isNumericParam) {
-            var headers = Array.from(table.querySelectorAll('th'));
-            for (var h = 0; h < headers.length; h++) {
-                var thText = headers[h].textContent.toLowerCase().trim();
-                if (sortStr.includes(thText) || (thText.includes('download') && sortStr.includes('download')) || (thText.includes('comp') && sortStr.includes('comp')) || (thText.includes('rank') && sortStr.includes('rank')) || (thText.includes('volume') && sortStr.includes('volume')) || (thText.includes('search') && sortStr.includes('search'))) {
-                    colIndex = h;
-                    break;
-                }
-            }
-        }
-
-        rows.sort(function(a, b) {
-            var cellA = (a.children[colIndex] ? a.children[colIndex].textContent : '').trim();
-            var cellB = (b.children[colIndex] ? b.children[colIndex].textContent : '').trim();
-
-            var numA = parseFloat(cellA.split('').filter(function(c) { return (c >= '0' && c <= '9') || c === '.' || c === '-'; }).join(''));
-            var numB = parseFloat(cellB.split('').filter(function(c) { return (c >= '0' && c <= '9') || c === '.' || c === '-'; }).join(''));
-
-            if (!isNaN(numA) && !isNaN(numB)) {
-                return sortDirection === 'desc' ? numB - numA : numA - numB;
-            }
-            return sortDirection === 'desc' ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
+    window.updateCartUI = function() {
+        var totalCount = window.cart.reduce(function(sum, i) { return sum + (i.qty || 1); }, 0);
+        var subtotal = window.cart.reduce(function(sum, i) { return sum + ((i.price || 0) * (i.qty || 1)); }, 0);
+        
+        var badges = document.querySelectorAll('.cart-count-badge, #cartCountBadge, [data-cart-count], .cart-badge');
+        badges.forEach(function(b) {
+            b.textContent = totalCount;
+            b.style.display = totalCount > 0 ? 'inline-flex' : 'none';
         });
 
-        rows.forEach(function(row) { tbody.appendChild(row); });
-        if (window.showToast) window.showToast('Sorted table by ' + (param || 'column'));
-    };
-    window.handleSort = window.handleSort || window.sortTable;
-
-    // Export to CSV Engine
-    window.exportToCSV = window.exportToCSV || function() {
-        var table = document.querySelector('table');
-        if (!table) {
-            if (window.showToast) window.showToast('No table records found to export.');
-            return;
-        }
-        var csv = [];
-        var rows = table.querySelectorAll('tr');
-        rows.forEach(function(row) {
-            if (row.style.display === 'none') return;
-            var cols = row.querySelectorAll('th, td');
-            var rowData = [];
-            cols.forEach(function(col) {
-                var text = (col.innerText || col.textContent || '').split(String.fromCharCode(10)).join(' ').replace(/"/g, '""').trim();
-                rowData.push('"' + text + '"');
-            });
-            if (rowData.length > 0) csv.push(rowData.join(','));
-        });
-
-        var csvString = csv.join(String.fromCharCode(10));
-        var blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        var link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', 'keyword_dataset_export_' + Date.now() + '.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        if (window.showToast) window.showToast('Dataset exported as CSV! 📥');
-    };
-    window.exportData = window.exportData || window.exportToCSV;
-    window.downloadCSV = window.downloadCSV || window.exportToCSV;
-    window.exportReport = window.exportReport || window.exportToCSV;
-    window.exportDataset = window.exportDataset || window.exportToCSV;
-
-    // SaaS & UI Interactive Engine
-    window.switchDemoStep = function(step) {
-        var stepNum = parseInt(step, 10) || 0;
-        var panels = document.querySelectorAll('.demo-panel, [id^="demo-step-"], [id^="step-panel-"]');
-        panels.forEach(function(panel, idx) {
-            var id = panel.id || '';
-            var isTarget = id === 'demo-step-' + stepNum || id === 'step-panel-' + stepNum || idx === stepNum;
-            if (isTarget) {
-                panel.classList.remove('hidden');
-                panel.style.display = 'grid';
-            } else {
-                panel.classList.add('hidden');
-                panel.style.display = 'none';
-            }
-        });
-
-        var buttons = document.querySelectorAll('.demo-tab-btn, [id^="tab-btn-"], [onclick*="switchDemoStep"]');
-        buttons.forEach(function(btn, idx) {
-            var isTarget = btn.id === 'tab-btn-' + stepNum || (btn.getAttribute('onclick') || '').includes('(' + stepNum + ')') || idx === stepNum;
-            if (isTarget) {
-                btn.classList.add('active-tab', 'bg-brand-600', 'bg-indigo-600', 'text-white', 'shadow-lg');
-                btn.classList.remove('text-slate-400', 'hover:text-white', 'bg-transparent');
-                var badge = btn.querySelector('span:first-child');
-                if (badge) {
-                    badge.classList.remove('bg-slate-800');
-                    badge.classList.add('bg-white/20');
-                }
-            } else {
-                btn.classList.remove('active-tab', 'bg-brand-600', 'bg-indigo-600', 'text-white', 'shadow-lg');
-                btn.classList.add('text-slate-400', 'hover:text-white');
-                var badge = btn.querySelector('span:first-child');
-                if (badge) {
-                    badge.classList.add('bg-slate-800');
-                    badge.classList.remove('bg-white/20');
-                }
-            }
-        });
-
-        if (window.lucide) {
-            try { lucide.createIcons(); } catch(e) {}
-        }
-    };
-    window.switchStep = window.switchDemoStep;
-    window.setDemoStep = window.switchDemoStep;
-    window.selectDemoStep = window.switchDemoStep;
-
-    window.selectVolumePill = function(btn) {
-        if (!btn) return;
-        var parent = btn.parentElement || document;
-        var pills = parent.querySelectorAll('.vol-pill, [onclick*="selectVolumePill"]');
-        pills.forEach(function(p) {
-            p.classList.remove('active-pill', 'bg-brand-600/30', 'border-brand-500', 'text-white', 'bg-indigo-600/30', 'border-indigo-500');
-            p.classList.add('border-slate-800', 'bg-slate-900/80', 'text-slate-400');
-        });
-        btn.classList.add('active-pill', 'bg-brand-600/30', 'border-brand-500', 'text-white');
-        btn.classList.remove('border-slate-800', 'bg-slate-900/80', 'text-slate-400');
-    };
-
-    window.isBillingAnnual = window.isBillingAnnual || false;
-    window.toggleBilling = function() {
-        window.isBillingAnnual = !window.isBillingAnnual;
-        var dot = document.getElementById('toggleDot');
-        if (dot) {
-            if (window.isBillingAnnual) {
-                dot.classList.add('translate-x-6');
-                dot.classList.remove('translate-x-0');
-            } else {
-                dot.classList.remove('translate-x-6');
-                dot.classList.add('translate-x-0');
+        var floatCart = document.getElementById('floatingBottomCart') || document.querySelector('.floating-cart');
+        if (floatCart) {
+            floatCart.style.display = totalCount > 0 ? 'flex' : 'none';
+            var floatTxt = floatCart.querySelector('.float-cart-text, span');
+            if (floatTxt && totalCount > 0) {
+                floatTxt.textContent = totalCount + ' ITEMS | $' + subtotal.toFixed(2) + ' • VIEW CART ➔';
             }
         }
-        var monthlyText = document.getElementById('toggleMonthlyText');
-        var annualText = document.getElementById('toggleAnnualText');
-        if (monthlyText && annualText) {
-            if (window.isBillingAnnual) {
-                monthlyText.classList.remove('text-white', 'font-bold');
-                monthlyText.classList.add('text-slate-400', 'font-semibold');
-                annualText.classList.add('text-white', 'font-bold');
-                annualText.classList.remove('text-slate-400', 'font-semibold');
-            } else {
-                monthlyText.classList.add('text-white', 'font-bold');
-                monthlyText.classList.remove('text-slate-400', 'font-semibold');
-                annualText.classList.remove('text-white', 'font-bold');
-                annualText.classList.add('text-slate-400', 'font-semibold');
-            }
-        }
-        if (window.togglePricing) {
-            window.togglePricing(window.isBillingAnnual);
-        }
     };
 
-    window.scrollToContact = function() {
-        var el = document.getElementById('contact') || document.getElementById('demo') || document.querySelector('form');
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-            var input = el.querySelector('input');
-            if (input) setTimeout(function() { input.focus(); }, 400);
-        } else if (window.openLeadModal) {
-            window.openLeadModal('Lead Inbound Request');
-        }
-    };
-
-    window.openLeadModal = function(title) { 
-        var modal = document.getElementById('leadModal') || document.getElementById('contactModal');
-        if (modal) {
-            modal.style.display = 'flex';
-            modal.classList.remove('hidden');
-            if (title) {
-                var headerEl = modal.querySelector('h3, .modal-title');
-                if (headerEl) headerEl.textContent = title;
-            }
-            if (window.lucide) try { lucide.createIcons(); } catch(e) {}
-            return;
-        }
-
-        var dynamicModal = document.getElementById('dynamicLeadModal');
-        if (!dynamicModal) {
-            dynamicModal = document.createElement('div');
-            dynamicModal.id = 'dynamicLeadModal';
-            dynamicModal.className = 'fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn';
-            
-            var modalTitle = (typeof title === 'string' && title) ? title : 'Request Access & Free Leads';
-
-            dynamicModal.innerHTML = '<div class="glass-card relative w-full max-w-md rounded-3xl p-6 sm:p-8 border border-slate-700 bg-slate-950/95 shadow-2xl text-left">' +
-                '<button onclick="window.closeLeadModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1.5 rounded-full hover:bg-slate-800">' +
-                    '<i data-lucide="x" class="w-5 h-5"></i>' +
-                '</button>' +
-                '<div class="flex items-center gap-2 text-brand-400 text-xs font-bold tracking-widest uppercase mb-2">' +
-                    '<i data-lucide="zap" class="w-4 h-4"></i> Priority Access' +
-                '</div>' +
-                '<h3 class="text-2xl font-extrabold text-white mb-1.5">' + modalTitle + '</h3>' +
-                '<p class="text-slate-400 text-xs mb-6">Complete your request below to get started instantly.</p>' +
-                '<form onsubmit="event.preventDefault(); window.submitLeadForm(event)" class="space-y-4">' +
-                    '<div class="space-y-1.5">' +
-                        '<label class="block text-xs font-bold text-slate-300">Full Name</label>' +
-                        '<div class="relative flex items-center">' +
-                            '<i data-lucide="user" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
-                            '<input type="text" name="name" required placeholder="Alex Morgan" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 transition">' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="space-y-1.5">' +
-                        '<label class="block text-xs font-bold text-slate-300">Work Email</label>' +
-                        '<div class="relative flex items-center">' +
-                            '<i data-lucide="mail" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
-                            '<input type="email" name="email" required placeholder="alex@company.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 transition">' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="pt-2">' +
-                        '<button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-extrabold text-xs tracking-wider uppercase shadow-lg shadow-brand-500/30 hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">' +
-                            '<span>Claim Access & Free Leads ➔</span>' +
-                        '</button>' +
-                    '</div>' +
-                '</form>' +
-            '</div>';
-
-            document.body.appendChild(dynamicModal);
+    window.addToCart = function(id, name, price, img) {
+        var pName = name || 'Selected Item';
+        var pPrice = parseFloat(price) || 49.00;
+        var existing = window.cart.find(function(i) { return i.id === id; });
+        if (existing) {
+            existing.qty += 1;
         } else {
-            dynamicModal.style.display = 'flex';
+            window.cart.push({ id: id || 'item-' + Date.now(), name: pName, price: pPrice, img: img || '', qty: 1 });
         }
+        window.updateCartUI();
+        window.showToast(pName + ' added to Bag! 🛒');
+    };
+    window.quickAdd = window.addToCart;
 
-        if (window.lucide) {
-            try { lucide.createIcons(); } catch(e) {}
+    window.updateCartQty = function(id, delta) {
+        var item = window.cart.find(function(i) { return i.id === id; });
+        if (item) {
+            item.qty += delta;
+            if (item.qty <= 0) {
+                window.cart = window.cart.filter(function(i) { return i.id !== id; });
+            }
+        }
+        window.updateCartUI();
+    };
+    window.updateQty = window.updateCartQty;
+
+    window.removeCartItem = function(id) {
+        window.cart = window.cart.filter(function(i) { return i.id !== id; });
+        window.updateCartUI();
+        window.showToast('Item removed from bag');
+    };
+
+    window.toggleWishlist = function(btn, id) {
+        var card = btn ? btn.closest('.glass-card, [data-id], .card, div') : null;
+        var title = card ? (card.querySelector('h3, h4, .title')?.textContent || 'Item') : 'Item';
+        var isFilled = btn ? (btn.classList.contains('fill-rose-500') || btn.classList.contains('text-rose-500')) : false;
+        if (btn) {
+            if (isFilled) {
+                btn.classList.remove('fill-rose-500', 'text-rose-500');
+                window.showToast('Removed from Saved Wishlist');
+            } else {
+                btn.classList.add('fill-rose-500', 'text-rose-500');
+                window.showToast('Added ' + title.trim() + ' to Wishlist! ❤️');
+            }
         }
     };
 
-    window.closeLeadModal = function() { 
-        var modal = document.getElementById('leadModal') || document.getElementById('contactModal');
-        if (modal) {
-            modal.style.display = 'none';
-            modal.classList.add('hidden');
-        }
-        var dynamicModal = document.getElementById('dynamicLeadModal');
-        if (dynamicModal) {
-            dynamicModal.style.display = 'none';
-        }
-    };
+    // ========================================================
+    // UNIVERSAL CATEGORY & CUISINE FILTER ENGINE
+    // ========================================================
+    window.filterCategory = function(cat) {
+        var category = (cat || 'all').toLowerCase().trim();
+        document.querySelectorAll('.cat-pill, [data-category-btn], .category-btn, .cuisine-pill, [onclick*="filterCategory"], [onclick*="filterCuisine"]').forEach(function(btn) {
+            var bCat = (btn.getAttribute('data-category') || btn.getAttribute('data-cuisine') || btn.textContent || '').toLowerCase().trim();
+            var isMatch = category === 'all' ? (bCat === 'all' || bCat.includes('all') || bCat.includes('72')) : bCat.includes(category);
+            if (isMatch) {
+                btn.classList.add('bg-amber-500', 'text-black', 'shadow-lg');
+                btn.classList.remove('bg-slate-900', 'bg-stone-900', 'text-slate-400', 'text-stone-400');
+            } else {
+                btn.classList.remove('bg-amber-500', 'text-black', 'shadow-lg');
+                btn.classList.add('bg-slate-900', 'text-slate-400');
+            }
+        });
 
+        var cards = document.querySelectorAll('[data-category], [data-cuisine], .product-card, .dish-card, .menu-item');
+        cards.forEach(function(card) {
+            var cardCat = (card.getAttribute('data-category') || card.getAttribute('data-cuisine') || card.textContent || '').toLowerCase();
+            if (category === 'all' || cardCat.includes(category)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        initLucideIcons();
+    };
+    window.filterCuisine = window.filterCategory;
+    window.filterMenu = window.filterCategory;
+
+    // Search Engine
+    window.handleSearch = function(query) {
+        var q = (query || '').toLowerCase().trim();
+        var cards = document.querySelectorAll('[data-category], [data-cuisine], .product-card, .dish-card, .menu-item, [data-name]');
+        cards.forEach(function(card) {
+            if (card.closest('header') || card.closest('footer') || card.closest('nav')) return;
+            var text = card.textContent.toLowerCase();
+            card.style.display = (!q || text.includes(q)) ? '' : 'none';
+        });
+    };
+    window.handleProductSearch = window.handleSearch;
+    window.handleMenuSearch = window.handleSearch;
+
+    // ========================================================
+    // UNIVERSAL MODAL & DRAWER TOGGLES
+    // ========================================================
     window.openModal = function(id) {
         var modal = id ? document.getElementById(id) : null;
         if (modal) {
             modal.style.display = 'flex';
             modal.classList.remove('hidden');
-            if (window.lucide) try { lucide.createIcons(); } catch(e) {}
+            initLucideIcons();
             return;
         }
+
         var lower = (id || '').toLowerCase();
-        if (lower.includes('sign') || lower.includes('login') || lower.includes('auth')) {
+        if (lower.includes('reserve') || lower.includes('table') || lower.includes('book')) {
+            window.openReservationModal();
+        } else if (lower.includes('sign') || lower.includes('login') || lower.includes('auth')) {
             window.openSignInModal();
+        } else if (lower.includes('review')) {
+            window.openReviewModal();
         } else {
-            window.openLeadModal();
+            window.openLeadModal(id ? 'Inquiry / Booking' : null);
         }
     };
 
@@ -880,268 +600,298 @@ const getPreviewCode = (rawCode) => {
             modal.style.display = 'none';
             modal.classList.add('hidden');
         }
-        window.closeSignInModal();
-        window.closeLeadModal();
+        var dynamicModals = document.querySelectorAll('#dynamicLeadModal, #dynamicSignInModal, #dynamicReservationModal, #dynamicReviewModal, #dynamicProductModal');
+        dynamicModals.forEach(function(m) { m.style.display = 'none'; });
     };
 
-    // Auto-repair any form missing a submit button on load
-    setTimeout(function() {
-        var allForms = document.querySelectorAll('form');
-        allForms.forEach(function(f) {
-            if (!f.querySelector('button[type="submit"], input[type="submit"]')) {
-                var submitDiv = document.createElement('div');
-                submitDiv.className = 'pt-4';
-                submitDiv.innerHTML = '<button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white font-extrabold text-xs tracking-wider uppercase shadow-xl shadow-brand-500/30 hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">' +
-                    '<span>Submit Request & Claim Free Leads ➔</span>' +
-                '</button>';
-                f.appendChild(submitDiv);
-            }
-        });
-    }, 100);
-
-    // Universal Sign In / Auth Modal Engine
-    window.openSignInModal = function(titleOrEmail) {
-        var existingModal = document.getElementById('signInModal') || document.getElementById('loginModal') || document.getElementById('authModal');
-        if (existingModal) {
-            existingModal.style.display = 'flex';
-            existingModal.classList.remove('hidden');
+    window.toggleDrawer = function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.classList.toggle('translate-x-full');
+            initLucideIcons();
             return;
         }
+        var lower = (id || '').toLowerCase();
+        if (lower.includes('cart') || lower.includes('bag')) {
+            window.showToast('Shopping Bag contains ' + window.cart.length + ' items 🛒');
+        } else if (lower.includes('wishlist')) {
+            window.showToast('Wishlist contains ' + window.wishlist.length + ' items ❤️');
+        }
+    };
 
-        var dynamicModal = document.getElementById('dynamicSignInModal');
-        if (!dynamicModal) {
-            dynamicModal = document.createElement('div');
-            dynamicModal.id = 'dynamicSignInModal';
-            dynamicModal.className = 'fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn';
-            
-            var prefilledEmail = (typeof titleOrEmail === 'string' && titleOrEmail.includes('@')) ? titleOrEmail.trim() : 'alex@enterprise.com';
-            var modalTitle = (typeof titleOrEmail === 'string' && !titleOrEmail.includes('@')) ? titleOrEmail : 'Sign In to Your Account';
-
-            dynamicModal.innerHTML = '<div class="glass-card relative w-full max-w-md rounded-3xl p-6 sm:p-8 border border-slate-700 bg-slate-950/95 shadow-2xl text-left">' +
-                '<button onclick="window.closeSignInModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1.5 rounded-full hover:bg-slate-800">' +
+    // Table Reservation Modal
+    window.openReservationModal = function() {
+        var existing = document.getElementById('reservationModal');
+        if (existing) {
+            existing.style.display = 'flex';
+            existing.classList.remove('hidden');
+            initLucideIcons();
+            return;
+        }
+        var dynamic = document.getElementById('dynamicReservationModal');
+        if (!dynamic) {
+            dynamic = document.createElement('div');
+            dynamic.id = 'dynamicReservationModal';
+            dynamic.className = 'fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4';
+            dynamic.innerHTML = '<div class="glass-card relative w-full max-w-lg rounded-3xl p-6 sm:p-8 border border-amber-500/30 bg-stone-950/95 shadow-2xl text-left">' +
+                '<button onclick="window.closeModal(\\'dynamicReservationModal\\')" class="absolute top-5 right-5 text-stone-400 hover:text-white transition p-1.5 rounded-full hover:bg-stone-800">' +
                     '<i data-lucide="x" class="w-5 h-5"></i>' +
                 '</button>' +
-                '<div class="flex items-center gap-2 text-brand-400 text-xs font-bold tracking-widest uppercase mb-2">' +
-                    '<i data-lucide="lock" class="w-4 h-4"></i> Secure Authentication' +
+                '<div class="flex items-center gap-2 text-amber-400 text-xs font-bold tracking-widest uppercase mb-2">' +
+                    '<i data-lucide="calendar" class="w-4 h-4"></i> Table Reservation' +
                 '</div>' +
-                '<h3 class="text-2xl font-extrabold text-white mb-1.5">' + modalTitle + '</h3>' +
-                '<p class="text-slate-400 text-xs mb-6">Enter your registered email and password to access the portal.</p>' +
-                '<form onsubmit="event.preventDefault(); window.submitSignInForm(event)" class="space-y-4">' +
-                    '<div class="space-y-1.5">' +
-                        '<label class="block text-xs font-bold text-slate-300">Email Address</label>' +
-                        '<div class="relative flex items-center">' +
-                            '<i data-lucide="mail" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
-                            '<input type="email" name="email" required value="' + prefilledEmail + '" placeholder="name@company.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">' +
+                '<h3 class="text-2xl font-extrabold text-white mb-1.5">Reserve Your Dining Experience</h3>' +
+                '<p class="text-stone-400 text-xs mb-6">Select your date, guest count, and dining time slot.</p>' +
+                '<form onsubmit="event.preventDefault(); window.submitReservation(event)" class="space-y-4">' +
+                    '<div class="grid grid-cols-2 gap-3">' +
+                        '<div>' +
+                            '<label class="block text-xs font-bold text-stone-300 mb-1">Date</label>' +
+                            '<input type="date" required value="' + new Date().toISOString().split('T')[0] + '" class="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs text-white outline-none focus:border-amber-500 transition">' +
+                        '</div>' +
+                        '<div>' +
+                            '<label class="block text-xs font-bold text-stone-300 mb-1">Guests</label>' +
+                            '<select class="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs text-white outline-none focus:border-amber-500 transition">' +
+                                '<option>2 Guests (Romantic)</option>' +
+                                '<option>4 Guests (Family)</option>' +
+                                '<option>6+ Guests (Party)</option>' +
+                            '</select>' +
                         '</div>' +
                     '</div>' +
-                    '<div class="space-y-1.5">' +
-                        '<div class="flex justify-between items-center">' +
-                            '<label class="block text-xs font-bold text-slate-300">Password</label>' +
-                            '<a href="javascript:void(0)" onclick="window.showToast(\\'Password reset link sent to email! 🔑\\')" class="text-[11px] text-brand-400 hover:underline">Forgot password?</a>' +
-                        '</div>' +
-                        '<div class="relative flex items-center">' +
-                            '<i data-lucide="key" class="w-4 h-4 text-brand-400 absolute left-3.5 pointer-events-none"></i>' +
-                            '<input type="password" name="password" required value="••••••••••••" placeholder="Enter your password" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">' +
-                        '</div>' +
+                    '<div>' +
+                        '<label class="block text-xs font-bold text-stone-300 mb-1">Guest Full Name</label>' +
+                        '<input type="text" required placeholder="Alex Morgan" class="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs text-white outline-none focus:border-amber-500 transition">' +
                     '</div>' +
-                    '<div class="pt-2">' +
-                        '<button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-extrabold text-xs tracking-wider uppercase shadow-lg shadow-brand-500/30 hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">' +
-                            '<span>Sign In to Portal ➔</span>' +
-                        '</button>' +
+                    '<div>' +
+                        '<label class="block text-xs font-bold text-stone-300 mb-1">Phone Number</label>' +
+                        '<input type="tel" required placeholder="+1 (555) 000-0000" class="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs text-white outline-none focus:border-amber-500 transition">' +
                     '</div>' +
+                    '<button type="submit" class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition cursor-pointer">' +
+                        '<span>Confirm Table Reservation ➔</span>' +
+                    '</button>' +
                 '</form>' +
             '</div>';
-
-            document.body.appendChild(dynamicModal);
+            document.body.appendChild(dynamic);
         } else {
-            dynamicModal.style.display = 'flex';
+            dynamic.style.display = 'flex';
         }
-
-        if (window.lucide) {
-            try { lucide.createIcons(); } catch(e) {}
-        }
+        initLucideIcons();
     };
 
-    window.closeSignInModal = function() {
-        var existingModal = document.getElementById('signInModal') || document.getElementById('loginModal') || document.getElementById('authModal');
-        if (existingModal) {
-            existingModal.style.display = 'none';
-            existingModal.classList.add('hidden');
-        }
-        var dynamicModal = document.getElementById('dynamicSignInModal');
-        if (dynamicModal) {
-            dynamicModal.style.display = 'none';
-        }
-    };
-
-    window.submitSignInForm = function(e) {
+    window.submitReservation = function(e) {
         if (e && e.preventDefault) e.preventDefault();
-        var form = (e && e.target) ? e.target : document.querySelector('#dynamicSignInModal form');
-        var email = (form && form.querySelector('input[type="email"]')) ? form.querySelector('input[type="email"]').value : 'alex@enterprise.com';
-        var btn = form ? form.querySelector('button[type="submit"]') : null;
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<span class="inline-block animate-spin mr-2">⚡</span> Authenticating...';
-        }
-        setTimeout(function() {
-            window.closeSignInModal();
-            window.showToast('✨ Signed in successfully as ' + email + '!');
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<span>Sign In to Portal ➔</span>';
-            }
-        }, 600);
+        var ref = '#RES-' + Math.floor(1000 + Math.random() * 9000);
+        window.closeModal();
+        window.showToast('Table Reserved! Confirmation Ticket ' + ref + ' sent! 🎉');
     };
 
-    window.openLoginModal = window.openSignInModal;
-    window.openAuthModal = window.openSignInModal;
-    window.openSignUpModal = window.openSignInModal;
-    window.openSignupModal = window.openSignInModal;
-    window.closeLoginModal = window.closeSignInModal;
-    window.closeAuthModal = window.closeSignInModal;
-    window.toggleFaq = window.toggleFaq || function(btn) {
-        if (!btn) return;
-        var content = btn.nextElementSibling || (btn.parentElement && btn.parentElement.querySelector('.faq-answer, .faq-content, p'));
-        if (content) content.classList.toggle('hidden');
+    // Review Modal
+    window.openReviewModal = function() {
+        var existing = document.getElementById('reviewModal');
+        if (existing) {
+            existing.style.display = 'flex';
+            existing.classList.remove('hidden');
+            initLucideIcons();
+            return;
+        }
+        var dynamic = document.getElementById('dynamicReviewModal');
+        if (!dynamic) {
+            dynamic = document.createElement('div');
+            dynamic.id = 'dynamicReviewModal';
+            dynamic.className = 'fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4';
+            dynamic.innerHTML = '<div class="glass-card relative w-full max-w-md rounded-3xl p-6 sm:p-8 border border-amber-500/30 bg-stone-950/95 shadow-2xl text-left">' +
+                '<button onclick="window.closeModal(\\'dynamicReviewModal\\')" class="absolute top-5 right-5 text-stone-400 hover:text-white transition p-1.5 rounded-full hover:bg-stone-800">' +
+                    '<i data-lucide="x" class="w-5 h-5"></i>' +
+                '</button>' +
+                '<h3 class="text-2xl font-extrabold text-white mb-1.5">Share Your Review</h3>' +
+                '<p class="text-stone-400 text-xs mb-4">Rate your experience and leave your feedback.</p>' +
+                '<form onsubmit="event.preventDefault(); window.submitReview(event)" class="space-y-4">' +
+                    '<div class="text-amber-400 text-xl font-bold flex gap-1 cursor-pointer">★★★★★</div>' +
+                    '<input type="text" required placeholder="Your Name" class="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs text-white outline-none focus:border-amber-500 transition">' +
+                    '<textarea required rows="3" placeholder="Tell us about the dishes, service, or atmosphere..." class="w-full px-3.5 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs text-white outline-none focus:border-amber-500 transition"></textarea>' +
+                    '<button type="submit" class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider transition cursor-pointer">' +
+                        '<span>Publish Verified Review ➔</span>' +
+                    '</button>' +
+                '</form>' +
+            '</div>';
+            document.body.appendChild(dynamic);
+        } else {
+            dynamic.style.display = 'flex';
+        }
+        initLucideIcons();
     };
-    window.togglePricing = window.togglePricing || function(isAnnual) {
-        var prices = document.querySelectorAll('.price-val, [data-monthly]');
+
+    window.submitReview = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        window.closeModal();
+        window.showToast('Thank you! Your 5-star review has been published ⭐');
+    };
+
+    // Lead Capture Modal
+    window.openLeadModal = function(title) {
+        var existing = document.getElementById('leadModal') || document.getElementById('contactModal');
+        if (existing) {
+            existing.style.display = 'flex';
+            existing.classList.remove('hidden');
+            initLucideIcons();
+            return;
+        }
+        var dynamic = document.getElementById('dynamicLeadModal');
+        if (!dynamic) {
+            dynamic = document.createElement('div');
+            dynamic.id = 'dynamicLeadModal';
+            dynamic.className = 'fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4';
+            dynamic.innerHTML = '<div class="glass-card relative w-full max-w-md rounded-3xl p-6 sm:p-8 border border-indigo-500/30 bg-slate-950/95 shadow-2xl text-left">' +
+                '<button onclick="window.closeModal(\\'dynamicLeadModal\\')" class="absolute top-5 right-5 text-slate-400 hover:text-white transition p-1.5 rounded-full hover:bg-slate-800">' +
+                    '<i data-lucide="x" class="w-5 h-5"></i>' +
+                '</button>' +
+                '<h3 class="text-2xl font-extrabold text-white mb-1.5">' + (title || 'Request Priority Access') + '</h3>' +
+                '<p class="text-slate-400 text-xs mb-6">Complete your request below to get started instantly.</p>' +
+                '<form onsubmit="event.preventDefault(); window.submitLeadForm(event)" class="space-y-4">' +
+                    '<input type="text" name="name" required placeholder="Full Name" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500 transition">' +
+                    '<input type="email" name="email" required placeholder="Work Email" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500 transition">' +
+                    '<input type="tel" name="phone" required placeholder="Mobile Phone Number" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white outline-none focus:border-indigo-500 transition">' +
+                    '<button type="submit" class="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs uppercase tracking-wider transition shadow-lg shadow-indigo-600/30 cursor-pointer">' +
+                        '<span>Submit Request ➔</span>' +
+                    '</button>' +
+                '</form>' +
+            '</div>';
+            document.body.appendChild(dynamic);
+        } else {
+            dynamic.style.display = 'flex';
+        }
+        initLucideIcons();
+    };
+
+    window.submitLeadForm = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        var form = (e && e.target && e.target.tagName === 'FORM') ? e.target : (e && e.target && e.target.closest ? e.target.closest('form') : document.querySelector('form'));
+        var nameInput = form ? form.querySelector('input[name="name"], input[type="text"]') : null;
+        var name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : 'there';
+        window.closeModal();
+        window.showToast('Thank you ' + name + '! Your inquiry has been received. 🚀');
+        if (form && form.reset) form.reset();
+    };
+
+    // ========================================================
+    // UNIVERSAL FAQ ACCORDION & PRICING TOGGLES
+    // ========================================================
+    window.toggleFaq = function(btn) {
+        if (!btn) return;
+        var content = btn.nextElementSibling || (btn.parentElement && btn.parentElement.querySelector('.faq-content, .faq-answer, p'));
+        var icon = btn.querySelector('svg, i, .faq-icon');
+        if (content) {
+            var isHidden = content.classList.contains('hidden') || content.style.display === 'none';
+            if (isHidden) {
+                content.classList.remove('hidden');
+                content.style.display = 'block';
+                if (icon) icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                content.style.display = 'none';
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        }
+    };
+
+    window.togglePricing = function(isAnnual) {
+        var prices = document.querySelectorAll('.price-val, [data-monthly], [data-annual]');
         prices.forEach(function(el) {
             var m = el.getAttribute('data-monthly');
             var a = el.getAttribute('data-annual');
-            if (m && a) el.textContent = isAnnual ? a : m;
+            if (m && a) {
+                el.textContent = isAnnual ? a : m;
+            }
         });
     };
 
-    window.submitReservation = window.submitReservation || function(e) {
-        if (e && e.preventDefault) e.preventDefault();
-        window.showToast('Table reservation confirmed! Reference #RES-' + Math.floor(1000 + Math.random() * 9000));
-        window.closeModal('reservationModal');
-    };
-    window.submitReview = window.submitReview || function(e) {
-        if (e && e.preventDefault) e.preventDefault();
-        window.showToast('Thank you! Your review has been submitted.');
-        window.closeModal('reviewModal');
-    };
-    window.addToCart = window.addToCart || function(id) {
-        window.showToast('Item added to order! 🛒');
-    };
+    // ========================================================
+    // UNIVERSAL CLICK & INTERACTION DELEGATOR (CATCHES ALL BUTTONS)
+    // ========================================================
+    function handleUniversalClick(event) {
+        var btn = event.target.closest('button, a, .clickable, [role="button"]');
+        if (!btn) return;
 
-    // Auto-delegate select dropdown changes
-    document.addEventListener("change", function(e) {
-        var sel = e.target.closest("select");
-        if (sel) {
-            var val = sel.value;
-            var valLower = val.toLowerCase();
-            if (valLower.includes('high') || valLower.includes('low') || valLower.includes('sort') || valLower.includes('asc') || valLower.includes('desc')) {
-                window.sortTable(val);
-            } else {
-                window.filterStatus(val);
-            }
-        }
-    }, true);
+        var txt = (btn.textContent || '').toLowerCase().trim();
+        var onclickAttr = btn.getAttribute('onclick') || '';
 
-    // Auto-delegate search inputs to filterTable
-    document.addEventListener("input", function(e) {
-        var inp = e.target.closest("input");
-        if (inp && (inp.type === 'text' || inp.type === 'search' || !inp.type)) {
-            var ph = (inp.placeholder || '').toLowerCase();
-            if (ph.includes('search') || ph.includes('filter') || ph.includes('keyword') || ph.includes('term') || ph.includes('quick')) {
-                window.filterTable(inp.value);
-            }
-        }
-    }, true);
-
-    // Auto-delegate export buttons
-    document.addEventListener("click", function(e) {
-        var btn = e.target.closest("button, a");
-        if (btn) {
-            var txt = (btn.textContent || '').toLowerCase();
-            if (txt.includes('export') || txt.includes('download csv') || txt.includes('export csv') || txt.includes('export report') || txt.includes('export dataset')) {
-                window.exportToCSV();
-                return;
-            }
-            var isSubmit = btn.type === 'submit' || (btn.getAttribute('onclick') || '').includes('submitLeadForm');
-            if (isSubmit || txt.includes('pre-order') || txt.includes('secure my') || txt.includes('get my custom') || txt.includes('reserve access') || txt.includes('claim hardware')) {
-                e.preventDefault();
-                e.stopPropagation();
-                window.submitLeadForm(e);
-            }
-        }
-    }, true);
-
-    // 1. Intercept ALL link clicks inside iframe in CAPTURE phase to prevent iframe from navigating to parent / routes
-    function handleGlobalClick(event) {
-        var link = event.target.closest("a");
-        if (link) {
-            var href = (link.getAttribute("href") || "").trim();
-
-            // ALWAYS prevent default browser navigation
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (!href || href === "#" || href === "/" || href.startsWith("javascript:")) {
-                return;
-            }
-
-            // Smooth scroll for hash links (#menu, #story, #specialties, #reviews, #location)
-            if (href.startsWith("#")) {
+        // 1. Navigation Anchor Links
+        if (btn.tagName === 'A') {
+            var href = (btn.getAttribute('href') || '').trim();
+            if (href.startsWith('#')) {
+                event.preventDefault();
+                event.stopPropagation();
                 var targetId = decodeURIComponent(href.slice(1)).trim();
-                var target = document.getElementById(targetId) || 
-                             document.getElementById(targetId.toLowerCase()) || 
-                             document.querySelector('[name="' + targetId + '"]') ||
-                             document.querySelector(href);
+                var target = document.getElementById(targetId) || document.getElementById(targetId.toLowerCase());
                 if (target) {
-                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 return;
             }
+        }
 
-            // Open external links in a new tab safely
-            if (href.startsWith("http://") || href.startsWith("https://")) {
-                window.open(href, "_blank", "noopener,noreferrer");
-                return;
-            }
-
-            // Fallback for relative targets (e.g. href="keywords", href="/dashboard")
-            var cleanId = (href.startsWith('/') ? href.slice(1) : href).trim();
-            var fallbackTarget = document.getElementById(cleanId) || document.getElementById(cleanId.toLowerCase()) || document.querySelector('[data-section="' + cleanId + '"]');
-            if (fallbackTarget) {
-                fallbackTarget.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
+        // 2. Add to Cart / Add to Bag / Quick Add
+        if (txt.includes('add to bag') || txt.includes('add to cart') || txt.includes('add to order') || txt.includes('quick add') || txt === 'add') {
+            var card = btn.closest('.glass-card, [data-id], .card, .product-card, .dish-card, div');
+            var title = card ? (card.querySelector('h3, h4, .title, strong')?.textContent || 'Item') : 'Product';
+            var priceEl = card ? card.querySelector('.price, [class*="text-amber"], [class*="text-emerald"], [class*="font-bold"]') : null;
+            var price = priceEl ? parseFloat(priceEl.textContent.replace(/[^0-9.]/g, '')) || 49 : 49;
+            window.addToCart('item-' + Date.now(), title.trim(), price);
             return;
         }
 
-        // 2. Ensure buttons without explicit type don't trigger accidental form navigation
-        var btn = event.target.closest("button");
-        if (btn && !btn.getAttribute("type") && !btn.closest("form")) {
-            btn.setAttribute("type", "button");
+        // 3. Wishlist Heart Button
+        if (btn.querySelector('svg, i[data-lucide="heart"]') || onclickAttr.includes('Wishlist') || txt.includes('wishlist')) {
+            window.toggleWishlist(btn, 'p-' + Date.now());
+            return;
+        }
+
+        // 4. Reserve / Book Table Button
+        if (txt.includes('reserve a table') || txt.includes('book a table') || txt.includes('reserve table') || txt.includes('book table')) {
+            window.openReservationModal();
+            return;
+        }
+
+        // 5. Review Button
+        if (txt.includes('write a review') || txt.includes('share feedback')) {
+            window.openReviewModal();
+            return;
+        }
+
+        // 6. View Cart / Bag Trigger
+        if (txt.includes('view cart') || txt.includes('bag') || btn.querySelector('svg, i[data-lucide="shopping-bag"]') || btn.querySelector('svg, i[data-lucide="shopping-cart"]')) {
+            window.toggleDrawer('cartDrawer');
+            return;
+        }
+
+        // 7. FAQ Accordion Click
+        if (btn.closest('#faq, [id*="faq"], .faq-item')) {
+            window.toggleFaq(btn);
+            return;
+        }
+
+        // 8. Back to Top Click
+        if (txt.includes('back to top') || txt.includes('top') && btn.querySelector('i[data-lucide="arrow-up"]')) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
         }
     }
 
-    window.addEventListener("click", handleGlobalClick, true);
-    document.addEventListener("click", handleGlobalClick, true);
+    document.addEventListener('click', handleUniversalClick, false);
 
-    // 3. Neutralize all <a href> on DOM load so clicking them never causes browser-level route navigations
-    function neutralizeLinks() {
-        var allLinks = document.querySelectorAll('a');
-        allLinks.forEach(function(a) {
-            var h = (a.getAttribute('href') || '').trim();
-            if (!h || h === '/' || (!h.startsWith('#') && !h.startsWith('http://') && !h.startsWith('https://') && !h.startsWith('javascript:'))) {
-                a.setAttribute('data-target-href', h);
-                a.setAttribute('href', 'javascript:void(0)');
-            }
-        });
-    }
-    document.addEventListener('DOMContentLoaded', neutralizeLinks);
-    setTimeout(neutralizeLinks, 100);
-    setTimeout(neutralizeLinks, 500);
-
-    // 4. Intercept all form submissions to prevent full page reloads inside iframe
-    window.addEventListener("submit", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
+    // Form submission delegator
+    window.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var form = e.target;
+        var isSub = form.querySelector('input[type="email"]') && form.querySelectorAll('input').length === 1;
+        if (isSub) {
+            window.showToast('Subscribed to VIP updates! 🚀');
+            form.reset();
+        } else {
+            window.submitLeadForm(e);
+        }
     }, true);
+
 })();
 </script>`;
 

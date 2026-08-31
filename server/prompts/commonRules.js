@@ -98,8 +98,49 @@ DESIGN & AESTHETIC STANDARDS
   - All navbar anchor links MUST link to exact lowercase section IDs: \`<a href="#story">\`, \`<a href="#specialties">\`, \`<a href="#menu">\`, \`<a href="#reviews">\`, \`<a href="#location">\`, \`<a href="#features">\`, \`<a href="#pricing">\`, \`<a href="#contact">\`.
   - All corresponding sections MUST have matching lowercase IDs: \`<section id="story">\`, \`<section id="specialties">\`, \`<section id="menu">\`, \`<section id="reviews">\`, \`<section id="location">\`, \`<section id="contact">\`.
   - Brand Logo links must use \`<a href="#hero">\` or \`<a href="#">\`.
-  - Action buttons (e.g. "Reserve a Table", "Book Now", "Add to Cart", "Quick View", "Write a Review") MUST be \`<button type="button" onclick="openModal('reservationModal')">\` (NEVER \`<a href="/reserve">\`).
-  - All \`<form>\` elements MUST have \`onsubmit="event.preventDefault(); submitHandler(event)"\` and NEVER have \`action="/"\` or \`action=""\`.
+  - **ZERO NON-FUNCTIONING OR COSMETIC-ONLY BUTTONS**: Every single \`<button>\`, clickable \`<div>\`, category tab, search input, wishlist icon, quantity stepper, modal trigger, filter toggle, accordion, and form MUST have a 100% working JavaScript event handler!
+  - **MANDATORY GLOBAL WINDOW FUNCTION ATTACHMENT**: In HTML documents, ALWAYS explicitly attach every handler to the \`window\` object inside your \`<script>\` tag so inline \`onclick="..."\` calls NEVER fail:
+    \`\`\`javascript
+    window.filterCategory = filterCategory;
+    window.filterCuisine = filterCuisine;
+    window.handleSearch = handleSearch;
+    window.addToCart = addToCart;
+    window.quickAdd = quickAdd;
+    window.updateQty = updateQty;
+    window.updateCartQty = updateCartQty;
+    window.removeCartItem = removeCartItem;
+    window.toggleWishlist = toggleWishlist;
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.toggleDrawer = toggleDrawer;
+    window.toggleFaq = toggleFaq;
+    window.togglePricing = togglePricing;
+    window.submitLeadForm = submitLeadForm;
+    window.submitReservation = submitReservation;
+    window.submitReview = submitReview;
+    window.processCheckout = processCheckout;
+    window.showToast = showToast;
+    window.exportToCSV = exportToCSV;
+    window.exportToJSON = exportToJSON;
+    window.toggleTheme = toggleTheme;
+    \`\`\`
+  - **DYNAMIC CATEGORY & SEARCH FILTERING**:
+    - Clicking any category pill (e.g. \`All\`, \`Sneakers\`, \`Apparel\`, \`Biryani\`, \`Pizza\`) MUST highlight that pill and dynamically filter the grid in real-time.
+    - Typing in any search box (\`oninput="handleSearch(this.value)"\`) MUST instantly filter displayed items.
+  - **SHOPPING BAG / CART INTERACTIVITY**:
+    - Bag starts 100% empty (\`let cart = [];\`).
+    - Clicking "Add to Bag" / "Add to Cart" / "Quick Add" MUST push the item to \`cart\`, update the header bag counter badge (\`#cartCountBadge\`), show the floating bottom cart pill (if applicable), and display an instant toast notification.
+    - Inside the cart drawer, quantity steppers (\`-\` / \`+\`) and item removal MUST update totals and counts dynamically.
+  - **WISHLIST / HEART TOGGLES**:
+    - Clicking any heart button (\`onclick="toggleWishlist(this, id)"\`) MUST toggle the fill color (\`text-rose-500 fill-rose-500\`), update the wishlist badge counter, and display a confirmation toast.
+  - **MODALS & DRAWERS**:
+    - Every modal (Table Reservation, Quick View, Consultation, Sign In, Offers, Review, Privacy Policy, Checkout) MUST open on button click (\`openModal('modalId')\`), display clean styled content, and have working Close (\`X\`) and backdrop click dismissals.
+  - **FAQ ACCORDIONS**:
+    - Clicking any FAQ question button MUST smoothly expand/collapse the answer and rotate the chevron icon.
+  - **PRICING SWITCHER**:
+    - Clicking Monthly vs Annual MUST toggle prices and show the 20% discount badge.
+  - **RE-INITIALIZE LUCIDE ICONS AFTER DYNAMIC RENDERS**:
+    - Always call \`if (window.lucide) lucide.createIcons();\` after any DOM manipulation (e.g., rendering cards, opening modals, updating cart).
 
 - **JAVASCRIPT & JSX SYNTAX & TAG NESTING (CRITICAL)**:
   - **PERFECT JSX TAG BALANCE**: Every opening JSX tag (e.g. \`<div>\`, \`<section>\`, \`<form>\`) MUST have exactly ONE matching closing tag (\`</div>\`, \`</section>\`, \`</form>\`).
@@ -108,7 +149,6 @@ DESIGN & AESTHETIC STANDARDS
   - NEVER use unescaped single quotes inside single-quoted strings! (e.g. \`showToast('Welcome to l\\'Elixir...')\` causes a fatal JavaScript/Babel syntax error).
   - If a string contains apostrophes or single quotes (e.g. l'Elixir, what's, don't, it's, team's), **ALWAYS use double quotes \`"..."\` or template literals** or escape the single quote (\`\\'\`).
   - **MULTI-LINE STRINGS MUST USE TEMPLATE LITERALS**: When building dynamic HTML inside JavaScript (e.g. \`card.innerHTML = ...\` or \`grid.innerHTML = ...\`), ALWAYS use backtick template literals or \`.map().join('')\`. NEVER use single quotes across multiple lines, as unescaped newlines inside single quotes cause a fatal \`SyntaxError: Unexpected string\` that crashes the entire script!
-  - **ALWAYS EXPOSE EVENT HANDLERS GLOBALLY ON WINDOW**: All functions referenced by inline HTML \`onclick="..."\`, \`onkeyup="..."\`, \`onsubmit="..."\` (e.g. \`window.quickAdd = quickAdd\`, \`window.filterCuisine = filterCuisine\`, \`window.filterCategory = filterCuisine\`, \`window.updateQty = updateQty\`, \`window.openModal = openModal\`, \`window.closeModal = closeModal\`, \`window.toggleDrawer = toggleDrawer\`, \`window.showToast = showToast\`) MUST be explicitly attached to \`window\`!
 
 - **STRICT FOOTER & FUNCTIONAL LINKING RULES (MANDATORY)**:
   - In the footer, **ONLY REAL, 100% WORKING LINKS AND ACTIONS MUST APPEAR**.

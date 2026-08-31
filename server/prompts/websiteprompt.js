@@ -251,40 +251,132 @@ The document MUST follow this clean vertical layout:
 \`\`\`
 
 ==================================================
-COMPLETE IN-MEMORY JAVASCRIPT STATE ENGINE REQUIREMENTS
+COMPLETE IN-MEMORY JAVASCRIPT STATE ENGINE (MANDATORY & ATTACHED TO WINDOW)
 ==================================================
 Inside \`<script>\`, ALWAYS implement a complete, self-contained JavaScript engine with:
-1. **Data State Arrays**: Rich initial items (6-10 items with real names, images, descriptions, prices, tags).
-2. **Dynamic Render Functions**: Render items dynamically and attach event listeners.
-3. **Modal & Drawer Toggle Functions**:
+1. **Data State Arrays**: Rich initial items (8-16 items with real names, images, descriptions, prices, tags, categories).
+2. **Category / Cuisine Filter & Search Handlers**:
    \`\`\`javascript
-   function openModal(id) {
-     var el = document.getElementById(id);
-     if (el) el.style.display = 'flex';
-     if (window.lucide) lucide.createIcons();
-   }
-   function closeModal(id) {
-     var el = document.getElementById(id);
-     if (el) el.style.display = 'none';
-   }
-   function toggleDrawer(id) {
-     var el = document.getElementById(id);
-     if (el) el.classList.toggle('translate-x-full');
-     if (window.lucide) lucide.createIcons();
-   }
+   window.currentCategory = 'all';
+   window.filterCategory = function(cat) {
+     window.currentCategory = cat;
+     document.querySelectorAll('.cat-pill, [data-category-btn]').forEach(function(btn) {
+       var match = btn.getAttribute('data-category') === cat || btn.textContent.toLowerCase().includes(cat.toLowerCase());
+       if (match) {
+         btn.classList.add('bg-amber-500', 'text-black', 'shadow-lg');
+         btn.classList.remove('bg-slate-900', 'text-slate-400');
+       } else {
+         btn.classList.remove('bg-amber-500', 'text-black', 'shadow-lg');
+         btn.classList.add('bg-slate-900', 'text-slate-400');
+       }
+     });
+     if (typeof renderProducts === 'function') renderProducts();
+     if (typeof renderMenu === 'function') renderMenu();
+   };
+   window.filterCuisine = window.filterCategory;
+   window.handleSearch = function(query) {
+     window.searchQuery = (query || '').toLowerCase().trim();
+     if (typeof renderProducts === 'function') renderProducts();
+     if (typeof renderMenu === 'function') renderMenu();
+   };
+   window.handleProductSearch = window.handleSearch;
+   window.handleMenuSearch = window.handleSearch;
    \`\`\`
-4. **Form Handling with Interactive Feedback**:
-   - For Restaurant: \`submitReservation(event)\` validates inputs, generates a reference code (e.g. \`#RES-7829\`), renders an animated Confirmation Ticket into the modal with date/time/guest summary, and calls \`showToast("Table reserved successfully for Friday at 7:30 PM! 🎉")\`.
-   - For Reviews: \`submitReview(event)\` appends the review to the reviews array, re-renders the reviews grid, closes the modal, and calls \`showToast("Thank you! Your review has been published.")\`.
-   - For Cart & Orders: Start with empty array \`let cart = [];\` (NEVER pre-populate with mock items). Implement \`addToCart(id)\`, \`updateCartQty(id, delta)\`, \`removeCartItem(id)\`, \`processPayment(event)\` with simulated order tracking. The bag MUST start with 0 items on load.
-5. **Toast Notification System**:
+3. **Cart & Wishlist Handlers**:
    \`\`\`javascript
-   function showToast(msg) {
+   window.cart = [];
+   window.wishlist = [];
+   window.addToCart = function(id, name, price, img) {
+     var existing = window.cart.find(function(item) { return item.id === id; });
+     if (existing) {
+       existing.qty += 1;
+     } else {
+       window.cart.push({ id: id, name: name || 'Product Item', price: parseFloat(price) || 99, img: img || '', qty: 1 });
+     }
+     window.updateCartUI();
+     window.showToast((name || 'Item') + ' added to Bag! 🛒');
+   };
+   window.quickAdd = window.addToCart;
+   window.updateCartQty = function(id, delta) {
+     var item = window.cart.find(function(i) { return i.id === id; });
+     if (item) {
+       item.qty += delta;
+       if (item.qty <= 0) {
+         window.cart = window.cart.filter(function(i) { return i.id !== id; });
+       }
+     }
+     window.updateCartUI();
+   };
+   window.updateQty = window.updateCartQty;
+   window.removeCartItem = function(id) {
+     window.cart = window.cart.filter(function(i) { return i.id !== id; });
+     window.updateCartUI();
+     window.showToast('Item removed from Bag');
+   };
+   window.updateCartUI = function() {
+     var totalCount = window.cart.reduce(function(sum, i) { return sum + i.qty; }, 0);
+     var subtotal = window.cart.reduce(function(sum, i) { return sum + (i.price * i.qty); }, 0);
+     var badges = document.querySelectorAll('.cart-count-badge, #cartCountBadge, [data-cart-count]');
+     badges.forEach(function(b) {
+       b.textContent = totalCount;
+       b.style.display = totalCount > 0 ? 'flex' : 'none';
+     });
+     if (typeof renderCartDrawer === 'function') renderCartDrawer();
+   };
+   window.toggleWishlist = function(btn, id) {
+     var idx = window.wishlist.indexOf(id);
+     var icon = btn ? btn.querySelector('svg, i') : null;
+     if (idx === -1) {
+       window.wishlist.push(id);
+       if (btn) btn.classList.add('text-rose-500', 'fill-rose-500');
+       window.showToast('Added to Wishlist! ❤️');
+     } else {
+       window.wishlist.splice(idx, 1);
+       if (btn) btn.classList.remove('text-rose-500', 'fill-rose-500');
+       window.showToast('Removed from Wishlist');
+     }
+     var wBadges = document.querySelectorAll('.wishlist-count-badge, #wishlistCountBadge');
+     wBadges.forEach(function(b) { b.textContent = window.wishlist.length; });
+   };
+   \`\`\`
+4. **Modal & Drawer Toggle Functions**:
+   \`\`\`javascript
+   window.openModal = function(id) {
+     var el = document.getElementById(id);
+     if (el) {
+       el.style.display = 'flex';
+       el.classList.remove('hidden');
+     }
+     if (window.lucide) lucide.createIcons();
+   };
+   window.closeModal = function(id) {
+     var el = document.getElementById(id);
+     if (el) {
+       el.style.display = 'none';
+       el.classList.add('hidden');
+     }
+   };
+   window.toggleDrawer = function(id) {
+     var el = document.getElementById(id);
+     if (el) {
+       el.classList.toggle('translate-x-full');
+     }
+     if (window.lucide) lucide.createIcons();
+   };
+   \`\`\`
+5. **Form Handling with Interactive Feedback**:
+   - \`window.submitReservation(event)\` validates inputs, renders confirmation ticket, and calls \`showToast("Table reserved successfully! 🎉")\`.
+   - \`window.submitReview(event)\` adds review to array, re-renders reviews, and calls \`showToast("Thank you! Review published ⭐")\`.
+   - \`window.submitLeadForm(event)\` extracts contact info and calls \`showToast("Inquiry received! We will reach out shortly. 🚀")\`.
+   - \`window.processCheckout(event)\` clears cart, closes checkout modal, and calls \`showToast("Order placed successfully! Tracking #ORD-8942 🎉")\`.
+6. **Toast Notification System**:
+   \`\`\`javascript
+   window.showToast = function(msg) {
      var existing = document.getElementById('globalToast');
      if (existing) existing.remove();
      var toast = document.createElement('div');
      toast.id = 'globalToast';
-     toast.className = 'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl bg-amber-500 text-black text-xs font-extrabold shadow-2xl transition-all duration-300 flex items-center gap-2';
+     toast.className = 'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl bg-amber-500 text-black text-xs font-extrabold shadow-2xl transition-all duration-300 flex items-center gap-2 pointer-events-auto';
      toast.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>' + msg + '</span>';
      document.body.appendChild(toast);
      if (window.lucide) lucide.createIcons();
@@ -292,14 +384,15 @@ Inside \`<script>\`, ALWAYS implement a complete, self-contained JavaScript engi
        toast.style.opacity = '0';
        setTimeout(function() { toast.remove(); }, 300);
      }, 3000);
-   }
+   };
    \`\`\`
-6. **Initialization**:
+7. **Initialization**:
    \`\`\`javascript
    document.addEventListener('DOMContentLoaded', function() {
      if (typeof renderMenu === 'function') renderMenu();
      if (typeof renderProducts === 'function') renderProducts();
      if (typeof renderReviews === 'function') renderReviews();
+     if (typeof updateCartUI === 'function') updateCartUI();
      if (window.lucide) lucide.createIcons();
    });
    \`\`\`
