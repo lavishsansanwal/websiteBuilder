@@ -1467,7 +1467,10 @@ function WebsiteEditor() {
     }
 
     // ==========================================
-    // CONTEXTUAL SUGGESTIONS HELPER (FALLBACK     const detectSiteDomain = (prompt = "", latestCode = "") => {
+    // CONTEXTUAL SUGGESTIONS HELPER (FALLBACK & SEED)
+    // ==========================================
+
+    const detectSiteDomain = (prompt = "", latestCode = "") => {
         const p = (prompt || "").toLowerCase();
         const c = (latestCode || "").toLowerCase();
         const combined = p + " " + c;
