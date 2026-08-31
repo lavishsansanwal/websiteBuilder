@@ -19,7 +19,11 @@ import Workbench from "./pages/Workbench";
 import Upload from "./pages/Upload";
 import axios from "axios";
 
-export const serverUrl = "http://localhost:8000";
+
+export const serverUrl = import.meta.env.VITE_SERVER_URL;
+
+console.log("serverUrl", serverUrl);
+
 
 // Global axios interceptor to attach authentication credentials automatically
 axios.interceptors.request.use((config) => {
@@ -39,7 +43,7 @@ axios.interceptors.request.use((config) => {
         if (token && !config.headers["Authorization"]) {
             config.headers["Authorization"] = `Bearer ${token}`;
         }
-    } catch (e) {}
+    } catch (e) { }
     return config;
 }, (error) => Promise.reject(error));
 
