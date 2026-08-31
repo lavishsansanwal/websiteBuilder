@@ -120,66 +120,58 @@ Build a luxury, warm, ambient dining website with table reservations, chef stori
     - Guest Full Name, Email, and Phone inputs.
     - Submit button: When submitted, renders an animated **Booking Confirmation Ticket** with Reference \`#RES-7829\`, table summary, and triggers \`showToast("Table reserved successfully! 🎉")\`.
   - \`#reviewModal\` (Write a review modal with clickable 1-5 star selector - \`style="display: none;"\` by default).
-  - \`#cartDrawer\` (Slide-out takeaway order drawer with items, subtotal, tip selector, and checkout - \`translate-x-full\` by default).
-
---------------------------------------------------
-
-### 🛍️ IF E-COMMERCE / STREETWEAR / SNEAKERS / FASHION / ELECTRONICS / MULTI-CATEGORY RETAIL (e.g. Snitch, Flipkart, Zara, Nike):
-Build an ultra-rich, multi-collection, high-converting retail storefront with deep catalog departments and rich interactivity:
-- **Theme**: Luxury obsidian streetwear / modern retail dark theme (\`bg-[#06080d] text-slate-100\`) with vibrant neon amber, electric violet, or cobalt accents (\`text-amber-400\`, \`bg-amber-500\`, \`border-amber-500/20\`, \`bg-slate-900/90\`, \`border-slate-800\`).
-- **Required Multi-Department & Multi-Collection Architecture (At least 12-16 realistic products across collections)**:
-  1. **Top Announcement Strip & Sticky Navbar**:
-     - Promotional top ticker (e.g., "⚡ DROP 04: Free Express Delivery on orders over $100 • Use Code: STREET20 for 20% OFF").
-     - Brand Logo (e.g., "✦ KRONOS APPAREL" / "SNITCH LAB").
-     - Department Links ("Sneakers", "Hoodies & Tees", "Cargo Pants", "Lookbook", "Sale").
-     - Search Bar trigger with live instant input.
-     - Wishlist Heart button (\`onclick="openWishlistDrawer()"\`) with badge counter.
-     - Dynamic Bag / Cart button (\`onclick="openCartDrawer()"\`) with live count badge \`<span id="cartCountBadge" class="bg-amber-500 text-black font-extrabold text-xs px-2 py-0.5 rounded-full">0</span>\`.
-  2. **High-Impact Hero Banner (#hero)**:
-     - Full-bleed hero banner with bold editorial street model / sneaker drop photo, seasonal badge ("LIMITED SUMMER DROP 2024"), heavy kinetic typography ("UNFILTERED STREETWEAR & SNEAKER ARCHIVE"), and dual CTAs ("Shop All Drops", "Explore Lookbook").
-  3. **Visual Department Category Strip / Carousel (#categories)**:
-     - 5-6 circular/card department shortcuts with high-res photos and category labels:
-       - 👟 **Sneakers & Trainers** (\`onclick="filterCategory('sneakers')"\`)
-       - 👕 **Oversized Graphic Tees** (\`onclick="filterCategory('tees')"\`)
-       - 🧥 **Heavyweight Hoodies** (\`onclick="filterCategory('hoodies')"\`)
-       - 👖 **Tactical Cargo & Denim** (\`onclick="filterCategory('pants')"\`)
-       - 🥼 **Windbreakers & Outerwear** (\`onclick="filterCategory('jackets')"\`)
-       - 🧢 **Caps, Bags & Accessories** (\`onclick="filterCategory('accessories')"\`)
+  - \`#cartDrawer\` (Slide-out takeaway order dr### 🛍️ IF E-COMMERCE / BRAND CLONE / NIKE / STREETWEAR / SNEAKERS / FASHION / RETAIL:
+Build an ultra-rich, multi-collection, high-converting retail storefront with deep catalog departments and authentic brand fidelity:
+- **Theme**: High-impact stark obsidian / stealth black theme (\`bg-[#06080d] text-white\` or \`bg-black text-white\`) with electric infrared, neon amber, volt, or monochrome silver accents (\`text-amber-400\`, \`bg-amber-500\`, \`border-amber-500/20\`, \`bg-slate-900/90\`, \`border-slate-800\`).
+- **Typography**: Bold, heavy condensed italic typography (\`font-black uppercase italic tracking-tighter\`) matching iconic athletic & streetwear brands.
+- **Required Multi-Department & Multi-Collection Architecture (At least 12-18 realistic items across 4-6 categories)**:
+  1. **Top Sub-Brand Announcement Strip & Sticky Navbar**:
+     - Sub-brand utility links (e.g. Jordan, Converse, SNKRS, Track Order, Help).
+     - Promo ticker: "⚡ MEMBER EXCLUSIVE: Free Express Delivery on orders $100+ • Code: **NIKE20** for 20% OFF".
+     - Sticky Header with brand logo, department links ("Featured", "Sneakers", "Apparel", "Innovation Lab", "Lookbook", "Reviews").
+     - Search Bar with real-time multi-term filtering.
+     - Wishlist Heart button (\`onclick="toggleDrawer('wishlistDrawer')"\`) with live count badge.
+     - Dynamic Bag button (\`onclick="toggleDrawer('cartDrawer')"\`) with live item counter badge.
+  2. **High-Impact Kinetic Hero Banner (#hero)**:
+     - Full-bleed hero with dynamic athletic photography / 3D sneaker spotlight, seasonal pill badge ("Next-Gen Performance Drop 2025"), heavy condensed headline ("UNFILTERED INNOVATION." / "JUST DO IT."), dual CTAs ("Shop New Releases", "Explore Air Lab"), and trust metrics ("100% Authentic", "24-Hour Dispatch", "4.9/5 Rating").
+  3. **Visual Department Category Carousel (#categories)**:
+     - 4-6 circular department photo shortcuts with hover-zoom:
+       - 👟 **Sneakers & Shoes** (\`onclick="filterCategory('sneakers')"\`)
+       - 🧥 **Hoodies & Apparel** (\`onclick="filterCategory('hoodies')"\`)
+       - 🏃 **Running & Performance** (\`onclick="filterCategory('running')"\`)
+       - 👕 **Graphic Tees & Tops** (\`onclick="filterCategory('tees')"\`)
+       - 🏀 **Jordan & Icon Series** (\`onclick="filterCategory('jordan')"\`)
+       - 🎒 **Accessories & Gear** (\`onclick="filterCategory('accessories')"\`)
   4. **Multi-Category Filter Tabs & Real-Time Search Bar (#products)**:
-     - Live search input: \`<input type="text" oninput="handleProductSearch(this.value)" placeholder="Search sneakers, boxy hoodies, parachute pants...">\`.
-     - Filter Pills: \`All Items (16)\`, \`Sneakers (4)\`, \`Hoodies & Tees (4)\`, \`Cargo Pants (4)\`, \`Outerwear (4)\`, \`Accessories (4)\`.
-     - Sort dropdown (Featured, Price: Low to High, Price: High to Low, Customer Rating).
-  5. **Rich Product Grid (At least 12-16 Diverse, High-Res Product Cards)**:
+     - Live search input: \`<input type="text" oninput="handleProductSearch(this.value)" placeholder="Search Jordan, Air Max, Pegasus, Tech Fleece...">\`.
+     - 100% Functional Category Tabs with item counters: \`All Items (12+)\`, \`Sneakers (4+)\`, \`Apparel (4+)\`, \`Jordan (3+)\`, \`Accessories (3+)\`.
+     - Clicking ANY category tab MUST instantly filter the product grid and highlight the active button!
+  5. **Dense, Multi-Category Product Grid (At least 12-18 Realistic Items in JS)**:
      - Each product card MUST include:
-       - Product Image with smooth hover-zoom and discount pill (e.g. \`30% OFF\`, \`BESTSELLER\`, \`HOT DROP\`).
-       - Heart wishlist toggle button (\`onclick="toggleWishlist(this, 'product_id')"\`).
-       - Quick View eye button (\`onclick="openProductModal('product_id')"\`).
-       - Product Title (e.g. "AeroRunner High-Top Retro Trainers", "Tokyo Acid-Wash Boxy Tee", "Modular 6-Pocket Tactical Cargo").
-       - Star Rating ⭐⭐⭐⭐⭐ \`(4.9 • 180+ sold)\`.
-       - Pricing: Sale price \`$89.00\` + Original strikethrough \`$130.00\`.
-       - Size Selector Pills (\`S\`, \`M\`, \`L\`, \`XL\` or \`US 8\`, \`US 9\`, \`US 10\`, \`US 11\`).
-       - Color Swatches (\`⚫ Black\`, \`⚪ Off-White\`, \`🟢 Olive\`, \`🟣 Violet\`).
-       - Primary Action Button: \`<button onclick="addToCart('p1', 'AeroRunner High-Top', 89, 'https://images.unsplash.com/...', 'US 9', 'Black')" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"><i data-lucide="shopping-bag"></i> Add to Bag</button>\`.
-  6. **Curated Footwear & Sneaker Lab Section (#sneaker-lab)**:
-     - Dedicated highlight showcasing 3-4 limited edition sneakers with 360 view badge, cushioned insole specs, and direct size selection.
-  7. **Editorial Urban Lookbook (#lookbook)**:
-     - High-fashion lifestyle model photoshoot with interactive "Shop the Look" callouts.
-  8. **Flash Deal Countdown Section (#flash-sale)**:
-     - Live JS countdown timer (\`04h : 18m : 45s\`), progress bar ("78% Claimed"), and instant discount promo code box with copy button.
-  9. **Verified Customer Reviews & Photo Gallery (#reviews)**:
-     - 4.9/5 overall rating summary with 5-star distribution bars, verified buyer badges, and "Write a Review" modal trigger (\`openModal('reviewModal')\`).
-  10. **Order Tracking & Dispatch Timeline (#tracking)**:
-      - Live tracking search box (e.g. Enter \`#KRN-8492\`) with interactive 4-step dispatch status (Order Placed ➔ Packed ➔ Shipped ➔ Delivered).
-  11. **Modern Functional Footer (STRICTLY WORKING LINKS ONLY)**:
-      - Brand story, working on-page anchors (\`#hero\`, \`#products\`, \`#categories\`, \`#lookbook\`, \`#reviews\`, \`#tracking\`), newsletter sign-up with toast, payment partner badges (Visa, Mastercard, Apple Pay, UPI), and working \`#privacyModal\` trigger.
+       - Product Image with smooth hover-zoom and badge (e.g. \`BESTSELLER\`, \`NEW DROP\`, \`LIMITED\`, \`HOT\`).
+       - Heart wishlist toggle button (\`onclick="window.toggleWishlist(this, '${p.id}')"\`).
+       - Quick View eye button (\`onclick="window.openProductModal('${p.id}')"\`).
+       - Product Title (e.g. "Air Jordan 1 Retro Red Edition", "Pegasus Flyknit Turbo", "Tech Fleece Heavyweight Hoodie").
+       - Subtitle category label & Star Rating ⭐⭐⭐⭐⭐ \`(4.9 • 240 reviews)\`.
+       - Pricing: Sale price \`$139.00\` + Original strikethrough \`$180.00\`.
+       - Primary Action Button: \`<button onclick="window.addToCart('${p.id}', ...)" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider transition shadow-md shadow-amber-500/20 flex items-center gap-1.5"><i data-lucide="shopping-bag"></i> <span>Add to Bag</span></button>\`.
+  6. **Innovation Lab / Tech Showcase (#sneaker-lab)**:
+     - Highlighting Zoom Air pods, React foam, carbon fiber plating, with 3 metric cards (e.g. "88% Energy Return", "195g Featherweight", "3D Flyknit") and "Inspect Tech" modal trigger.
+  7. **Editorial Streetwear & Athletic Lookbook (#lookbook)**:
+     - 3 editorial lifestyle looks with interactive "Shop the Look" buttons that open the matching product quick-view modal.
+  8. **Verified Customer Reviews & Community (#reviews)**:
+     - 4.9/5 overall rating summary with 3 verified buyer review cards and "Write a Review" button opening \`#reviewModal\`.
+  9. **Live Order Tracking & Dispatch Timeline (#tracking)**:
+     - Order tracking lookup form with interactive 4-step dispatch status (Order Placed ➔ Quality Verified ➔ In Transit ➔ Delivered).
+  10. **Modern Functional Footer (STRICTLY WORKING LINKS ONLY)**:
+      - Brand mission, on-page anchor navigation, customer care modal triggers, newsletter sign-up with toast feedback, and Back to Top button.
 - **Required Modals & Drawers for E-Commerce**:
-  - \`#cartDrawer\` (Slide-out shopping bag: **Starts empty** with \`let cart = [];\`. When items are added, renders thumbnail, title, size, color, quantity adjusters \`+\` / \`-\`, remove button, subtotal, promo code input \`STREET20\`, and "Proceed to Checkout" button).
-  - \`#wishlistDrawer\` (Slide-out saved items drawer with "Move to Bag" action).
-  - \`#productModal\` (Product Quick View with image gallery, detailed sizing chart, material breakdown, and Add to Bag).
-  - \`#checkoutModal\` (Step 1: Shipping address with Name, Email, Phone, Address; Step 2: Payment choice with Card/UPI/COD; Step 3: Instant confirmed order receipt with Order ID \`#KRN-9482\`).
-  - \`#trackingModal\` (Interactive delivery status lookup modal).
-  - \`#reviewModal\` (Interactive review submission modal).
-  - \`#privacyModal\` (Terms & Shipping policy modal).
+  - \`#cartDrawer\` (Slide-out shopping bag: **Starts empty** with \`let cart = [];\`. Features item list, \`+\` / \`-\` quantity steppers, promo code \`NIKE20\` with 20% discount calculation, subtotal, free shipping indicator, and "Proceed to Checkout" button).
+  - \`#wishlistDrawer\` (Slide-out saved items with "Move to Bag" action).
+  - \`#productModal\` (Product Quick View with image, size selector pills \`US 8\`, \`US 9\`, \`US 10\`, \`US 11\`, color swatches, and instant Add to Bag).
+  - \`#checkoutModal\` (Fast dispatch checkout with Name, Email, Phone, Address, payment choice, and instant confirmation).
+  - \`#reviewModal\` (Write a review modal with 1-5 star selector).
+  - \`#privacyModal\` (Terms & authenticity policy modal).
 
 --------------------------------------------------
 
@@ -200,6 +192,7 @@ Build a high-converting modern digital showcase:
 - **Required Modals**:
   - \`#privacyModal\` (Privacy & Terms modal - \`style="display: none;"\` by default).
   - \`#consultationModal\` / \`#serviceModal\` (Interactive consultation booking / quote request modal with Name, Email, Phone inputs - \`style="display: none;"\` by default).
+  - \`#reviewModal\` (Write a review modal).ationModal\` / \`#serviceModal\` (Interactive consultation booking / quote request modal with Name, Email, Phone inputs - \`style="display: none;"\` by default).
   - \`#reviewModal\` (Write a review modal).
 
 ==================================================
