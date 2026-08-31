@@ -13,6 +13,7 @@ import dashboardPrompt from "../prompts/dashBoardPrompt.js";
 import websitePrompt from "../prompts/websiteprompt.js";
 import reactDashboardPrompt from "../prompts/reactDashboardPrompt.js";
 import reactWebsitePrompt from "../prompts/reactWebsitePrompt.js";
+import { commonRules } from "../prompts/commonRules.js";
 import { applyPatches } from "../utils/patchEngine.js";
 import { buildPatchPrompt } from "../prompts/patchPrompt.js";
 function normalizeGeneratedCode(code) {
@@ -798,6 +799,8 @@ export const changes = async (req, res) => {
             if (!patchSuccess) {
                 console.log(`[FULL SYNTHESIS] Generating updated code for: "${userPromptText.slice(0, 60)}..."`);
                 const updateAiPrompt = `
+${commonRules}
+
 You are an expert Principal Frontend Architect and UI/UX Designer updating an existing ${isReact ? 'React (JSX) application' : 'website'}.
 
 ${conversationHistory ? `PREVIOUS USER INSTRUCTIONS & ACTIVE CUSTOMIZATIONS:\n${conversationHistory}\n` : ''}

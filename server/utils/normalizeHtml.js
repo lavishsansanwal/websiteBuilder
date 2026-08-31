@@ -464,7 +464,7 @@ export function normalizeHtml(html) {
         normalized = normalized.replace("</body>", `${lucideScript}</body>`);
     }
 
-    // 10. Sanitize raw unescaped newlines and corrupted methods inside <script> blocks
+    // 10. Sanitize raw unescaped newlines and repair syntax errors inside <script> blocks
     normalized = normalized.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, scriptAttrs, scriptBody) => {
         let cleanBody = scriptBody
             .replace(/\.join\(\s*['"]\s*\n\s*['"]\s*\)/g, ".join(String.fromCharCode(10))")
@@ -474,6 +474,46 @@ export function normalizeHtml(html) {
             .replace(/URL\.revokeObjecturl/g, "URL.revokeObjectURL")
             .replace(/URL\.createObjectURL\(['"][^'"]*unsplash[^'"]*['"]\)/gi, "URL.createObjectURL(blob)")
             .replace(/URL\.revokeObjectURL\(['"][^'"]*unsplash[^'"]*['"]\)/gi, "URL.revokeObjectURL(url)");
+
+        // Automated JS syntax validation and quote un-nesting
+        if (!scriptAttrs.includes("src=") && cleanBody.trim().length > 20) {
+            let syntaxValid = false;
+            try {
+                new Function(cleanBody);
+                syntaxValid = true;
+            } catch (e) {
+                // Attempt line-by-line single quote to backtick template conversion for dynamic HTML assignments
+                const lines = cleanBody.split("\n");
+                const repairedLines = lines.map(line => {
+                    if (/\.(?:innerHTML|outerHTML)\s*=\s*'[\s\S]*<\w+[\s\S]*'[\s;]*$/.test(line)) {
+                        const match = line.match(/^(\s*[\w$.]+\.(?:innerHTML|outerHTML)\s*=\s*)'([\s\S]*)'([;\s]*)$/);
+                        if (match) {
+                            return `${match[1]}\`${match[2]}\`${match[3]}`;
+                        }
+                    }
+                    if (/innerHTML\s*=/.test(line) && line.includes("onclick=") && line.includes("'")) {
+                        const firstQuoteIdx = line.indexOf("= '");
+                        const lastQuoteIdx = line.lastIndexOf("';");
+                        if (firstQuoteIdx !== -1 && lastQuoteIdx !== -1 && lastQuoteIdx > firstQuoteIdx) {
+                            const prefix = line.slice(0, firstQuoteIdx + 2);
+                            const inner = line.slice(firstQuoteIdx + 3, lastQuoteIdx);
+                            const suffix = line.slice(lastQuoteIdx + 1);
+                            return `${prefix}\`${inner}\`${suffix}`;
+                        }
+                    }
+                    return line;
+                });
+
+                const repaired = repairedLines.join("\n");
+                try {
+                    new Function(repaired);
+                    cleanBody = repaired;
+                    syntaxValid = true;
+                } catch (e2) {
+                    cleanBody = repaired;
+                }
+            }
+        }
 
         return `<script${scriptAttrs}>${cleanBody}</script>`;
     });
