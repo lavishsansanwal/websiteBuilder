@@ -1467,28 +1467,73 @@ function WebsiteEditor() {
     }
 
     // ==========================================
-    // CONTEXTUAL SUGGESTIONS HELPER (FALLBACK & SEED)
-    // ==========================================
+    // CONTEXTUAL SUGGESTIONS HELPER (FALLBACK     const detectSiteDomain = (prompt = "", latestCode = "") => {
+        const p = (prompt || "").toLowerCase();
+        const c = (latestCode || "").toLowerCase();
+        const combined = p + " " + c;
+
+        // 1. Dashboard / Admin / Analytics / CRM / Metrics
+        if (/\b(dashboard|analytics|admin\s*panel|kpi|metrics|data\s*table|crm|finance\s*tracker|inventory\s*manager)\b/i.test(combined)) {
+            return "dashboard";
+        }
+
+        // 2. SaaS Landing / Lead Funnel / Waitlist
+        if (/\b(saas|waitlist|landing\s*page|lead\s*capture|pricing\s*tier|startup\s*launch|conversion\s*funnel)\b/i.test(combined)) {
+            return "landing";
+        }
+
+        // 3. Food Delivery / Restaurant / Cafe / Dining (STRICT: food/dining specific terms, NOT bare 'delivery')
+        if (/\b(swiggy|zomato|doordash|uber\s*eats|restaurant|bistro|cafe|bakery|dining|pizza|pasta|biryani|burger|dosa|cuisine|meal|food\s*delivery|gourmet\s*dish|tiffin|chef|recipe|table\s*reservation|pure\s*veg|beverage|dessert)\b/i.test(combined)) {
+            if (!/\b(sneaker|shoe|streetwear|hoodie|clothing|fashion|retail|nike|adidas|zara)\b/i.test(p)) {
+                return "food";
+            }
+        }
+
+        // 4. E-Commerce / Streetwear / Sneaker / Retail Store / Apparel / Brand Clone
+        if (/\b(ecommerce|e-commerce|sneaker|sneakers|shoe|shoes|streetwear|hoodie|hoodies|tee|tees|apparel|clothing|fashion|retail|nike|adidas|zara|apple|footwear|boutique|merch|merchandise|catalog|cart|bag|checkout|shopping|product\s*grid|add\s*to\s*bag|quick\s*view)\b/i.test(combined)) {
+            return "ecommerce";
+        }
+
+        // 5. Healthcare / Medical / Clinic / Dental / Doctor
+        if (/\b(doctor|clinic|hospital|medical|dental|dentist|healthcare|patient|telehealth|pharmacy|medicine|symptom)\b/i.test(combined)) {
+            return "healthcare";
+        }
+
+        // 6. Real Estate / Property / Villa / Realtor
+        if (/\b(real\s*estate|property|properties|realtor|villa|villas|apartment|apartments|realty|mortgage|housing|listing|floorplan)\b/i.test(combined)) {
+            return "realestate";
+        }
+
+        // 7. Fitness / Gym / Workout / Personal Trainer
+        if (/\b(fitness|gym|workout|trainer|training|crossfit|yoga|pilates|bodybuilding|muscle|exercise|athlete|membership)\b/i.test(combined)) {
+            return "fitness";
+        }
+
+        // 8. General Portfolio / Agency / Creative / Freelancer
+        return "portfolio";
+    };
 
     const getDomainSuggestions = (title = "", code = "", turns = 1) => {
-        const text = (title + " " + code).toLowerCase();
+        const domain = detectSiteDomain(title, code);
         const phase = Math.min(4, Math.max(1, turns));
 
         let card = null;
         let agentQuestions = [];
         let suggestions = [];
 
-        // 1. E-Commerce / Streetwear / Sneaker / Retail Store
-        if (/\b(store|shop|e-commerce|ecommerce|sneaker|streetwear|shoe|clothing|fashion|retail|product|cart|bag|catalog|order)\b/i.test(text)) {
+        // ==========================================
+        // 1. E-COMMERCE / SNEAKERS / FASHION / RETAIL
+        // ==========================================
+        if (domain === "ecommerce") {
             if (phase === 1 || phase === 2) {
                 card = {
-                    question: "What high-impact feature should we add next to elevate this store?",
+                    question: "What high-impact feature should we add next to elevate this e-commerce store?",
                     options: [
                         {
                             icon: "⚡",
-                            label: "Add Flash Sale Countdown Banner",
-                            description: "Adds a 24-hour urgency timer with live stock bar and 20% discount coupon STREET20",
-                            prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon STREET20"
+                            label: "Flash Sale 24h Countdown Banner",
+                            description: "Adds urgency timer, live claim progress bar, and 20% coupon code (NIKE20 / STREET20)",
+                            prompt: "Add a limited-time flash sale section with live countdown timer, 78% claimed stock bar, and 20% discount coupon NIKE20"
                         },
                         {
                             icon: "⭐",
@@ -1498,8 +1543,8 @@ function WebsiteEditor() {
                         },
                         {
                             icon: "📏",
-                            label: "Interactive Size & Fit Guide",
-                            description: "Adds size chart modal with US/UK/EU conversions for apparel and sneakers",
+                            label: "Interactive Size & Fit Guide Modal",
+                            description: "Adds size chart modal with US/UK/EU conversions for apparel and footwear",
                             prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear"
                         }
                     ]
@@ -1534,14 +1579,14 @@ function WebsiteEditor() {
                     options: [
                         {
                             icon: "💳",
-                            label: "1-Click Sticky Buy Bar",
+                            label: "1-Click Sticky Quick-Buy Bar",
                             description: "Adds a persistent floating bottom bar with Quick Buy & Size selector on scroll",
                             prompt: "Add a floating sticky bottom Quick Buy bar that appears when scrolling with instant size selector and checkout button"
                         },
                         {
                             icon: "🎁",
-                            label: "Wheel of Fortune Promo Popup",
-                            description: "Adds an exit-intent gamified discount spinner offering up to 30% off",
+                            label: "Spin-to-Win Promo Wheel Popup",
+                            description: "Adds an exit-intent gamified discount spinner offering up to 30% off discount codes",
                             prompt: "Add an exit-intent gamified discount spinner modal offering up to 30% off discount codes"
                         },
                         {
@@ -1561,15 +1606,17 @@ function WebsiteEditor() {
             ];
 
             suggestions = [
-                { label: "+ Sticky Frosted Navbar", prompt: "Make the main navigation bar a floating frosted glass sticky header with backdrop blur" },
-                { label: "+ Trust Badges & Guarantee", prompt: "Add an authentic trust badges row with 30-day money-back guarantee, free returns, and SSL secure checkout" },
-                { label: "+ Currency Selector (USD/EUR/INR)", prompt: "Add an interactive currency switcher dropdown (USD, EUR, GBP, INR) in the top bar" },
-                { label: "+ Floating WhatsApp Support", prompt: "Add a floating WhatsApp live chat support button in the bottom right corner with online status pill" },
+                { label: "+ Flash Sale 24h Timer", prompt: "Add a limited-time flash sale section with live countdown timer and 20% discount code" },
+                { label: "+ Interactive Size Guide Modal", prompt: "Add an interactive size guide modal with measurements in inches and cm for tops and footwear" },
+                { label: "+ Multi-Currency Selector (USD/EUR/INR)", prompt: "Add an interactive currency switcher dropdown (USD, EUR, GBP, INR) in the top bar" },
+                { label: "+ Trust Badges & 30-Day Guarantee", prompt: "Add an authentic trust badges row with 30-day money-back guarantee, free returns, and SSL secure checkout" },
                 { label: "+ Instagram Lookbook Grid", prompt: "Add an Instagram shoppable community lookbook grid section with hover overlays" }
             ];
 
-        // 2. Restaurant / Cafe / Bakery / Dining / Food Delivery
-        } else if (/\b(restaurant|bistro|cafe|bakery|dining|food|menu|pizza|pasta|dish|chef|cuisine|table|reservation)\b/i.test(text)) {
+        // ==========================================
+        // 2. FOOD DELIVERY / RESTAURANT / CAFE / DINING
+        // ==========================================
+        } else if (domain === "food") {
             if (phase === 1 || phase === 2) {
                 card = {
                     question: "How should dining guests interact with your restaurant online?",
@@ -1658,8 +1705,10 @@ function WebsiteEditor() {
                 { label: "+ Food Critic Quotes", prompt: "Add a quotes section featuring rave reviews from food critics and Michelin-guide mentions" }
             ];
 
-        // 3. Dashboard / Analytics / Admin / KPI
-        } else if (/\b(dashboard|analytics|admin|metrics|kpi|charts|table|crm|finance|tracker|panel|inventory)\b/i.test(text)) {
+        // ==========================================
+        // 3. DASHBOARD / ANALYTICS / ADMIN / KPI
+        // ==========================================
+        } else if (domain === "dashboard") {
             if (phase === 1 || phase === 2) {
                 card = {
                     question: "What analytical actions should users be able to take on this dashboard?",
@@ -1748,8 +1797,10 @@ function WebsiteEditor() {
                 { label: "+ Real-Time Polling Indicator", prompt: "Add a live pulsing green 'Live Data Syncing (every 5s)' indicator with manual Refresh Data button" }
             ];
 
-        // 4. SaaS Landing Page / Lead Funnel / Startup
-        } else if (/\b(saas|landing|waitlist|lead|conversion|startup|software|app|pricing|b2b)\b/i.test(text)) {
+        // ==========================================
+        // 4. SAAS LANDING PAGE / LEAD FUNNEL
+        // ==========================================
+        } else if (domain === "landing") {
             if (phase === 1 || phase === 2) {
                 card = {
                     question: "What primary conversion goal should we optimize this page for?",
@@ -1838,7 +1889,285 @@ function WebsiteEditor() {
                 { label: "+ Sticky Floating CTA Bar", prompt: "Add a subtle sticky top announcement bar with '🎉 Launch Special: Get 50% off first 3 months - Claim Now'" }
             ];
 
-        // 5. Default General / Agency / Portfolio
+        // ==========================================
+        // 5. HEALTHCARE / CLINIC / DOCTOR
+        // ==========================================
+        } else if (domain === "healthcare") {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "How should patients interact with your medical clinic online?",
+                    options: [
+                        {
+                            icon: "📅",
+                            label: "Instant Doctor Appointment Booking Modal",
+                            description: "Interactive doctor selector, calendar date picker, and confirmed appointment slot",
+                            prompt: "Add an interactive doctor appointment booking modal with specialty selector and time slot picker"
+                        },
+                        {
+                            icon: "🩺",
+                            label: "Specialties & Symptoms Checker Grid",
+                            description: "Interactive grid of medical specialties with common symptoms and available doctors",
+                            prompt: "Add an interactive specialties and symptoms checker section with doctor profiles"
+                        },
+                        {
+                            icon: "🛡️",
+                            label: "HIPAA-Compliant Patient Telehealth Portal",
+                            description: "Secure patient sign-in modal for video consultation and lab test result lookup",
+                            prompt: "Add a secure telehealth patient portal modal with video consultation options"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
+                card = {
+                    question: "What medical design theme best instills patient trust?",
+                    options: [
+                        {
+                            icon: "🏥",
+                            label: "Clinical Serene Cyan & White",
+                            description: "Ultra-clean medical white cards with calming cyan and teal trust accents",
+                            prompt: "Switch theme to Clinical Serene Cyan with crisp white cards and teal trust badges"
+                        },
+                        {
+                            icon: "🌿",
+                            label: "Holistic Wellness Botanical",
+                            description: "Soft sage green, warm cream backgrounds, and organic lifestyle imagery",
+                            prompt: "Apply a Holistic Wellness theme with soft sage green accents and warm natural styling"
+                        },
+                        {
+                            icon: "🌑",
+                            label: "Modern Telehealth Dark Slate",
+                            description: "High-tech navy and slate for cutting-edge medical technology and diagnostics",
+                            prompt: "Upgrade to Modern Telehealth Dark Slate theme with deep navy backdrop and illuminated metric cards"
+                        }
+                    ]
+                };
+            } else {
+                card = {
+                    question: "What emergency and accessibility tools should we activate?",
+                    options: [
+                        {
+                            icon: "🚨",
+                            label: "Emergency 24/7 Hotline Top Bar",
+                            description: "One-click emergency direct dial banner with active on-duty doctor counter",
+                            prompt: "Add an emergency 24/7 hotline top announcement banner with instant one-click phone call button"
+                        },
+                        {
+                            icon: "📋",
+                            label: "Digital Patient Intake Form",
+                            description: "Multi-step online registration form for new patients before their clinic visit",
+                            prompt: "Add a digital patient intake form modal with medical history checklist and insurance details"
+                        },
+                        {
+                            icon: "⭐",
+                            label: "Verified Patient Testimonial Grid",
+                            description: "Real patient recovery stories, verified badges, and doctor star ratings",
+                            prompt: "Add a verified patient testimonials grid with recovery stories and doctor credentials"
+                        }
+                    ]
+                };
+            }
+
+            agentQuestions = [
+                "Would you like an instant Doctor Appointment booking modal with calendar date selection?",
+                "Should we add an emergency 24/7 phone hotline banner with one-click calling?",
+                "Do you want to add an interactive Symptoms and Specialty checker grid?"
+            ];
+
+            suggestions = [
+                { label: "+ Book Doctor Appointment Modal", prompt: "Add an interactive doctor appointment booking modal with specialty selector and time slot picker" },
+                { label: "+ Emergency 24/7 Hotline Bar", prompt: "Add an emergency 24/7 hotline top announcement banner with instant one-click phone call button" },
+                { label: "+ Symptoms & Specialty Checker", prompt: "Add an interactive specialties and symptoms checker section with doctor profiles" },
+                { label: "+ Doctor Credentials & Board Badges", prompt: "Add doctor qualification badges, hospital affiliations, and board certification cards" },
+                { label: "+ Insurance Accepted Partners Strip", prompt: "Add an insurance partners logos strip showing covered healthcare providers" }
+            ];
+
+        // ==========================================
+        // 6. REAL ESTATE / PROPERTY / VILLA
+        // ==========================================
+        } else if (domain === "realestate") {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "How should prospective buyers and renters explore your properties?",
+                    options: [
+                        {
+                            icon: "🏡",
+                            label: "Interactive Property Search Filter",
+                            description: "Price range slider, bedroom/bathroom pills, and property type filter tabs",
+                            prompt: "Add an interactive property search filter bar with price range slider and bedroom selector"
+                        },
+                        {
+                            icon: "📐",
+                            label: "Virtual 3D Tour & Floorplan Viewer",
+                            description: "Interactive architectural floorplan diagram with high-res photo gallery modal",
+                            prompt: "Add an interactive virtual tour and 3D floorplan viewer modal on property cards"
+                        },
+                        {
+                            icon: "💰",
+                            label: "Mortgage Monthly Payment Calculator",
+                            description: "Interactive down payment, interest rate, and loan term slider widget",
+                            prompt: "Add an interactive mortgage monthly payment calculator widget with live breakdown"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
+                card = {
+                    question: "What architectural aesthetic best reflects your listings?",
+                    options: [
+                        {
+                            icon: "🏛️",
+                            label: "Luxury Architectural Minimalist",
+                            description: "Sophisticated slate & warm gold with editorial full-width photography",
+                            prompt: "Upgrade to Luxury Architectural Minimalist theme with warm gold highlights and editorial photography"
+                        },
+                        {
+                            icon: "🌿",
+                            label: "Modern Eco-Living Greenery",
+                            description: "Warm terracotta, eucalyptus green, and sunlit natural textures",
+                            prompt: "Switch to Modern Eco-Living theme with eucalyptus green tones and warm terracotta accents"
+                        },
+                        {
+                            icon: "🌆",
+                            label: "Metropolitan High-Rise Obsidian",
+                            description: "Sleek dark glassmorphism with high-contrast floor plans and city skyline styling",
+                            prompt: "Apply Metropolitan High-Rise Obsidian theme with dark glass cards and crisp architectural lines"
+                        }
+                    ]
+                };
+            } else {
+                card = {
+                    question: "What lead generation and showing tools should we activate?",
+                    options: [
+                        {
+                            icon: "📅",
+                            label: "Schedule Private Property Tour Modal",
+                            description: "In-person or virtual walkthrough date and time picker with instant confirmation",
+                            prompt: "Add an interactive schedule private property tour modal with in-person or video call choice"
+                        },
+                        {
+                            icon: "📍",
+                            label: "Neighborhood Amenities & School Map",
+                            description: "Interactive nearby schools, transit, and walkability score breakdown",
+                            prompt: "Add a neighborhood amenities and school district rating section with walkability scores"
+                        },
+                        {
+                            icon: "📑",
+                            label: "Instant PDF Property Brochure Download",
+                            description: "One-click PDF property spec sheet and floor plan download with lead capture",
+                            prompt: "Add a 'Download Full Property Brochure' button with interactive preview modal"
+                        }
+                    ]
+                };
+            }
+
+            agentQuestions = [
+                "Would you like an interactive Property Search filter with price range slider and bedroom selector?",
+                "Should we add a Mortgage Monthly Payment Calculator widget?",
+                "Do you want an interactive Schedule Private Tour booking modal?"
+            ];
+
+            suggestions = [
+                { label: "+ Property Search & Price Slider", prompt: "Add an interactive property search filter bar with price range slider and bedroom selector" },
+                { label: "+ Mortgage Payment Calculator", prompt: "Add an interactive mortgage monthly payment calculator widget with live breakdown" },
+                { label: "+ Schedule Private Tour Modal", prompt: "Add an interactive schedule private property tour modal with in-person or video call choice" },
+                { label: "+ Virtual 3D Tour & Floorplan", prompt: "Add an interactive virtual tour and 3D floorplan viewer modal on property cards" },
+                { label: "+ Agent Direct WhatsApp Card", prompt: "Add a floating real estate agent profile card with direct WhatsApp chat and phone call button" }
+            ];
+
+        // ==========================================
+        // 7. FITNESS / GYM / WORKOUT
+        // ==========================================
+        } else if (domain === "fitness") {
+            if (phase === 1 || phase === 2) {
+                card = {
+                    question: "How should athletes and members engage with your fitness club online?",
+                    options: [
+                        {
+                            icon: "🏋️",
+                            label: "Interactive Class Schedule & Booking",
+                            description: "Weekly timetable filterable by HIIT, Yoga, Strength, and Coach with instant booking",
+                            prompt: "Add an interactive weekly fitness class schedule timetable with category filter tabs and booking modal"
+                        },
+                        {
+                            icon: "💳",
+                            label: "Membership Pricing Tier Cards",
+                            description: "Day Pass, Monthly Pro, and VIP Annual cards with 1-click sign-up checkout",
+                            prompt: "Add membership pricing tier cards (Day Pass, Pro Monthly, VIP Annual) with feature comparisons"
+                        },
+                        {
+                            icon: "🔥",
+                            label: "BMI & Daily Calorie Target Calculator",
+                            description: "Interactive widget estimating daily calorie deficit, protein goals, and training plan",
+                            prompt: "Add an interactive BMI and daily calorie target calculator widget with fitness goal selector"
+                        }
+                    ]
+                };
+            } else if (phase === 3) {
+                card = {
+                    question: "What energy and visual style best reflects your gym brand?",
+                    options: [
+                        {
+                            icon: "⚡",
+                            label: "High-Octane Volcanic Neon",
+                            description: "Matte obsidian black with intense neon yellow/lime athletic highlights",
+                            prompt: "Switch theme to High-Octane Volcanic Neon with obsidian background and electric lime accents"
+                        },
+                        {
+                            icon: "🧘",
+                            label: "Zen Mindful Studio Sanctuary",
+                            description: "Warm bamboo, soft clay tones, and serene minimalist typography",
+                            prompt: "Apply Zen Mindful Studio Sanctuary theme with warm clay tones and clean typography"
+                        },
+                        {
+                            icon: "🥊",
+                            label: "Raw Underground Iron Warehouse",
+                            description: "Industrial grit, textured carbon dark, and bold condensed typography",
+                            prompt: "Upgrade to Raw Underground Iron Warehouse theme with industrial carbon textures and bold typography"
+                        }
+                    ]
+                };
+            } else {
+                card = {
+                    question: "What motivation and retention features should we activate?",
+                    options: [
+                        {
+                            icon: "📸",
+                            label: "Member Transformation Before/After Slider",
+                            description: "Interactive drag slider showing real member progress, weight loss, and muscle gains",
+                            prompt: "Add an interactive before/after transformation photo comparison slider section"
+                        },
+                        {
+                            icon: "🎟️",
+                            label: "Claim 7-Day Free Guest Pass Modal",
+                            description: "Lead capture modal offering 1-week free gym access with instant pass generation",
+                            prompt: "Add a 'Claim 7-Day Free Gym Pass' lead capture modal with instant digital pass preview"
+                        },
+                        {
+                            icon: "🏆",
+                            label: "Trainer Profiles & Instagram Grid",
+                            description: "Master coach bios, certifications, specialties, and workout photo reel",
+                            prompt: "Add a certified master trainers section with specialties, credentials, and booking actions"
+                        }
+                    ]
+                };
+            }
+
+            agentQuestions = [
+                "Would you like an interactive weekly fitness Class Schedule timetable with booking actions?",
+                "Should we add a BMI and daily calorie target calculator widget?",
+                "Do you want to add a 7-Day Free Gym Pass lead capture modal?"
+            ];
+
+            suggestions = [
+                { label: "+ Live Class Schedule & Booking", prompt: "Add an interactive weekly fitness class schedule timetable with category filter tabs and booking modal" },
+                { label: "+ Claim 7-Day Free Pass Modal", prompt: "Add a 'Claim 7-Day Free Gym Pass' lead capture modal with instant digital pass preview" },
+                { label: "+ BMI & Calorie Calculator", prompt: "Add an interactive BMI and daily calorie target calculator widget with fitness goal selector" },
+                { label: "+ Member Transformation Stories", prompt: "Add an interactive before/after transformation photo comparison slider section" },
+                { label: "+ Trainer Profiles & Certifications", prompt: "Add a certified master trainers section with specialties, credentials, and booking actions" }
+            ];
+
+        // ==========================================
+        // 8. GENERAL PORTFOLIO / AGENCY / CREATIVE
+        // ==========================================
         } else {
             if (phase === 1 || phase === 2) {
                 card = {
@@ -1923,9 +2252,9 @@ function WebsiteEditor() {
             suggestions = [
                 { label: "+ Skills & Tech Stack Grid", prompt: "Add an interactive Skills & Tech Stack grid with animated proficiency bars and tool icons" },
                 { label: "+ Experience Timeline Roadmap", prompt: "Add a vertical career and milestone experience timeline with company logos and key achievements" },
-                { label: "+ Floating Let's Talk Button", prompt: "Add a floating quick contact button in the bottom corner with direct email/calendar trigger" },
-                { label: "+ Client Logo Wall & Badges", prompt: "Add a featured client logos grid showing prestigious brands worked with" },
-                { label: "+ Back to Top Smooth Scroll", prompt: "Add a floating Back to Top button that appears when scrolling down and smoothly scrolls to top" }
+                { label: "+ Interactive Pricing Estimator", prompt: "Add an interactive project price and timeline estimator calculator widget" },
+                { label: "+ Client Video Testimonial Modal", prompt: "Add a video testimonial player modal with client reviews and impact metrics" },
+                { label: "+ Book Strategy Call Modal", prompt: "Add an interactive strategy consultation booking modal with calendar date selector" }
             ];
         }
 
