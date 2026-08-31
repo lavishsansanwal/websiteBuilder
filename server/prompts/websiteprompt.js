@@ -149,12 +149,12 @@ Build an ultra-rich, multi-collection, high-converting retail storefront with de
   5. **Dense, Multi-Category Product Grid (At least 12-18 Realistic Items in JS)**:
      - Each product card MUST include:
        - Product Image with smooth hover-zoom and badge (e.g. \`BESTSELLER\`, \`NEW DROP\`, \`LIMITED\`, \`HOT\`).
-       - Heart wishlist toggle button (\`onclick="window.toggleWishlist(this, '${p.id}')"\`).
-       - Quick View eye button (\`onclick="window.openProductModal('${p.id}')"\`).
+       - Heart wishlist toggle button (\`onclick="window.toggleWishlist(this, 'p1')"\`).
+       - Quick View eye button (\`onclick="window.openProductModal('p1')"\`).
        - Product Title (e.g. "Air Jordan 1 Retro Red Edition", "Pegasus Flyknit Turbo", "Tech Fleece Heavyweight Hoodie").
        - Subtitle category label & Star Rating ⭐⭐⭐⭐⭐ \`(4.9 • 240 reviews)\`.
        - Pricing: Sale price \`$139.00\` + Original strikethrough \`$180.00\`.
-       - Primary Action Button: \`<button onclick="window.addToCart('${p.id}', ...)" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider transition shadow-md shadow-amber-500/20 flex items-center gap-1.5"><i data-lucide="shopping-bag"></i> <span>Add to Bag</span></button>\`.
+       - Primary Action Button: \`<button onclick="window.addToCart('p1', ...)" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs uppercase tracking-wider transition shadow-md shadow-amber-500/20 flex items-center gap-1.5"><i data-lucide="shopping-bag"></i> <span>Add to Bag</span></button>\`.
   6. **Innovation Lab / Tech Showcase (#sneaker-lab)**:
      - Highlighting Zoom Air pods, React foam, carbon fiber plating, with 3 metric cards (e.g. "88% Energy Return", "195g Featherweight", "3D Flyknit") and "Inspect Tech" modal trigger.
   7. **Editorial Streetwear & Athletic Lookbook (#lookbook)**:
