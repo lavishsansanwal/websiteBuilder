@@ -531,27 +531,53 @@ const getPreviewCode = (rawCode) => {
     // ========================================================
     window.filterCategory = function(cat) {
         var category = (cat || 'all').toLowerCase().trim();
-        document.querySelectorAll('.cat-pill, [data-category-btn], .category-btn, .cuisine-pill, [onclick*="filterCategory"], [onclick*="filterCuisine"]').forEach(function(btn) {
-            var bCat = (btn.getAttribute('data-category') || btn.getAttribute('data-cuisine') || btn.textContent || '').toLowerCase().trim();
-            var isMatch = category === 'all' ? (bCat === 'all' || bCat.includes('all') || bCat.includes('72')) : bCat.includes(category);
+        window.currentCategory = category;
+
+        // 1. Highlight circular buttons, category pills & tabs
+        document.querySelectorAll('.cat-pill, [data-category-btn], .category-btn, .cuisine-pill, [onclick*="filterCategory"], [onclick*="filterCuisine"], [data-cat-btn]').forEach(function(btn) {
+            var bCat = (btn.getAttribute('data-category') || btn.getAttribute('data-cat-btn') || btn.getAttribute('data-cuisine') || btn.textContent || '').toLowerCase().trim();
+            var isMatch = category === 'all' ? (bCat === 'all' || bCat.includes('all') || bCat.includes('72')) : (bCat.includes(category) || (category.includes('indian') && bCat.includes('indian')));
             if (isMatch) {
                 btn.classList.add('bg-amber-500', 'text-black', 'shadow-lg');
                 btn.classList.remove('bg-slate-900', 'bg-stone-900', 'text-slate-400', 'text-stone-400');
+                var circle = btn.querySelector('.rounded-full');
+                if (circle) {
+                    circle.classList.add('border-orange-500', 'border-amber-500', 'scale-110');
+                    circle.classList.remove('border-stone-800');
+                }
             } else {
                 btn.classList.remove('bg-amber-500', 'text-black', 'shadow-lg');
                 btn.classList.add('bg-slate-900', 'text-slate-400');
+                var circle = btn.querySelector('.rounded-full');
+                if (circle && !btn.textContent.toLowerCase().includes('all')) {
+                    circle.classList.remove('border-orange-500', 'border-amber-500', 'scale-110');
+                    circle.classList.add('border-stone-800');
+                }
             }
         });
 
+        // 2. Trigger custom renderMenu if available
+        if (typeof window.renderMenu === 'function') {
+            try { window.renderMenu(); } catch(e) {}
+        }
+
+        // 3. Filter static/rendered DOM items
         var cards = document.querySelectorAll('[data-category], [data-cuisine], .product-card, .dish-card, .menu-item');
         cards.forEach(function(card) {
             var cardCat = (card.getAttribute('data-category') || card.getAttribute('data-cuisine') || card.textContent || '').toLowerCase();
-            if (category === 'all' || cardCat.includes(category)) {
+            if (category === 'all' || cardCat.includes(category) || (category.includes('indian') && cardCat.includes('indian'))) {
                 card.style.display = '';
             } else {
                 card.style.display = 'none';
             }
         });
+
+        // 4. Scroll smoothly to dishes / menu section
+        var menuSection = document.getElementById('menu') || document.getElementById('dishesGrid');
+        if (menuSection) {
+            menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         initLucideIcons();
     };
     window.filterCuisine = window.filterCategory;
