@@ -1296,19 +1296,25 @@ GET ALL WEBSITES
 */
 export const getAll = async (req, res) => {
     try {
-        let websites = await Website.find({
-            user: req.user._id
-        }).sort({ createdAt: -1 });
+        let websites = [];
+        if (req.user?._id) {
+            websites = await Website.find({
+                user: req.user._id
+            }).sort({ createdAt: -1 });
 
-        if ((!websites || websites.length === 0) && req.user?._id) {
-            const allSites = await Website.find().sort({ createdAt: -1 });
-            if (allSites.length > 0) {
-                await Website.updateMany(
-                    { $or: [{ user: { $exists: false } }, { user: null }, { user: { $ne: req.user._id } }] },
-                    { $set: { user: req.user._id } }
-                );
-                websites = await Website.find({ user: req.user._id }).sort({ createdAt: -1 });
+            if (!websites || websites.length === 0) {
+                const allSites = await Website.find().sort({ createdAt: -1 });
+                if (allSites.length > 0) {
+                    await Website.updateMany(
+                        { $or: [{ user: { $exists: false } }, { user: null }, { user: { $ne: req.user._id } }] },
+                        { $set: { user: req.user._id } }
+                    );
+                    websites = await Website.find({ user: req.user._id }).sort({ createdAt: -1 });
+                }
             }
+        } else {
+            // Guest or public showcase
+            websites = await Website.find().sort({ createdAt: -1 });
         }
 
         return res.status(200).json({ websites });

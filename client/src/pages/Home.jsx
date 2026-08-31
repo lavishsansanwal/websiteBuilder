@@ -1140,29 +1140,29 @@ function Home() {
                     </div>
                 </section>
 
-                {/* YOUR WEBSITES */}
-                {userData && safeWebsites.length > 0 && (
+                {/* YOUR WEBSITES / SHOWCASE */}
+                {safeWebsites.length > 0 && (
                     <section className="mt-12">
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2
                                     className={`text-2xl md:text-3xl font-bold ${headingText}`}
                                 >
-                                    Your Websites
+                                    {userData ? "Your Websites" : "Live Projects Showcase"}
                                 </h2>
 
                                 <p
                                     className={`text-sm mt-1 ${mutedText}`}
                                 >
-                                    Manage your latest AI-generated websites.
+                                    {userData ? "Manage your latest AI-generated websites." : "Explore recently created and live websites built on GenWeb.ai."}
                                 </p>
                             </div>
 
                             <button
-                                onClick={() => navigate("/dashboard")}
-                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-sm"
+                                onClick={() => userData ? navigate("/dashboard") : setOpenLogin(true)}
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-sm hover:bg-white/5 transition"
                             >
-                                View All
+                                {userData ? "View All" : "Explore All"}
                             </button>
                         </div>
 
@@ -1183,9 +1183,11 @@ function Home() {
                                         whileHover={{ y: -5 }}
                                         onClick={() => {
                                             if (website._id) {
-                                                navigate(
-                                                    `/editor/${website._id}`
-                                                );
+                                                if (userData) {
+                                                    navigate(`/editor/${website._id}`);
+                                                } else {
+                                                    navigate(`/site/${website._id}`);
+                                                }
                                             }
                                         }}
                                         className={`group rounded-2xl border overflow-hidden cursor-pointer ${
