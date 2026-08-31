@@ -376,17 +376,178 @@ Build the document following this exact clean architecture:
 
     // RENDER TABLE FUNCTION
     function renderTable() {
-      // Handles slicing, rendering tr rows with badges, progress bars, and click listeners
+      const tbody = document.getElementById('tableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const startIdx = (currentPage - 1) * pageSize;
+      const pageItems = currentData.slice(startIdx, startIdx + pageSize);
+
+      const shownStartEl = document.getElementById('shownStart');
+      if (shownStartEl) shownStartEl.textContent = currentData.length === 0 ? 0 : startIdx + 1;
+      const shownEndEl = document.getElementById('shownEnd');
+      if (shownEndEl) shownEndEl.textContent = Math.min(startIdx + pageSize, currentData.length);
+      const totalRowsCountEl = document.getElementById('totalRowsCount');
+      if (totalRowsCountEl) totalRowsCountEl.textContent = currentData.length;
+      const tableRowsBadgeEl = document.getElementById('tableRowsBadge');
+      if (tableRowsBadgeEl) tableRowsBadgeEl.textContent = currentData.length + ' Records';
+      const pageIndicatorEl = document.getElementById('pageIndicator');
+      if (pageIndicatorEl) pageIndicatorEl.textContent = 'Page ' + currentPage;
+
+      if (pageItems.length === 0) {
+        tbody.innerHTML = \`
+          <tr>
+            <td colspan="10" class="p-8 text-center text-slate-400 font-medium">
+              <div class="flex flex-col items-center gap-2">
+                <i data-lucide="search-x" class="w-8 h-8 text-slate-500"></i>
+                <p>No matching records found</p>
+              </div>
+            </td>
+          </tr>
+        \`;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      pageItems.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/50 cursor-pointer transition group border-b border-slate-800/40';
+        const globalIndex = startIdx + idx;
+        tr.onclick = () => openRecordDrawer(globalIndex);
+
+        const keys = Object.keys(row);
+        const firstVal = row[keys[0]] || '';
+        const cells = keys.map((k, colIdx) => {
+          const val = row[k];
+          if (colIdx === 0) {
+            return \`<td class="p-4"><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">\${String(val).charAt(0)}</div><span class="font-bold text-white group-hover:text-indigo-400 transition">\${val}</span></div></td>\`;
+          }
+          if (typeof val === 'number' || (!isNaN(Number(val)) && String(val).trim() !== '')) {
+            return \`<td class="p-4 font-mono font-bold text-white">\${typeof val === 'number' || String(k).toLowerCase().includes('price') || String(k).toLowerCase().includes('revenue') ? '$' + Number(val).toLocaleString() : val}</td>\`;
+          }
+          return \`<td class="p-4 text-slate-300">\${val}</td>\`;
+        }).join('');
+
+        tr.innerHTML = cells + \`<td class="p-4 text-right"><button onclick="event.stopPropagation(); copyRecordName('\${firstVal}')" title="Copy" class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button></td>\`;
+        tbody.appendChild(tr);
+      });
+
+      if (window.lucide) lucide.createIcons();
     }
 
     // SEARCH & FILTER
     function filterTable(q) {
       const query = (q || '').toLowerCase().trim();
       currentData = rawDataset.filter(row => {
-        return Object.values(row).some(val => String(val).toLowerCase().includes(query));
+        const matchCat = (selectedCategory === 'All' || selectedCategory === 'all' || !selectedCategory) ? true : Object.values(row).some(v => String(v).toLowerCase() === selectedCategory.toLowerCase());
+        const matchQuery = !query || Object.values(row).some(val => String(val).toLowerCase().includes(query));
+        return matchCat && matchQuery;
       });
       currentPage = 1;
       renderTable();
+    }
+
+    // CATEGORY PILL FILTER
+    function filterCategory(cat) {
+      selectedCategory = cat;
+      document.querySelectorAll('.cat-pill, [onclick*="filterCategory"]').forEach(btn => {
+        const txt = (btn.getAttribute('data-cat') || btn.textContent || '').trim().toLowerCase();
+        const match = (cat.toLowerCase() === 'all' && txt.includes('all')) || (txt.includes(cat.toLowerCase()));
+        if (match) {
+          btn.classList.add('bg-indigo-600', 'text-white', 'font-bold');
+          btn.classList.remove('bg-slate-900', 'text-slate-400');
+        } else {
+          btn.classList.remove('bg-indigo-600', 'text-white', 'font-bold');
+          btn.classList.add('bg-slate-900', 'text-slate-400');
+        }
+      });
+      filterTable(document.getElementById('tableSearch')?.value || '');
+      showToast('Filtered by ' + (cat === 'All' ? 'All Records' : cat));
+    }
+
+    // SORT TABLE
+    function sortTable(criteria) {
+      const val = String(criteria || '').toLowerCase();
+      currentData.sort((a, b) => {
+        const keys = Object.keys(a);
+        const nameKey = keys[0];
+        const numKey = keys.find(k => !isNaN(Number(a[k])) && a[k] !== '') || keys[1];
+
+        if (val.includes('z-a') || val.includes('z to a')) {
+          return String(b[nameKey]).localeCompare(String(a[nameKey]));
+        }
+        if (val.includes('a-z') || val.includes('a to z') || val.includes('name')) {
+          return String(a[nameKey]).localeCompare(String(b[nameKey]));
+        }
+        if (val.includes('low') && numKey) {
+          return Number(a[numKey]) - Number(b[numKey]);
+        }
+        if (val.includes('high') && numKey) {
+          return Number(b[numKey]) - Number(a[numKey]);
+        }
+        return 0;
+      });
+      renderTable();
+      showToast('Sorted table by ' + criteria);
+    }
+
+    // PAGINATION
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+      }
+    }
+
+    function nextPage() {
+      if (currentPage * pageSize < currentData.length) {
+        currentPage++;
+        renderTable();
+      }
+    }
+
+    function copyRecordName(name) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(name);
+        showToast('Record copied: ' + name);
+      }
+    }
+
+    // RECORD DRAWER
+    function openRecordDrawer(index) {
+      const record = currentData[index];
+      if (!record) return;
+      selectedDrawerRecord = record;
+
+      const drawer = document.getElementById('recordDrawer');
+      const titleEl = document.getElementById('drawerRecordTitle');
+      const fieldList = document.getElementById('drawerFieldList');
+
+      if (titleEl) titleEl.textContent = record[Object.keys(record)[0]] || 'Record Deep-Dive';
+      if (fieldList) {
+        fieldList.innerHTML = '';
+        Object.entries(record).forEach(([k, v]) => {
+          const div = document.createElement('div');
+          div.className = 'p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between';
+          div.innerHTML = \`<span class="text-slate-400 font-medium capitalize">\${k}:</span><span class="text-white font-bold font-mono">\${v}</span>\`;
+          fieldList.appendChild(div);
+        });
+      }
+
+      if (drawer) drawer.classList.remove('translate-x-full');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeRecordDrawer() {
+      const drawer = document.getElementById('recordDrawer');
+      if (drawer) drawer.classList.add('translate-x-full');
+    }
+
+    function copyDrawerRecord() {
+      if (selectedDrawerRecord && navigator.clipboard) {
+        navigator.clipboard.writeText(JSON.stringify(selectedDrawerRecord, null, 2));
+        showToast('Record JSON copied to clipboard! 📋');
+      }
     }
 
     // SAFE EXPORT TO CSV (NO UNTERMINATED STRING LITERALS)
@@ -431,60 +592,29 @@ Build the document following this exact clean architecture:
       showToast('Dataset exported as JSON! 📦');
     }
 
-    // RECORD DRAWER
-    function openRecordDrawer(index) {
-      const record = currentData[index];
-      if (!record) return;
-      selectedDrawerRecord = record;
-      
-      const drawer = document.getElementById('recordDrawer');
-      const titleEl = document.getElementById('drawerRecordTitle');
-      const fieldList = document.getElementById('drawerFieldList');
-      
-      titleEl.textContent = record[Object.keys(record)[0]] || 'Record Deep-Dive';
-      fieldList.innerHTML = '';
-
-      Object.entries(record).forEach(([k, v]) => {
-        const div = document.createElement('div');
-        div.className = 'p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between';
-        div.innerHTML = '<span class="text-slate-400 font-medium">' + k + ':</span><span class="text-white font-bold font-mono">' + v + '</span>';
-        fieldList.appendChild(div);
-      });
-
-      drawer.classList.remove('translate-x-full');
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function closeRecordDrawer() {
-      const drawer = document.getElementById('recordDrawer');
-      if (drawer) drawer.classList.add('translate-x-full');
-    }
-
-    function copyDrawerRecord() {
-      if (selectedDrawerRecord && navigator.clipboard) {
-        navigator.clipboard.writeText(JSON.stringify(selectedDrawerRecord, null, 2));
-        showToast('Record JSON copied to clipboard! 📋');
-      }
-    }
-
     // TOAST SYSTEM
     function showToast(msg) {
-      const container = document.getElementById('toastContainer');
-      if (!container) return;
+      const container = document.getElementById('toastContainer') || document.body;
       const toast = document.createElement('div');
-      toast.className = 'px-4 py-3 rounded-xl bg-slate-900 border border-indigo-500/40 text-xs font-semibold text-white shadow-2xl flex items-center gap-2 transform transition-all duration-300 translate-y-4 opacity-0 pointer-events-auto';
+      toast.className = 'fixed bottom-6 right-6 z-[99999] px-4 py-3 rounded-xl bg-slate-900 border border-indigo-500/40 text-xs font-semibold text-white shadow-2xl flex items-center gap-2 transform transition-all duration-300 translate-y-4 opacity-0 pointer-events-auto';
       toast.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i><span>' + msg + '</span>';
       container.appendChild(toast);
       if (window.lucide) lucide.createIcons();
 
       setTimeout(() => { toast.classList.remove('translate-y-4', 'opacity-0'); }, 10);
+      setTimeout(() => { toast.classList.add('translate-y-4', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
     // ATTACH TO WINDOW SCOPE (MANDATORY)
     window.renderTable = renderTable;
     window.filterTable = filterTable;
     window.filterCategory = filterCategory;
     window.filterStatus = filterCategory;
     window.sortTable = sortTable;
-    window.setPage = setPage;
+    window.prevPage = prevPage;
+    window.nextPage = nextPage;
+    window.setPage = function(p) { currentPage = p; renderTable(); };
+    window.copyRecordName = copyRecordName;
     window.toggleTheme = toggleTheme;
     window.exportToCSV = exportToCSV;
     window.exportToJSON = exportToJSON;
@@ -492,6 +622,21 @@ Build the document following this exact clean architecture:
     window.closeRecordDrawer = closeRecordDrawer;
     window.copyDrawerRecord = copyDrawerRecord;
     window.showToast = showToast;
+
+    // MULTI-PHASE ROBUST INITIALIZATION
+    function initAll() {
+      renderTable();
+      if (typeof initCharts === 'function') initCharts();
+      if (window.lucide) lucide.createIcons();
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+      initAll();
+    }
+    window.addEventListener('load', initAll);
+    setTimeout(initAll, 50);
+    setTimeout(initAll, 200);
   </script>
 </body>
 </html>

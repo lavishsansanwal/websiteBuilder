@@ -424,15 +424,32 @@ const getPreviewCode = (rawCode) => {
             try { window.lucide.createIcons(); } catch(e) {}
         }
     }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initLucideIcons);
-    } else {
+    // Multi-phase initialization for dynamic tables, charts, and Lucide icons
+    function initDashboardAndInteractiveElements() {
         initLucideIcons();
+        if (typeof window.renderTable === 'function') {
+            try { window.renderTable(); } catch(e) {}
+        }
+        if (typeof window.initCharts === 'function') {
+            try { window.initCharts(); } catch(e) {}
+        }
+        if (typeof window.renderMenu === 'function') {
+            try { window.renderMenu(); } catch(e) {}
+        }
+        if (typeof window.updateCartUI === 'function') {
+            try { window.updateCartUI(); } catch(e) {}
+        }
     }
-    window.addEventListener('load', initLucideIcons);
-    setTimeout(initLucideIcons, 100);
-    setTimeout(initLucideIcons, 500);
-    setTimeout(initLucideIcons, 1200);
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashboardAndInteractiveElements);
+    } else {
+        initDashboardAndInteractiveElements();
+    }
+    window.addEventListener('load', initDashboardAndInteractiveElements);
+    setTimeout(initDashboardAndInteractiveElements, 50);
+    setTimeout(initDashboardAndInteractiveElements, 250);
+    setTimeout(initDashboardAndInteractiveElements, 800);
 
     // ========================================================
     // UNIVERSAL TOAST NOTIFICATION ENGINE
