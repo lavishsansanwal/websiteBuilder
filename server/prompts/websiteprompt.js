@@ -259,25 +259,35 @@ Inside \`<script>\`, ALWAYS implement a complete, self-contained JavaScript engi
    \`\`\`javascript
    window.currentCategory = 'all';
    window.filterCategory = function(cat) {
-     window.currentCategory = cat;
-     document.querySelectorAll('.cat-pill, [data-category-btn]').forEach(function(btn) {
-       var match = btn.getAttribute('data-category') === cat || btn.textContent.toLowerCase().includes(cat.toLowerCase());
+     window.currentCategory = (cat || 'all').toLowerCase().trim();
+     document.querySelectorAll('.cat-pill, .chip-btn, .category-card, [data-category-btn], [onclick*="filterCategory"]').forEach(function(btn) {
+       var onclickAttr = (btn.getAttribute('onclick') || '').toLowerCase();
+       var txt = (btn.textContent || '').toLowerCase();
+       var match = (window.currentCategory === 'all' && (onclickAttr.includes("'all'") || txt.includes('view all') || txt.includes('all'))) ||
+                   (onclickAttr.includes("'" + window.currentCategory + "'") || onclickAttr.includes('"' + window.currentCategory + '"') || txt.includes(window.currentCategory));
        if (match) {
-         btn.classList.add('bg-amber-500', 'text-black', 'shadow-lg');
-         btn.classList.remove('bg-slate-900', 'text-slate-400');
+         btn.classList.add('border-orange-500', 'border-amber-500', 'bg-zinc-800', 'bg-slate-800', 'shadow-lg');
        } else {
-         btn.classList.remove('bg-amber-500', 'text-black', 'shadow-lg');
-         btn.classList.add('bg-slate-900', 'text-slate-400');
+         btn.classList.remove('border-orange-500', 'border-amber-500', 'bg-zinc-800', 'bg-slate-800', 'shadow-lg');
        }
      });
      if (typeof renderProducts === 'function') renderProducts();
      if (typeof renderMenu === 'function') renderMenu();
+     if (typeof renderDishes === 'function') renderDishes();
+
+     var target = document.getElementById('products') || document.getElementById('menu') || document.getElementById('catalog') || document.getElementById('dishes') || document.getElementById('productGrid');
+     if (target) {
+       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+     }
+     window.showToast('Filtered by ' + (cat === 'all' ? 'All Items' : cat.toUpperCase()));
    };
    window.filterCuisine = window.filterCategory;
+   window.filterProducts = window.filterCategory;
    window.handleSearch = function(query) {
      window.searchQuery = (query || '').toLowerCase().trim();
      if (typeof renderProducts === 'function') renderProducts();
      if (typeof renderMenu === 'function') renderMenu();
+     if (typeof renderDishes === 'function') renderDishes();
    };
    window.handleProductSearch = window.handleSearch;
    window.handleMenuSearch = window.handleSearch;

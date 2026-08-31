@@ -989,9 +989,23 @@ const getPreviewCode = (rawCode) => {
         }
 
         // 8. Back to Top Click
-        if (txt.includes('back to top') || txt.includes('top') && btn.querySelector('i[data-lucide="arrow-up"]')) {
+        if (txt.includes('back to top') || (txt.includes('top') && btn.querySelector('i[data-lucide="arrow-up"]'))) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
+        }
+
+        // 9. Category Pill / Department Card Click Delegator
+        var catCard = btn.closest('.category-card, [data-category], [data-cat], .cat-btn, .chip-btn');
+        if (catCard || btn.classList.contains('cat-btn') || btn.classList.contains('chip-btn')) {
+            var rawCat = btn.getAttribute('data-cat') || btn.getAttribute('data-category') || txt.split('\n')[0].replace(/[^a-zA-Z0-9 -]/g, '').trim().toLowerCase();
+            if (typeof window.filterCategory === 'function') {
+                window.filterCategory(rawCat);
+                return;
+            }
+            if (typeof window.filterProducts === 'function') {
+                window.filterProducts(rawCat);
+                return;
+            }
         }
     }
 
