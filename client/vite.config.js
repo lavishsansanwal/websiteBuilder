@@ -4,7 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(),tailwindcss(),],
-    server: {
+  server: {
+    open: true, // Automatically opens in Chrome/default browser on start
     cors: true // Enables CORS for all origins in the dev server
   }
 })
