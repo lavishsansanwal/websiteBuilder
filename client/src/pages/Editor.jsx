@@ -838,7 +838,7 @@ const getPreviewCode = (rawCode) => {
         if (!btn) return;
 
         var txt = (btn.textContent || '').toLowerCase().trim();
-        var onclickAttr = btn.getAttribute('onclick') || '';
+        var onclickAttr = (btn.getAttribute('onclick') || '').trim();
 
         // 1. Navigation Anchor Links
         if (btn.tagName === 'A') {
@@ -855,7 +855,12 @@ const getPreviewCode = (rawCode) => {
             }
         }
 
-        // 2. Add to Cart / Add to Bag / Quick Add
+        // If the button already has an inline onclick handler, do NOT execute duplicate fallback actions
+        if (onclickAttr) {
+            return;
+        }
+
+        // 2. Add to Cart / Add to Bag / Quick Add (Fallback only if no onclick is defined)
         if (txt.includes('add to bag') || txt.includes('add to cart') || txt.includes('add to order') || txt.includes('quick add') || txt === 'add') {
             var card = btn.closest('.glass-card, [data-id], .card, .product-card, .dish-card, div');
             var title = card ? (card.querySelector('h3, h4, .title, strong')?.textContent || 'Item') : 'Product';
