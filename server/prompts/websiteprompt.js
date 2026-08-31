@@ -291,9 +291,9 @@ Inside \`<script>\`, ALWAYS implement a complete, self-contained JavaScript engi
    };
    window.handleProductSearch = window.handleSearch;
    window.handleMenuSearch = window.handleSearch;
-   ```
+   \\\
 3. **Cart & Wishlist Handlers**:
-   ```javascript
+   \\\javascript
     window.cart = [];
     window.wishlist = [];
     window.addToCart = function(id, name, price, img) {
